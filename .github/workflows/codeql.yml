@@ -1,4 +1,4 @@
-name: CodeQL
+name: SAST
 
 on:
   push:
@@ -12,36 +12,20 @@ on:
     branches:
       - development
       - main
-  schedule:
-    - cron: '18 3 * * 1'
 
 permissions:
-  actions: read
   contents: read
-  security-events: write
 
 jobs:
-  analyze:
-    name: Analyze (PHP)
+  semgrep:
+    name: Semgrep PHP SAST
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language:
-          - php
+    container:
+      image: semgrep/semgrep
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+      - name: Run Semgrep
+        run: semgrep scan --config p/php --config p/owasp-top-ten --config p/secrets
