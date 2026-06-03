@@ -19,9 +19,10 @@ jobs:
       - name: Validate source branch for development
         if: github.base_ref == 'development'
         shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          HEAD_REF='${{ github.head_ref }}'
           if [[ ! "$HEAD_REF" =~ ^feature/ && ! "$HEAD_REF" =~ ^fix/ && ! "$HEAD_REF" =~ ^hotfix/ ]]; then
             echo "Pull requests into development must come from feature/*, fix/*, or hotfix/* branches. Got: $HEAD_REF"
             exit 1
@@ -30,9 +31,10 @@ jobs:
       - name: Validate source branch for main
         if: github.base_ref == 'main'
         shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          HEAD_REF='${{ github.head_ref }}'
           if [[ ! "$HEAD_REF" =~ ^development$ && ! "$HEAD_REF" =~ ^release/ ]]; then
             echo "Pull requests into main must come from development or release/* branches. Got: $HEAD_REF"
             exit 1
