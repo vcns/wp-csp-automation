@@ -77,18 +77,15 @@ jobs:
   sast-semgrep:
     name: SAST (Semgrep)
     runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Semgrep scan
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >-
-            p/php
-            p/owasp-top-ten
-            p/secrets
+        run: semgrep scan --config p/php --config p/owasp-top-ten --config p/secrets
 
   package-audit:
     name: Build Release Artifact

@@ -18,7 +18,7 @@
     "sort-packages": true
   },
   "scripts": {
-    "lint:php": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/lint-php.ps1",
+    "lint:php": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools/lint-php.ps1",
     "lint:phpcs": "phpcs",
     "lint": [
       "@lint:php",
