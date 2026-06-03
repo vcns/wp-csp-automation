@@ -1,0 +1,28 @@
+{
+  "name": "sjackson0109/wp-csp-automation",
+  "description": "WordPress plugin for CSP automation, source discovery, enforcement, and premium entitlement handling.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpcompatibility/php-compatibility": "^9.3",
+    "phpcsstandards/phpcsextra": "^1.2",
+    "phpcsstandards/phpcsutils": "^1.1",
+    "sirbrillig/phpcs-variable-analysis": "^2.12",
+    "wp-coding-standards/wpcs": "^3.1"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint:php": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/lint-php.ps1",
+    "lint:phpcs": "phpcs",
+    "lint": [
+      "@lint:php",
+      "@lint:phpcs"
+    ]
+  }
+}

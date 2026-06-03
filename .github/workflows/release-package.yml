@@ -1,0 +1,47 @@
+name: Release Package
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'wp-csp-automation.php'
+      - 'readme.txt'
+      - 'includes/**'
+      - 'assets/**'
+      - 'uninstall.php'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-smoke-check:
+    name: Package Smoke Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/wp-csp-automation
+          rsync -av ./ dist/wp-csp-automation/ --exclude-from='.distignore'
+          cd dist
+          zip -r wp-csp-automation.zip wp-csp-automation
+
+      - name: Verify packaged plugin header file exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -l dist/wp-csp-automation.zip | grep 'wp-csp-automation/wp-csp-automation.php'
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp-csp-automation-release-candidate
+          path: dist/wp-csp-automation.zip
