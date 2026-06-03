@@ -1,0 +1,273 @@
+<?php
+/**
+ * Admin view: WP CSP Automation Dashboard.
+ * Shows per-surface policy profiles, source inventory, violations, scan log.
+ * Rendered by Admin_UI::render_dashboard().
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+global $wpdb;
+
+// Current tab.
+$tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'profiles';
+$allowed_tabs = [ 'profiles', 'sources', 'violations', 'scan-log' ];
+if ( ! in_array( $tab, $allowed_tabs, true ) ) {
+	$tab = 'profiles';
+}
+
+$base_url = admin_url( 'admin.php?page=wp-csp-automation-dashboard' );
+
+// ── Data queries ──────────────────────────────────────────────────────────────
+$profiles = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_policy_profiles ORDER BY surface", ARRAY_A ) ?: []; // phpcs:ignore
+$surfaces = [ 'frontend', 'admin', 'login', 'api' ];
+
+// Source inventory – paginated.
+$per_page    = 20;
+$page_num    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+$offset      = ( $page_num - 1 ) * $per_page;
+$src_surface = isset( $_GET['src_surface'] ) ? sanitize_text_field( wp_unslash( $_GET['src_surface'] ) ) : '';
+$src_state   = isset( $_GET['src_state'] )   ? sanitize_text_field( wp_unslash( $_GET['src_state'] ) )   : '';
+
+$src_where = '1=1';
+$src_args  = [];
+if ( $src_surface ) {
+	$src_where .= ' AND surface = %s';
+	$src_args[]  = $src_surface;
+}
+if ( $src_state ) {
+	$src_where .= ' AND approval_state = %s';
+	$src_args[]  = $src_state;
+}
+
+if ( $src_args ) {
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+	$sources = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE {$src_where} ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", array_merge( $src_args, [ $per_page, $offset ] ) ), ARRAY_A ) ?: [];
+} else {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$sources = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $per_page, $offset ), ARRAY_A ) ?: [];
+}
+
+// Violations – last 50.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$violations = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_violation_reports ORDER BY reported_at DESC LIMIT 50", ARRAY_A ) ?: [];
+
+// Scan log – last 20 runs.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$scan_logs = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_scan_logs ORDER BY started_at DESC LIMIT 20", ARRAY_A ) ?: [];
+?>
+<div class="wrap wp-csp-wrap">
+	<h1><?php esc_html_e( 'WP CSP Automation – Dashboard', 'wp-csp-automation' ); ?></h1>
+
+	<!-- ── Top action bar ────────────────────────────────────────────────── -->
+	<p>
+		<button type="button" id="wp-csp-manual-scan" class="button button-primary">
+			<?php esc_html_e( 'Run Manual Scan', 'wp-csp-automation' ); ?>
+		</button>
+		<span id="wp-csp-scan-status" style="margin-left:10px;display:none"></span>
+	</p>
+
+	<!-- ── Tabs ──────────────────────────────────────────────────────────── -->
+	<nav class="nav-tab-wrapper">
+		<a class="nav-tab<?php echo 'profiles'   === $tab ? ' nav-tab-active' : ''; ?>"
+			href="<?php echo esc_url( add_query_arg( 'tab', 'profiles', $base_url ) ); ?>">
+			<?php esc_html_e( 'Profiles', 'wp-csp-automation' ); ?>
+		</a>
+		<a class="nav-tab<?php echo 'sources'    === $tab ? ' nav-tab-active' : ''; ?>"
+			href="<?php echo esc_url( add_query_arg( 'tab', 'sources', $base_url ) ); ?>">
+			<?php esc_html_e( 'Source Inventory', 'wp-csp-automation' ); ?>
+		</a>
+		<a class="nav-tab<?php echo 'violations' === $tab ? ' nav-tab-active' : ''; ?>"
+			href="<?php echo esc_url( add_query_arg( 'tab', 'violations', $base_url ) ); ?>">
+			<?php esc_html_e( 'Violations', 'wp-csp-automation' ); ?>
+		</a>
+		<a class="nav-tab<?php echo 'scan-log'   === $tab ? ' nav-tab-active' : ''; ?>"
+			href="<?php echo esc_url( add_query_arg( 'tab', 'scan-log', $base_url ) ); ?>">
+			<?php esc_html_e( 'Scan Log', 'wp-csp-automation' ); ?>
+		</a>
+	</nav>
+
+	<div class="tab-content" style="margin-top:1em">
+
+	<?php if ( 'profiles' === $tab ) : ?>
+	<!-- ── Profiles tab ───────────────────────────────────────────────────── -->
+	<table class="widefat fixed striped">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Mode', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Strict-Dynamic', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Last Updated', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Actions', 'wp-csp-automation' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php foreach ( $profiles as $profile ) : ?>
+		<tr>
+			<td><?php echo esc_html( ucfirst( $profile['surface'] ) ); ?></td>
+			<td>
+				<span class="wp-csp-mode-badge mode-<?php echo esc_attr( $profile['mode'] ); ?>">
+					<?php echo esc_html( $profile['mode'] ); ?>
+				</span>
+			</td>
+			<td><?php echo $profile['strict_dynamic'] ? esc_html__( 'Yes', 'wp-csp-automation' ) : '—'; ?></td>
+			<td><?php echo esc_html( $profile['updated_at'] ); ?></td>
+			<td>
+				<?php foreach ( [ 'report-only', 'enforce', 'disabled' ] as $m ) : ?>
+					<?php if ( $m !== $profile['mode'] ) : ?>
+					<button type="button"
+						class="button button-small wp-csp-toggle-mode"
+						data-surface="<?php echo esc_attr( $profile['surface'] ); ?>"
+						data-mode="<?php echo esc_attr( $m ); ?>">
+						<?php echo esc_html( ucwords( str_replace( '-', ' ', $m ) ) ); ?>
+					</button>
+					<?php endif; ?>
+				<?php endforeach; ?>
+			</td>
+		</tr>
+		<?php endforeach; ?>
+		<?php if ( empty( $profiles ) ) : ?>
+		<tr><td colspan="5"><?php esc_html_e( 'No profiles found. Deactivate and reactivate the plugin to seed defaults.', 'wp-csp-automation' ); ?></td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<?php elseif ( 'sources' === $tab ) : ?>
+	<!-- ── Sources tab ────────────────────────────────────────────────────── -->
+	<form method="get" action="">
+		<input type="hidden" name="page" value="wp-csp-dashboard" />
+		<input type="hidden" name="tab"  value="sources" />
+		<select name="src_surface">
+			<option value=""><?php esc_html_e( 'All surfaces', 'wp-csp-automation' ); ?></option>
+			<?php foreach ( $surfaces as $s ) : ?>
+			<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $src_surface, $s ); ?>><?php echo esc_html( ucfirst( $s ) ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<select name="src_state">
+			<option value=""><?php esc_html_e( 'All states', 'wp-csp-automation' ); ?></option>
+			<?php foreach ( [ 'pending', 'approved', 'denied' ] as $st ) : ?>
+			<option value="<?php echo esc_attr( $st ); ?>" <?php selected( $src_state, $st ); ?>><?php echo esc_html( ucfirst( $st ) ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<?php submit_button( __( 'Filter', 'wp-csp-automation' ), 'secondary', 'filter_sources', false ); ?>
+	</form>
+
+	<table class="widefat fixed striped" style="margin-top:1em">
+		<thead>
+			<tr>
+				<th style="width:80px"><?php esc_html_e( 'ID', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Host', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'State', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Last Seen', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Actions', 'wp-csp-automation' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php foreach ( $sources as $src ) : ?>
+		<tr>
+			<td><?php echo esc_html( $src['id'] ); ?></td>
+			<td><?php echo esc_html( $src['surface'] ); ?></td>
+			<td><code><?php echo esc_html( $src['directive'] ); ?></code></td>
+			<td><code><?php echo esc_html( $src['source_host'] ); ?></code></td>
+			<td>
+				<span class="wp-csp-state-badge state-<?php echo esc_attr( $src['approval_state'] ); ?>">
+					<?php echo esc_html( ucfirst( $src['approval_state'] ) ); ?>
+				</span>
+			</td>
+			<td><?php echo esc_html( $src['last_seen_at'] ); ?></td>
+			<td>
+				<?php if ( 'pending' === $src['approval_state'] || 'denied' === $src['approval_state'] ) : ?>
+				<button type="button" class="button button-small wp-csp-approve-source" data-id="<?php echo esc_attr( $src['id'] ); ?>">
+					<?php esc_html_e( 'Approve', 'wp-csp-automation' ); ?>
+				</button>
+				<?php endif; ?>
+				<?php if ( 'pending' === $src['approval_state'] || 'approved' === $src['approval_state'] ) : ?>
+				<button type="button" class="button button-small wp-csp-deny-source" data-id="<?php echo esc_attr( $src['id'] ); ?>">
+					<?php esc_html_e( 'Deny', 'wp-csp-automation' ); ?>
+				</button>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<?php endforeach; ?>
+		<?php if ( empty( $sources ) ) : ?>
+		<tr><td colspan="7"><?php esc_html_e( 'No sources discovered yet. Run a scan to populate this table.', 'wp-csp-automation' ); ?></td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<?php elseif ( 'violations' === $tab ) : ?>
+	<!-- ── Violations tab ─────────────────────────────────────────────────── -->
+	<table class="widefat fixed striped">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Blocked URI', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Occurrences', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Last Seen', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Disposition', 'wp-csp-automation' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php foreach ( $violations as $v ) : ?>
+		<tr>
+			<td><?php echo esc_html( $v['profile_surface'] ); ?></td>
+			<td><code style="word-break:break-all"><?php echo esc_html( $v['blocked_uri'] ); ?></code></td>
+			<td><code><?php echo esc_html( $v['violated_directive'] ); ?></code></td>
+			<td><?php echo esc_html( number_format( (int) $v['occurrence_count'] ) ); ?></td>
+			<td><?php echo esc_html( $v['reported_at'] ); ?></td>
+			<td><?php echo esc_html( $v['disposition'] ); ?></td>
+		</tr>
+		<?php endforeach; ?>
+		<?php if ( empty( $violations ) ) : ?>
+		<tr><td colspan="6"><?php esc_html_e( 'No violations recorded yet. Configure the report-uri on a live environment to start collecting.', 'wp-csp-automation' ); ?></td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<?php elseif ( 'scan-log' === $tab ) : ?>
+	<!-- ── Scan log tab ───────────────────────────────────────────────────── -->
+	<table class="widefat fixed striped">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Trigger', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Status', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Sources +/-', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Hashes +/-', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Policy Changed', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Started', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Duration', 'wp-csp-automation' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php foreach ( $scan_logs as $log ) : ?>
+		<?php
+		$duration = '';
+		if ( $log['completed_at'] && $log['started_at'] ) {
+			$diff     = strtotime( $log['completed_at'] ) - strtotime( $log['started_at'] );
+			$duration = $diff . 's';
+		}
+		?>
+		<tr>
+			<td><?php echo esc_html( ucfirst( $log['trigger_type'] ) ); ?></td>
+			<td><?php echo esc_html( ucfirst( $log['status'] ) ); ?></td>
+			<td>+<?php echo esc_html( $log['sources_added'] ); ?> / -<?php echo esc_html( $log['sources_removed'] ); ?></td>
+			<td>+<?php echo esc_html( $log['hashes_added'] ); ?> / -<?php echo esc_html( $log['hashes_removed'] ); ?></td>
+			<td><?php echo $log['policy_changed'] ? esc_html__( 'Yes', 'wp-csp-automation' ) : '—'; ?></td>
+			<td><?php echo esc_html( $log['started_at'] ); ?></td>
+			<td><?php echo esc_html( $duration ); ?></td>
+		</tr>
+		<?php endforeach; ?>
+		<?php if ( empty( $scan_logs ) ) : ?>
+		<tr><td colspan="7"><?php esc_html_e( 'No scans run yet.', 'wp-csp-automation' ); ?></td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
+	<?php endif; ?>
+
+	</div><!-- .tab-content -->
+</div><!-- .wp-csp-wrap -->

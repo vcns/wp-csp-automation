@@ -1,0 +1,103 @@
+/**
+ * WP CSP Automation – Admin CSS
+ */
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.wp-csp-wrap h1 {
+	margin-bottom: 0.5em;
+}
+
+.wp-csp-wrap .tab-content {
+	background: #fff;
+	border: 1px solid #ccd0d4;
+	border-top: 0;
+	padding: 16px;
+}
+
+/* ── Mode badges ─────────────────────────────────────────────────────────── */
+.wp-csp-mode-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.mode-report-only {
+	background: #fff8c5;
+	color: #735c0f;
+	border: 1px solid #e0c04c;
+}
+.mode-enforce {
+	background: #dafbe1;
+	color: #1a7f37;
+	border: 1px solid #a8d9b4;
+}
+.mode-disabled {
+	background: #f6f6f6;
+	color: #6a737d;
+	border: 1px solid #d1d5da;
+}
+
+/* ── State badges ────────────────────────────────────────────────────────── */
+.wp-csp-state-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-weight: 600;
+}
+.state-pending {
+	background: #fff8c5;
+	color: #735c0f;
+}
+.state-approved {
+	background: #dafbe1;
+	color: #1a7f37;
+}
+.state-denied {
+	background: #ffeef0;
+	color: #86181d;
+}
+
+/* ── Product cards ───────────────────────────────────────────────────────── */
+.wp-csp-product-cards {
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+	margin-top: 1em;
+}
+
+.wp-csp-product-card {
+	border: 1px solid #ccd0d4;
+	border-radius: 6px;
+	padding: 20px;
+	min-width: 240px;
+	max-width: 340px;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+.wp-csp-product-card h3 {
+	margin-top: 0;
+	font-size: 1.2em;
+}
+
+.wp-csp-price {
+	font-size: 2em;
+	font-weight: bold;
+	margin: 0 0 0.4em;
+}
+
+/* ── Scan status ─────────────────────────────────────────────────────────── */
+#wp-csp-scan-status {
+	color: #555;
+	font-style: italic;
+}
+
+/* ── Table tweaks ────────────────────────────────────────────────────────── */
+.wp-csp-wrap .widefat code {
+	font-size: 0.9em;
+	word-break: break-all;
+}
