@@ -98,18 +98,10 @@ class Config_Resolver {
 		$url = $this->resolve_config_url();
 
 		if ( null === $url ) {
-			// Both DNS and fallback failed. Serve stale if available.
 			return $this->serve_stale();
 		}
 
-		$response = wp_remote_get(
-			$url,
-			[
-				'timeout'    => 10,
-				'user-agent' => 'WP-CSP-Automation/' . WP_CSP_VERSION,
-				'sslverify'  => true,
-			]
-		);
+		$response = $this->fetch_url( $url );
 
 		if ( is_wp_error( $response ) ) {
 			$this->audit->log( 'config_resolver', 'fetch_failed', $response->get_error_message() );
@@ -153,6 +145,24 @@ class Config_Resolver {
 	}
 
 	// ── URL resolution ────────────────────────────────────────────────────────
+
+	/**
+	 * Performs the HTTP GET request for the config JSON.
+	 * Extracted as a protected method so test subclasses can stub it.
+	 *
+	 * @param  string           $url  Absolute HTTPS URL to fetch.
+	 * @return array|\WP_Error       wp_remote_get() response array or WP_Error.
+	 */
+	protected function fetch_url( string $url ): array|\WP_Error {
+		return wp_remote_get(
+			$url,
+			[
+				'timeout'    => 10,
+				'user-agent' => 'WP-CSP-Automation/' . WP_CSP_VERSION,
+				'sslverify'  => true,
+			]
+		);
+	}
 
 	/**
 	 * Resolves the config URL using the following priority order:
