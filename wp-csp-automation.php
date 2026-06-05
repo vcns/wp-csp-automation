@@ -40,10 +40,7 @@ define( 'WP_CSP_URL',        plugin_dir_url( __FILE__ ) );
 /**
  * Ed25519 public key for remote config signature verification.
  */
-define(
-	'WP_CSP_CONFIG_PUBLIC_KEY',
-	'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' // TODO: replace before distribution
-);
+define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'tiRMs2TB52Y/h6Cc2es84KuCZ7OzBc6sTygbqVFuMPo=' );
 
 /**
  * DNS TXT record queried to discover the latest signed config URL.
