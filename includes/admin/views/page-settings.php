@@ -86,6 +86,17 @@ $webhook_url    = rest_url( 'csp-manager/v1/stripe-webhook' );
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="wp_csp_config_fallback_url"><?php esc_html_e( 'Fallback Config URL', 'wp-csp-automation' ); ?></label></th>
+				<td>
+					<input type="url" id="wp_csp_config_fallback_url" name="wp_csp_config_fallback_url"
+						value="<?php echo esc_attr( get_option( 'wp_csp_config_fallback_url', '' ) ); ?>"
+						class="regular-text" placeholder="https://example.com/csp-config.json" />
+					<p class="description">
+						<?php esc_html_e( 'Optional. A direct HTTPS URL to the signed config JSON document. Used when DNS TXT lookup fails or dns_get_record() is unavailable on this host (common on some shared hosting environments). Must start with https://. The same Ed25519 signature verification applies regardless of which resolution path is used. Leave empty to rely on DNS only.', 'wp-csp-automation' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><?php esc_html_e( 'Config Status', 'wp-csp-automation' ); ?></th>
 				<td>
 					<p>

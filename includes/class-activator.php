@@ -192,6 +192,10 @@ class Activator {
 			'wp_csp_stripe_secret_key'              => '',
 			'wp_csp_webhook_secret'                 => '',
 			'wp_csp_config_dns_domain'              => WP_CSP_CONFIG_DNS_RECORD,
+			// Fallback HTTPS URL used when DNS TXT lookup fails or dns_get_record
+			// is unavailable on the host. Must be a valid https:// URL pointing
+			// to a signed config JSON document. Leave empty to disable.
+			'wp_csp_config_fallback_url'            => '',
 			'wp_csp_config_cache_ttl'               => 3600,
 			'wp_csp_config_grace_ttl'               => 86400,
 			'wp_csp_entitlement_grace_hours'        => 72,

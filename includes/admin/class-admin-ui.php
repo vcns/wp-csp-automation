@@ -97,6 +97,7 @@ class Admin_UI {
 			'wp_csp_stripe_secret_key'             => 'sanitize_text_field',
 			'wp_csp_webhook_secret'                => 'sanitize_text_field',
 			'wp_csp_config_dns_domain'             => 'sanitize_text_field',
+			'wp_csp_config_fallback_url'           => 'esc_url_raw',
 			'wp_csp_config_cache_ttl'              => 'absint',
 			'wp_csp_config_grace_ttl'              => 'absint',
 			'wp_csp_entitlement_grace_hours'       => 'absint',
