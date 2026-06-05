@@ -3,6 +3,9 @@
  * Fired during plugin activation.
  * Creates custom database tables, seeds default option values, and
  * schedules the daily rescan cron event.
+ *
+ * Schema version 2 adds override_expires_at and override_owner to
+ * csp_policy_profiles to support the full promotion gate checks (§4.12).
  */
 
 declare( strict_types=1 );
@@ -32,6 +35,7 @@ class Activator {
 		$p  = $wpdb->prefix;
 
 		// 1. Per-surface CSP policy profiles
+		// v2: adds override_expires_at and override_owner for promotion gate §4.12.
 		dbDelta( "CREATE TABLE {$p}csp_policy_profiles (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   surface varchar(32) NOT NULL,
@@ -39,6 +43,8 @@ class Activator {
   directives longtext NOT NULL,
   overrides longtext NOT NULL,
   strict_dynamic tinyint(1) NOT NULL DEFAULT 0,
+  override_expires_at datetime DEFAULT NULL,
+  override_owner varchar(255) DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),
@@ -181,16 +187,19 @@ class Activator {
 
 	private static function set_default_options(): void {
 		$defaults = [
-			'wp_csp_stripe_mode'             => 'test',
-			'wp_csp_stripe_publishable_key'  => '',
-			'wp_csp_stripe_secret_key'       => '',
-			'wp_csp_webhook_secret'          => '',
-			'wp_csp_config_dns_domain'       => WP_CSP_CONFIG_DNS_RECORD,
-			'wp_csp_config_cache_ttl'        => 3600,    // 1 hour normal cache
-			'wp_csp_config_grace_ttl'        => 86400,   // 24 hour stale-on-error window
-			'wp_csp_entitlement_grace_hours' => 72,
-			'wp_csp_cron_hour'               => 2,
-			'wp_csp_notify_email'            => get_option( 'admin_email' ),
+			'wp_csp_stripe_mode'                    => 'test',
+			'wp_csp_stripe_publishable_key'         => '',
+			'wp_csp_stripe_secret_key'              => '',
+			'wp_csp_webhook_secret'                 => '',
+			'wp_csp_config_dns_domain'              => WP_CSP_CONFIG_DNS_RECORD,
+			'wp_csp_config_cache_ttl'               => 3600,
+			'wp_csp_config_grace_ttl'               => 86400,
+			'wp_csp_entitlement_grace_hours'        => 72,
+			'wp_csp_cron_hour'                      => 2,
+			'wp_csp_notify_email'                   => get_option( 'admin_email' ),
+			// Promotion gate: minimum hours without a high-severity violation
+			// before enforce mode is permitted. Default: 24 hours.
+			'wp_csp_enforce_gate_violation_window'  => 24,
 		];
 
 		foreach ( $defaults as $key => $value ) {
@@ -214,28 +223,26 @@ class Activator {
 				$wpdb->insert(
 					$table,
 					[
-						'surface'        => $surface,
-						'mode'           => 'report-only',
-						'directives'     => wp_json_encode( self::default_directives( $surface ) ),
-						'overrides'      => wp_json_encode( [] ),
-						'strict_dynamic' => 0,
-						'created_at'     => $now,
-						'updated_at'     => $now,
+						'surface'             => $surface,
+						'mode'                => 'report-only',
+						'directives'          => wp_json_encode( self::default_directives( $surface ) ),
+						'overrides'           => wp_json_encode( [] ),
+						'strict_dynamic'      => 0,
+						'override_expires_at' => null,
+						'override_owner'      => null,
+						'created_at'          => $now,
+						'updated_at'          => $now,
 					],
-					[ '%s', '%s', '%s', '%s', '%d', '%s', '%s' ]
+					[ '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' ]
 				);
 			}
 		}
 	}
 
-	/**
-	 * Strict-defaults per §4.4 of the directive: all 18 CSP directives present,
-	 * nothing implicitly open, nonces/hashes added at request time.
-	 */
 	private static function default_directives( string $surface ): array {
 		$d = [
 			'default-src'      => [ "'none'" ],
-			'script-src'       => [],   // populated with nonces/hashes at request time
+			'script-src'       => [],
 			'script-src-elem'  => [],
 			'script-src-attr'  => [ "'none'" ],
 			'style-src'        => [],
@@ -254,9 +261,8 @@ class Activator {
 			'manifest-src'     => [ "'self'" ],
 		];
 
-		// WordPress admin embeds iframes legitimately (theme previews, editors).
 		if ( 'admin' === $surface ) {
-			$d['frame-src']      = [ "'self'" ];
+			$d['frame-src']       = [ "'self'" ];
 			$d['frame-ancestors'] = [ "'self'" ];
 		}
 

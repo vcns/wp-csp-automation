@@ -92,16 +92,17 @@ class Admin_UI {
 
 	public function register_settings(): void {
 		$settings = [
-			'wp_csp_stripe_mode'             => 'sanitize_text_field',
-			'wp_csp_stripe_publishable_key'  => 'sanitize_text_field',
-			'wp_csp_stripe_secret_key'       => 'sanitize_text_field',
-			'wp_csp_webhook_secret'          => 'sanitize_text_field',
-			'wp_csp_config_dns_domain'       => 'sanitize_text_field',
-			'wp_csp_config_cache_ttl'        => 'absint',
-			'wp_csp_config_grace_ttl'        => 'absint',
-			'wp_csp_entitlement_grace_hours' => 'absint',
-			'wp_csp_cron_hour'               => 'absint',
-			'wp_csp_notify_email'            => 'sanitize_email',
+			'wp_csp_stripe_mode'                   => 'sanitize_text_field',
+			'wp_csp_stripe_publishable_key'        => 'sanitize_text_field',
+			'wp_csp_stripe_secret_key'             => 'sanitize_text_field',
+			'wp_csp_webhook_secret'                => 'sanitize_text_field',
+			'wp_csp_config_dns_domain'             => 'sanitize_text_field',
+			'wp_csp_config_cache_ttl'              => 'absint',
+			'wp_csp_config_grace_ttl'              => 'absint',
+			'wp_csp_entitlement_grace_hours'       => 'absint',
+			'wp_csp_cron_hour'                     => 'absint',
+			'wp_csp_notify_email'                  => 'sanitize_email',
+			'wp_csp_enforce_gate_violation_window' => 'absint',
 		];
 
 		foreach ( $settings as $option => $callback ) {
@@ -191,7 +192,6 @@ class Admin_UI {
 				esc_html( $notice['detail'] )
 			);
 		}
-		// Clear after display.
 		delete_option( 'wp_csp_admin_notices' );
 	}
 
@@ -204,7 +204,7 @@ class Admin_UI {
 		}
 
 		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-pro' ) );
-		$result      = $this->plugin->config ? // Config resolver available?
+		$result      = $this->plugin->config ?
 			( new \WP_CSP\Modules\Checkout_Service( $this->plugin->config, $this->plugin->audit ) )->create_session( $product_key ) :
 			new \WP_Error( 'no_config', __( 'Plugin not fully initialised.', 'wp-csp-automation' ) );
 
@@ -298,9 +298,12 @@ class Admin_UI {
 			wp_send_json_error( [ 'message' => 'Invalid mode.' ] );
 		}
 
-		// §4.12 Promotion gate: enforce requires at least one approved source or hash.
-		if ( 'enforce' === $mode && ! $this->gate_allows_enforce( $surface ) ) {
-			wp_send_json_error( [ 'message' => __( 'Cannot promote to enforce: no approved sources or hashes found for this surface.', 'wp-csp-automation' ) ] );
+		// Full promotion gate: enforce requires passing all configured checks.
+		if ( 'enforce' === $mode ) {
+			$gate_result = $this->gate_allows_enforce( $surface );
+			if ( true !== $gate_result ) {
+				wp_send_json_error( [ 'message' => $gate_result ] );
+			}
 		}
 
 		global $wpdb;
@@ -317,8 +320,23 @@ class Admin_UI {
 		wp_send_json_success();
 	}
 
-	private function gate_allows_enforce( string $surface ): bool {
+	// ── Promotion gate ────────────────────────────────────────────────────────
+
+	/**
+	 * Checks all configured gates before allowing enforce mode promotion.
+	 *
+	 * Implements §4.12:
+	 *   Gate 1 -- At least one approved source or hash must exist for the surface.
+	 *   Gate 2 -- No violations recorded within the configured time window.
+	 *   Gate 3 -- No active temporary override that has not yet expired.
+	 *
+	 * @param  string       $surface  CSP surface identifier.
+	 * @return true|string  true if all gates pass; a human-readable failure reason string otherwise.
+	 */
+	private function gate_allows_enforce( string $surface ): true|string {
 		global $wpdb;
+
+		// ── Gate 1: approved source or hash inventory ─────────────────────────
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$src_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -333,6 +351,62 @@ class Admin_UI {
 				$surface
 			)
 		);
-		return ( $src_count + $hash_count ) > 0;
+
+		if ( ( $src_count + $hash_count ) === 0 ) {
+			return __( 'Cannot promote to enforce: no approved sources or hashes found for this surface. Run a scan and approve at least one source first.', 'wp-csp-automation' );
+		}
+
+		// ── Gate 2: no violations within the configured time window ───────────
+		$window_hours = max( 1, (int) get_option( 'wp_csp_enforce_gate_violation_window', 24 ) );
+		$since        = gmdate( 'Y-m-d H:i:s', time() - ( $window_hours * HOUR_IN_SECONDS ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$recent_violations = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->prefix}csp_violation_reports
+				WHERE profile_surface = %s
+				AND reported_at >= %s",
+				$surface,
+				$since
+			)
+		);
+
+		if ( $recent_violations > 0 ) {
+			return sprintf(
+				/* translators: 1: violation count, 2: hours */
+				__( 'Cannot promote to enforce: %1$d violation(s) recorded for this surface in the last %2$d hour(s). Resolve violations in report-only mode first, or extend the violation window in Settings.', 'wp-csp-automation' ),
+				$recent_violations,
+				$window_hours
+			);
+		}
+
+		// ── Gate 3: no active unresolved temporary override ───────────────────
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$profile = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT override_expires_at, override_owner FROM {$wpdb->prefix}csp_policy_profiles WHERE surface = %s LIMIT 1",
+				$surface
+			),
+			ARRAY_A
+		);
+
+		if ( $profile ) {
+			$expires_at = $profile['override_expires_at'] ?? null;
+			$owner      = $profile['override_owner']      ?? null;
+
+			if ( ! empty( $expires_at ) && ! empty( $owner ) ) {
+				$expires_ts = strtotime( $expires_at );
+				if ( false !== $expires_ts && $expires_ts > time() ) {
+					return sprintf(
+						/* translators: 1: override owner, 2: expiry datetime */
+						__( 'Cannot promote to enforce: a temporary override set by "%1$s" is active until %2$s. Wait for it to expire or remove it before enabling enforce mode.', 'wp-csp-automation' ),
+						esc_html( $owner ),
+						esc_html( $expires_at )
+					);
+				}
+			}
+		}
+
+		return true;
 	}
 }
