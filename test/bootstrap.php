@@ -239,3 +239,8 @@ function wp_test_reset_globals(): void {
 
 // Initialise globals so classes loaded at parse time do not hit undefined array errors.
 wp_test_reset_globals();
+
+// ── Test stubs ────────────────────────────────────────────────────────────────
+// Load namespace-scoped stubs before any plugin class that might define the
+// real counterpart. Order matters: stubs must come first.
+require_once __DIR__ . '/stubs/NonceBridge.php';

@@ -45,7 +45,7 @@ define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'tiRMs2TB52Y/h6Cc2es84KuCZ7OzBc6sTygbqVFuMPo
 /**
  * DNS TXT record queried to discover the latest signed config URL.
  */
-define( 'WP_CSP_CONFIG_DNS_RECORD', '_wp-csp-automation.jacksonfamily.me' );
+define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp-csp-automation.jacksonfamily.me' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register( static function ( string $class ): void {

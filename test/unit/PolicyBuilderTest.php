@@ -269,16 +269,5 @@ class PolicyBuilderTest extends TestCase {
 	}
 }
 
-// ── Override Plugin_Nonce_Manager for tests ───────────────────────────────────
-// The static bridge reads from Plugin::instance() which is not available in
-// unit tests. We override it to read from the test global instead.
-namespace WP_CSP\CSP;
-
-// Only define if not already defined (e.g. when Policy_Builder file is loaded).
-if ( ! class_exists( Plugin_Nonce_Manager::class ) ) {
-	final class Plugin_Nonce_Manager {
-		public static function get_instance_nonce(): string {
-			return $GLOBALS['_wp_csp_test_nonce'] ?? '';
-		}
-	}
-}
+// Plugin_Nonce_Manager stub is defined in tests/stubs/NonceBridge.php
+// which is loaded by tests/bootstrap.php before any test class is instantiated.
