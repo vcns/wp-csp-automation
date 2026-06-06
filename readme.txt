@@ -18,11 +18,15 @@ WP CSP Automation Manager takes the pain out of managing Content Security Polici
 = Free features =
 
 * Per-surface CSP profiles for `frontend`, `admin`, `login`, and `api` — configured and managed independently
-* Strict defaults for all 18 CSP directives — `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`, etc.
+* Strict defaults for all CSP directives, including `upgrade-insecure-requests`, `child-src 'none'` (Safari worker fallback), `fenced-frame-src 'none'`, and `sandbox`
+* `'report-sample'` included in fetch directives by default so violation reports include inline code snippets
+* `Reporting-Endpoints` (RFC 9651 Structured Fields) and legacy `Report-To` headers emitted automatically with every CSP — required for browsers to deliver violation reports via the Reporting API
 * Per-request nonce injection via `wp_script_attributes` / `wp_inline_script_attributes` (WP 6.4+) with legacy `script_loader_tag` / `style_loader_tag` fallback
 * Report-Only mode for safe, zero-disruption rollout — the browser reports violations but blocks nothing
-* CSP violation reporting endpoint (`/wp-json/csp-manager/v1/report`) — compatible with CSP Level 3 and the Reporting API
+* CSP violation reporting endpoint (`/wp-json/csp-manager/v1/report`) — compatible with CSP Level 3 and the Reporting API; validates `Content-Type` and `document-uri` origin
 * Deduplication and rate-limiting on incoming violation reports (500/hour/surface)
+* Automatic purge of old violation reports (default: 90 days) after every daily scan
+* Append-only audit log stored in the database for all significant plugin events
 * Basic source discovery: crawl the frontend surface, classify external URLs into CSP directives, store in the local database
 * Source approval / deny workflow — each discovered origin requires explicit approval before it is added to the policy
 * Promotion gate: enforce mode is only available after at least one source or hash has been approved for that surface
@@ -32,7 +36,8 @@ WP CSP Automation Manager takes the pain out of managing Content Security Polici
 = Premium features (licence required) =
 
 * Multi-surface crawl (admin, login, API surfaces in addition to frontend)
-* `strict-dynamic` support — simplifies nonce-based policies
+* `strict-dynamic` support — simplifies nonce-based policies; host sources are automatically suppressed from `script-src` when active (CSP3 §8.2)
+* Trusted Types (`require-trusted-types-for 'script'`, `trusted-types`) — report-only by default; Chromium-strong
 * CSV export for violation analytics
 * Extended source inventory REST API
 

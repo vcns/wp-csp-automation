@@ -104,6 +104,8 @@ class Admin_UI {
 			'wp_csp_cron_hour'                     => 'absint',
 			'wp_csp_notify_email'                  => 'sanitize_email',
 			'wp_csp_enforce_gate_violation_window' => 'absint',
+			// Data retention: days to keep violation reports (0 = keep forever).
+			'wp_csp_violation_retention_days'      => 'absint',
 		);
 
 		foreach ( $settings as $option => $callback ) {
@@ -179,6 +181,11 @@ class Admin_UI {
 	// ── Admin notices ─────────────────────────────────────────────────────────
 
 	public function display_admin_notices(): void {
+		// Platform constraint warning (R9): wp-admin strict CSP is best-effort because
+		// WordPress core Trac #59446 is unresolved. Only show when the admin surface
+		// profile is in enforce mode, and only once per session per user.
+		$this->maybe_show_admin_csp_warning();
+
 		$notices = get_option( 'wp_csp_admin_notices', array() );
 		if ( ! is_array( $notices ) || empty( $notices ) ) {
 			return;
@@ -194,6 +201,48 @@ class Admin_UI {
 			);
 		}
 		delete_option( 'wp_csp_admin_notices' );
+	}
+
+	/**
+	 * Shows a one-per-session notice when the admin surface CSP is in enforce mode.
+	 * WordPress core Trac #59446 means some admin UI components may break under
+	 * strict nonce-based CSP. This warns the admin to monitor violations first.
+	 */
+	private function maybe_show_admin_csp_warning(): void {
+		$user_id  = get_current_user_id();
+		$transkey = 'wp_csp_admin59446_warned_' . $user_id;
+		if ( get_transient( $transkey ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'csp_policy_profiles';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$mode = $wpdb->get_var( $wpdb->prepare( "SELECT mode FROM {$table} WHERE surface = %s LIMIT 1", 'admin' ) );
+
+		if ( 'enforce' !== $mode ) {
+			return;
+		}
+
+		set_transient( $transkey, 1, DAY_IN_SECONDS );
+		printf(
+			'<div class="notice notice-info is-dismissible"><p>%s</p></div>',
+			wp_kses(
+				sprintf(
+					/* translators: %s: URL to WordPress core Trac ticket */
+					__( '<strong>WP CSP Automation:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved — some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'wp-csp-automation' ),
+					'https://core.trac.wordpress.org/ticket/59446'
+				),
+				array(
+					'strong' => array(),
+					'a'      => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+				)
+			)
+		);
 	}
 
 	// ── AJAX: create Stripe checkout ──────────────────────────────────────────

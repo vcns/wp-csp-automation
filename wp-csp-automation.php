@@ -30,8 +30,10 @@ define( 'WP_CSP_VERSION', '0.2.0' );
  *
  * v1 -- initial schema (7 tables)
  * v2 -- adds override_expires_at and override_owner to csp_policy_profiles
+ * v3 -- adds sample column to csp_violation_reports (R7: report-sample support)
+ * v4 -- adds csp_audit_log append-only table (R10: immutable audit log)
  */
-define( 'WP_CSP_DB_VERSION', '2' );
+define( 'WP_CSP_DB_VERSION', '4' );
 
 define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );

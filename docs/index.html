@@ -68,17 +68,17 @@
         <h2>Both the standard and manual install paths.</h2>
         <div class="card-grid">
           <article class="card">
-            <h3>Installation requirements</h3>
+            <h3>System Requirements</h3>
             <ul>
               <li>WordPress 6.4 or higher</li>
               <li>PHP 8.1 or higher</li>
-              <li>`sodium` available for Ed25519 signature verification</li>
+              <li>php.ini <a href="https://www.php.net/manual/en/sodium.installation.php">'sodium'</a> available for Ed25519 signature verification</li>
             </ul>
           </article>
         </div>
         <div class="checklist-grid">
           <div class="checklist">
-            <h3>From the WordPress dashboard</h3>
+            <h3>Normal Installation</h3>
             <ul>
               <li>Go to Plugins, then Add New Plugin.</li>
               <li>Search for WP CSP Automation Manager.</li>
@@ -86,7 +86,7 @@
             </ul>
           </div>
           <div class="checklist">
-            <h3>Manual installation</h3>
+            <h3>Manual Installation</h3>
             <ul>
               <li>Download the plugin ZIP package.</li>
               <li>Open Plugins, then Add New Plugin, then Upload Plugin.</li>
@@ -95,7 +95,7 @@
             </ul>
           </div>
           <div class="checklist">
-            <h3>After activation</h3>
+            <h3>Activation</h3>
             <ul>
               <li>Open CSP Manager settings.</li>
               <li>Run the first scan.</li>
@@ -315,7 +315,7 @@
           </article>
           <article class="card">
             <h3>What is the promotion gate?</h3>
-            <p>The plugin blocks switching to enforce mode unless at least one source or hash has been approved for that surface. This reduces accidental lockout risk.</p>
+            <p>The plugin blocks switching to enforce mode unless at least one source or hash has been approved for that surface, and no recent unresolved violation has been reported. This two-condition check reduces the risk of locking users out with an over-strict policy.</p>
           </article>
           <article class="card">
             <h3>Should I approve every discovered source?</h3>
@@ -323,7 +323,7 @@
           </article>
           <article class="card">
             <h3>Where are violation reports stored?</h3>
-            <p>They are stored locally in the WordPress database in the site's `csp_violation_reports` table. Nothing is sent to an external reporting service by default, and reports are deduplicated by fingerprint.</p>
+            <p>They are stored locally in the WordPress database in the site's <code>csp_violation_reports</code> table. Nothing is sent to an external reporting service by default; reports are deduplicated by fingerprint. Old reports are purged automatically: by default, rows older than 90 days are deleted after every daily scan. This threshold is configurable in CSP Manager → Settings (<code>wp_csp_violation_retention_days</code>); set it to <code>0</code> to keep reports indefinitely.</p>
           </article>
           <article class="card">
             <h3>Does this plugin require Stripe?</h3>
@@ -340,6 +340,10 @@
           <article class="card">
             <h3>Is this compatible with caching plugins?</h3>
             <p>Usually, but nonce-based pages should not be served from a full-page cache unless nonce-aware exclusions are in place. The plugin does not configure those cache exclusions for you.</p>
+          </article>
+          <article class="card">
+            <h3>Can I enforce a strict CSP on wp-admin?</h3>
+            <p>With caveats. WordPress core Trac #59446 is unresolved: some core admin screens and bundled themes emit inline scripts outside the WordPress script API, so strict nonce-based enforcement can break parts of the admin UI. The plugin surfaces a warning notice when the admin surface is set to enforce mode. Monitor violation reports carefully before committing to enforcement on this surface, and keep a report-only fallback path available.</p>
           </article>
           <article class="card">
             <h3>I switched to Enforce mode and my site broke. What do I do?</h3>

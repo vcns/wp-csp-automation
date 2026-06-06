@@ -30,6 +30,12 @@ class Feature_Gate {
 		'violation_endpoint',
 	);
 
+	// Premium feature keys (checked against the remote config feature matrix).
+	// trusted_types: Trusted Types directives (require-trusted-types-for, trusted-types).
+	// Always deployed in report-only mode first — Chromium-strong; Baseline ~2028 (R5).
+	// strict_dynamic: adds 'strict-dynamic' to script-src; suppresses host allowlists (R4).
+	// multi_surface_scan: crawl admin, login, api surfaces (frontend is always free).
+
 	// Product key the free tier links to in the entitlement store.
 	private const PRODUCT_KEY = 'wp-csp-automation';
 

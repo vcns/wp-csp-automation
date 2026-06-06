@@ -18,10 +18,14 @@ This repository intentionally uses both of these files:
 ### Free features
 
 - Per-surface CSP profiles for `frontend`, `admin`, `login`, and `api`
-- Strict defaults across all major CSP directives
+- Strict defaults across all CSP directives, including `upgrade-insecure-requests`, `child-src` (Safari worker-src fallback), `fenced-frame-src`, and the `sandbox` document directive
+- `'report-sample'` in fetch directives so inline code snippets appear in violation reports
+- `Reporting-Endpoints` (RFC 9651) and legacy `Report-To` headers emitted automatically alongside CSP — required for browsers to deliver violation reports via the Reporting API
 - Per-request nonce injection for compatible WordPress script output
 - Report-only rollout mode
-- CSP violation reporting endpoint
+- CSP violation reporting endpoint — validates `Content-Type` and `document-uri` origin before storing
+- Automatic purge of violation reports older than a configurable number of days (default 90), run after every daily scan
+- Append-only audit log (`csp_audit_log`) for all significant plugin events
 - Source discovery and approval workflow
 - Promotion gate before switching a surface into enforce mode
 - Conflict detection for competing CSP headers
@@ -30,7 +34,8 @@ This repository intentionally uses both of these files:
 ### Premium features
 
 - Multi-surface scan support
-- `strict-dynamic` support
+- `strict-dynamic` with automatic host-source suppression (CSP3 §8.2)
+- Trusted Types (`require-trusted-types-for`, `trusted-types`) — report-only by default
 - Additional analytics and export surfaces
 - Local entitlement handling after verified Stripe webhook delivery
 

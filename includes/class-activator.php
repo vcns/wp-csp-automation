@@ -102,6 +102,9 @@ class Activator {
 		);
 
 		// 4. Ingested CSP violation reports
+		// v3: adds sample column — populated only when 'report-sample' is in the policy.
+		// sample contains the first 40 chars of the offending inline block (browser-truncated).
+		// legacy field: script-sample; Reporting API field: sample (research.md R7).
 		dbDelta(
 			"CREATE TABLE {$p}csp_violation_reports (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -118,6 +121,7 @@ class Activator {
   disposition varchar(16) NOT NULL DEFAULT 'report',
   referrer varchar(2048) DEFAULT NULL,
   user_agent varchar(512) DEFAULT NULL,
+  sample varchar(256) DEFAULT NULL,
   reported_at datetime NOT NULL,
   fingerprint varchar(64) NOT NULL,
   occurrence_count int(11) NOT NULL DEFAULT 1,
@@ -194,6 +198,23 @@ class Activator {
 ) {$cc};"
 		);
 
+		// 8. Append-only structured audit log (R10).
+		// No UPDATE or DELETE is ever issued against this table — it is an immutable record.
+		dbDelta(
+			"CREATE TABLE {$p}csp_audit_log (
+  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  component varchar(64) NOT NULL,
+  event varchar(128) NOT NULL,
+  detail text DEFAULT NULL,
+  severity varchar(16) NOT NULL DEFAULT 'info',
+  user_id bigint(20) UNSIGNED DEFAULT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY severity (severity),
+  KEY created_at (created_at)
+) {$cc};"
+		);
+
 		update_option( 'wp_csp_db_version', WP_CSP_DB_VERSION );
 	}
 
@@ -218,6 +239,9 @@ class Activator {
 			// Promotion gate: minimum hours without a high-severity violation
 			// before enforce mode is permitted. Default: 24 hours.
 			'wp_csp_enforce_gate_violation_window' => 24,
+			// Data retention: violation reports older than this many days are purged
+			// by the daily cron scan. 0 = keep forever (not recommended for busy sites).
+			'wp_csp_violation_retention_days'      => 90,
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -258,30 +282,54 @@ class Activator {
 	}
 
 	private static function default_directives( string $surface ): array {
+		// 'report-sample' added to script/style-src so browsers include the offending
+		// inline code snippet in violation reports (R7). Harmless when no violation occurs.
 		$d = array(
-			'default-src'     => array( "'none'" ),
-			'script-src'      => array(),
-			'script-src-elem' => array(),
-			'script-src-attr' => array( "'none'" ),
-			'style-src'       => array(),
-			'style-src-elem'  => array(),
-			'style-src-attr'  => array( "'none'" ),
-			'img-src'         => array( "'self'", 'data:' ),
-			'font-src'        => array( "'self'" ),
-			'connect-src'     => array( "'self'" ),
-			'frame-src'       => array( "'none'" ),
-			'frame-ancestors' => array( "'none'" ),
-			'base-uri'        => array( "'none'" ),
-			'form-action'     => array( "'self'" ),
-			'object-src'      => array( "'none'" ),
-			'media-src'       => array( "'none'" ),
-			'worker-src'      => array( "'none'" ),
-			'manifest-src'    => array( "'self'" ),
+			'default-src'               => array( "'none'" ),
+			'script-src'                => array( "'report-sample'" ),
+			'script-src-elem'           => array( "'report-sample'" ),
+			'script-src-attr'           => array( "'none'" ),
+			'style-src'                 => array( "'report-sample'" ),
+			'style-src-elem'            => array( "'report-sample'" ),
+			'style-src-attr'            => array( "'none'" ),
+			'img-src'                   => array( "'self'", 'data:' ),
+			'font-src'                  => array( "'self'" ),
+			'connect-src'               => array( "'self'" ),
+			'frame-src'                 => array( "'none'" ),
+			'frame-ancestors'           => array( "'none'" ),
+			'base-uri'                  => array( "'none'" ),
+			'form-action'               => array( "'self'" ),
+			'object-src'                => array( "'none'" ),
+			'media-src'                 => array( "'none'" ),
+			// worker-src: explicitly set on all surfaces. child-src is also set as a
+			// legacy fallback: Safari falls back worker-src → child-src → script-src,
+			// so without child-src the nonce would bleed through to workers in Safari.
+			'worker-src'                => array( "'none'" ),
+			'child-src'                 => array( "'none'" ),
+			'manifest-src'              => array( "'self'" ),
+			// upgrade-insecure-requests: auto-upgrades http→https for sub-resource requests.
+			// Boolean directive (empty array = valueless). Does NOT replace HSTS (RFC 6797).
+			// Skipped on the api surface (REST responses have no navigable resources).
+			// Not emitted on api surface — handled below.
+			// fenced-frame-src: experimental Privacy Sandbox directive; 'none' is safe.
+			'fenced-frame-src'          => array( "'none'" ),
+			// sandbox: null = disabled. Set to an array of allow-* flags to enable.
+			// Ignored by browsers in CSP-Report-Only mode and in <meta http-equiv>.
+			'sandbox'                   => null,
+			// Trusted Types directives: empty = disabled (premium feature).
+			// When enabled, always deploy in report-only first (Chromium-strong; R5).
+			'require-trusted-types-for' => array(),
+			'trusted-types'             => array(),
 		);
 
 		if ( 'admin' === $surface ) {
 			$d['frame-src']       = array( "'self'" );
 			$d['frame-ancestors'] = array( "'self'" );
+		}
+
+		// upgrade-insecure-requests on all surfaces except api.
+		if ( 'api' !== $surface ) {
+			$d['upgrade-insecure-requests'] = array();
 		}
 
 		return $d;

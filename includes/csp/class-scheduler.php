@@ -69,6 +69,7 @@ class Scheduler {
 
 			$this->audit->finish_scan( $scan_id, $results );
 			$this->maybe_notify( $results );
+			$this->purge_old_violations();
 
 		} catch ( \Throwable $e ) {
 			$this->audit->finish_scan( $scan_id, array(), 'failed' );
@@ -116,6 +117,38 @@ class Scheduler {
 			$this->audit->finish_scan( $scan_id, array(), 'failed' );
 			$this->audit->log( 'scheduler', 'manual_scan_exception', $e->getMessage(), 'error' );
 			return array( 'error' => $e->getMessage() );
+		}
+	}
+
+	// ── Data retention ────────────────────────────────────────────────────────
+
+	/**
+	 * Purges violation reports older than wp_csp_violation_retention_days (default 90).
+	 * A value of 0 means keep forever. Runs after every daily cron scan (R10).
+	 */
+	private function purge_old_violations(): void {
+		$days = (int) get_option( 'wp_csp_violation_retention_days', 90 );
+		if ( $days <= 0 ) {
+			return;
+		}
+
+		global $wpdb;
+		$table   = $wpdb->prefix . 'csp_violation_reports';
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"DELETE FROM {$table} WHERE reported_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL %d DAY)",
+				$days
+			)
+		);
+
+		if ( $deleted > 0 ) {
+			$this->audit->log(
+				'scheduler',
+				'violations_purged',
+				sprintf( 'Purged %d violation report(s) older than %d days.', $deleted, $days ),
+				'info'
+			);
 		}
 	}
 

@@ -2,9 +2,13 @@
 /**
  * Write-only structured audit log.
  *
- * Writes lifecycle events to the csp_scan_logs table (for scan events) and
- * directly to error_log / a dedicated admin notice queue for all other
- * components. Keeps a bounded in-memory buffer for test inspection.
+ * Writes lifecycle events to three destinations:
+ *   1. csp_audit_log table — append-only, immutable record (R10). Never UPDATEd or DELETEd.
+ *   2. wp_options FIFO queue (max 20) — for transient admin notice display only.
+ *   3. PHP error_log — for warnings and errors.
+ *
+ * Scan lifecycle records go to csp_scan_logs via start_scan() / finish_scan().
+ * Keeps a bounded in-memory buffer for request-scoped debugging / test inspection.
  *
  * Severity levels: info | warning | error
  */
@@ -46,6 +50,9 @@ class Audit_Log {
 		);
 
 		$this->buffer[] = $entry;
+
+		// Write to the append-only DB audit log (immutable record; never UPDATE/DELETE).
+		$this->write_to_db( $component, $event, $detail, $severity );
 
 		// Persist in wp_options as a small FIFO queue for the admin notices panel.
 		$this->push_admin_notice( $entry );
@@ -111,6 +118,42 @@ class Audit_Log {
 	 */
 	public function get_buffer(): array {
 		return $this->buffer;
+	}
+
+	// ── Immutable DB record ───────────────────────────────────────────────────
+
+	/**
+	 * Appends an event to the csp_audit_log table.
+	 * This table is never UPDATE-d or DELETE-d — it is the permanent audit trail (R10).
+	 * Failures are silently swallowed so a DB hiccup never kills the request.
+	 */
+	private function write_to_db(
+		string $component,
+		string $event,
+		string $detail,
+		string $severity
+	): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'csp_audit_log';
+
+		// Guard: table may not exist yet on first activation before dbDelta runs.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+			return;
+		}
+
+		$wpdb->insert(
+			$table,
+			array(
+				'component'  => substr( $component, 0, 64 ),
+				'event'      => substr( $event, 0, 128 ),
+				'detail'     => $detail,
+				'severity'   => $severity,
+				'user_id'    => is_user_logged_in() ? get_current_user_id() : null,
+				'created_at' => current_time( 'mysql', true ),
+			),
+			array( '%s', '%s', '%s', '%s', '%d', '%s' )
+		);
 	}
 
 	// ── Admin notices ─────────────────────────────────────────────────────────
