@@ -23,22 +23,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Feature_Gate {
 
 	// Features available on the free tier without payment.
-	private const FREE_FEATURES = [
+	private const FREE_FEATURES = array(
 		'csp_report_only',
 		'basic_scan',
 		'basic_dashboard',
 		'violation_endpoint',
-	];
+	);
 
 	// Product key the free tier links to in the entitlement store.
 	private const PRODUCT_KEY = 'wp-csp-automation';
 
 	private Entitlement_Store $entitlements;
-	private Config_Resolver   $config;
+	private Config_Resolver $config;
 
 	/** In-memory cache to avoid repeated DB + transient reads per request. */
 	private ?array $entitlement_cache = null;
-	private bool   $cache_loaded      = false;
+	private bool $cache_loaded        = false;
 
 	public function __construct( Entitlement_Store $entitlements, Config_Resolver $config ) {
 		$this->entitlements = $entitlements;

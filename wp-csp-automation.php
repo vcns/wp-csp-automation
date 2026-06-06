@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Core constants ────────────────────────────────────────────────────────────
-define( 'WP_CSP_VERSION',    '0.2.0' );
+define( 'WP_CSP_VERSION', '0.2.0' );
 
 /**
  * Schema version. Increment whenever a database schema change is made.
@@ -33,9 +33,9 @@ define( 'WP_CSP_VERSION',    '0.2.0' );
  */
 define( 'WP_CSP_DB_VERSION', '2' );
 
-define( 'WP_CSP_FILE',       __FILE__ );
-define( 'WP_CSP_DIR',        plugin_dir_path( __FILE__ ) );
-define( 'WP_CSP_URL',        plugin_dir_url( __FILE__ ) );
+define( 'WP_CSP_FILE', __FILE__ );
+define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );
+define( 'WP_CSP_URL', plugin_dir_url( __FILE__ ) );
 
 /**
  * Ed25519 public key for remote config signature verification.
@@ -48,24 +48,26 @@ define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'tiRMs2TB52Y/h6Cc2es84KuCZ7OzBc6sTygbqVFuMPo
 define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp-csp-automation.jacksonfamily.me' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
-spl_autoload_register( static function ( string $class ): void {
-	$prefix = 'WP_CSP\\';
-	if ( strncmp( $prefix, $class, strlen( $prefix ) ) !== 0 ) {
-		return;
+spl_autoload_register(
+	static function ( string $class_name ): void {
+		$prefix = 'WP_CSP\\';
+		if ( strncmp( $prefix, $class_name, strlen( $prefix ) ) !== 0 ) {
+			return;
+		}
+		$relative = substr( $class_name, strlen( $prefix ) );
+		$parts    = explode( '\\', $relative );
+		$filename = 'class-' . strtolower( str_replace( '_', '-', (string) array_pop( $parts ) ) ) . '.php';
+		$subdir   = ! empty( $parts ) ? strtolower( implode( '/', $parts ) ) . '/' : '';
+		$file     = WP_CSP_DIR . 'includes/' . $subdir . $filename;
+		if ( is_readable( $file ) ) {
+			require $file;
+		}
 	}
-	$relative = substr( $class, strlen( $prefix ) );
-	$parts    = explode( '\\', $relative );
-	$filename = 'class-' . strtolower( str_replace( '_', '-', (string) array_pop( $parts ) ) ) . '.php';
-	$subdir   = ! empty( $parts ) ? strtolower( implode( '/', $parts ) ) . '/' : '';
-	$file     = WP_CSP_DIR . 'includes/' . $subdir . $filename;
-	if ( is_readable( $file ) ) {
-		require $file;
-	}
-} );
+);
 
 // ── Lifecycle hooks ───────────────────────────────────────────────────────────
-register_activation_hook( __FILE__, [ 'WP_CSP\\Activator', 'activate' ] );
-register_deactivation_hook( __FILE__, [ 'WP_CSP\\Deactivator', 'deactivate' ] );
+register_activation_hook( __FILE__, array( 'WP_CSP\\Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'WP_CSP\\Deactivator', 'deactivate' ) );
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 add_action(

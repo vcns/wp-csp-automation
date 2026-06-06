@@ -26,7 +26,7 @@ class Checkout_Service {
 	private const STRIPE_API_BASE = 'https://api.stripe.com/v1';
 
 	private Config_Resolver $config;
-	private Audit_Log       $audit;
+	private Audit_Log $audit;
 
 	public function __construct( Config_Resolver $config, Audit_Log $audit ) {
 		$this->config = $config;
@@ -54,33 +54,34 @@ class Checkout_Service {
 
 		$site_identity = $this->get_site_identity();
 		$success_url   = add_query_arg(
-			[
+			array(
 				'page'       => 'wp-csp-entitlement',
 				'csp_result' => 'success',
 				'session_id' => '{CHECKOUT_SESSION_ID}', // Stripe replaces this literal.
-			],
+			),
 			admin_url( 'admin.php' )
 		);
 		$cancel_url    = add_query_arg(
-			[
+			array(
 				'page'       => 'wp-csp-entitlement',
 				'csp_result' => 'cancelled',
-			],
+			),
 			admin_url( 'admin.php' )
 		);
 
-		$checkout_config = $this->config->get()['checkout_policy'] ?? [];
+		$config          = $this->config->get();
+		$checkout_config = isset( $config['checkout_policy'] ) ? $config['checkout_policy'] : array();
 
-		$body = [
-			'mode'                   => 'payment',
-			'line_items[0][price]'   => $price_id,
-			'line_items[0][quantity]' => '1',
-			'success_url'            => $success_url,
-			'cancel_url'             => $cancel_url,
+		$body = array(
+			'mode'                     => 'payment',
+			'line_items[0][price]'     => $price_id,
+			'line_items[0][quantity]'  => '1',
+			'success_url'              => $success_url,
+			'cancel_url'               => $cancel_url,
 			'metadata[site_identity]'  => $site_identity,
 			'metadata[product_key]'    => $product_key,
 			'metadata[plugin_version]' => WP_CSP_VERSION,
-		];
+		);
 
 		if ( ! empty( $checkout_config['allow_promotion_codes'] ) ) {
 			$body['allow_promotion_codes'] = 'true';
@@ -91,16 +92,16 @@ class Checkout_Service {
 
 		$response = wp_remote_post(
 			self::STRIPE_API_BASE . '/checkout/sessions',
-			[
-				'timeout'     => 15,
-				'sslverify'   => true,
-				'headers'     => [
-					'Authorization' => 'Bearer ' . $secret_key,
-					'Content-Type'  => 'application/x-www-form-urlencoded',
+			array(
+				'timeout'   => 15,
+				'sslverify' => true,
+				'headers'   => array(
+					'Authorization'  => 'Bearer ' . $secret_key,
+					'Content-Type'   => 'application/x-www-form-urlencoded',
 					'Stripe-Version' => '2024-06-20',
-				],
-				'body'        => $body,
-			]
+				),
+				'body'      => $body,
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -111,8 +112,8 @@ class Checkout_Service {
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( $code !== 200 || empty( $data['url'] ) ) {
-			$error_msg = $data['error']['message'] ?? "HTTP {$code}";
+		if ( 200 !== $code || empty( $data['url'] ) ) {
+			$error_msg = isset( $data['error']['message'] ) ? $data['error']['message'] : "HTTP {$code}";
 			$this->audit->log( 'checkout', 'session_create_failed', $error_msg );
 			return new WP_Error( 'stripe_session_failed', $error_msg );
 		}
@@ -139,14 +140,14 @@ class Checkout_Service {
 
 		$response = wp_remote_get(
 			self::STRIPE_API_BASE . '/checkout/sessions/' . rawurlencode( $session_id ),
-			[
+			array(
 				'timeout'   => 10,
 				'sslverify' => true,
-				'headers'   => [
+				'headers'   => array(
 					'Authorization'  => 'Bearer ' . $secret_key,
 					'Stripe-Version' => '2024-06-20',
-				],
-			]
+				),
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {

@@ -73,7 +73,7 @@ class Config_Resolver {
 	 */
 	public function tier_has_feature( string $tier, string $feature ): bool {
 		$config   = $this->get();
-		$features = $config['features'][ $tier ] ?? [];
+		$features = $config['features'][ $tier ] ?? array();
 		return in_array( '*', $features, true ) || in_array( $feature, $features, true );
 	}
 
@@ -81,7 +81,7 @@ class Config_Resolver {
 	 * Returns the list of all known product keys.
 	 */
 	public function get_products(): array {
-		return $this->get()['products'] ?? [];
+		return $this->get()['products'] ?? array();
 	}
 
 	/**
@@ -156,11 +156,11 @@ class Config_Resolver {
 	protected function fetch_url( string $url ): array|\WP_Error {
 		return wp_remote_get(
 			$url,
-			[
+			array(
 				'timeout'    => 10,
 				'user-agent' => 'WP-CSP-Automation/' . WP_CSP_VERSION,
 				'sslverify'  => true,
-			]
+			)
 		);
 	}
 

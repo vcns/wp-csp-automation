@@ -11,7 +11,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // ── Drop custom tables ────────────────────────────────────────────────────────
-$tables = [
+$tables = array(
 	'csp_policy_profiles',
 	'csp_source_inventory',
 	'csp_hash_inventory',
@@ -19,7 +19,7 @@ $tables = [
 	'csp_scan_logs',
 	'csp_entitlements',
 	'csp_processed_events',
-];
+);
 
 foreach ( $tables as $table ) {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -27,7 +27,7 @@ foreach ( $tables as $table ) {
 }
 
 // ── Delete options ────────────────────────────────────────────────────────────
-$options = [
+$options = array(
 	'wp_csp_db_version',
 	'wp_csp_stripe_mode',
 	'wp_csp_stripe_publishable_key',
@@ -44,7 +44,7 @@ $options = [
 	'wp_csp_cron_hour',
 	'wp_csp_notify_email',
 	'wp_csp_admin_notices',
-];
+);
 
 foreach ( $options as $option ) {
 	delete_option( $option );

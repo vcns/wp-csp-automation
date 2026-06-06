@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Discovery {
 
-	private Audit_Log    $audit;
+	private Audit_Log $audit;
 	private Feature_Gate $gate;
 
 	public function __construct( Audit_Log $audit, Feature_Gate $gate ) {
@@ -51,17 +51,20 @@ class Discovery {
 	 * Returns counts of added/updated records.
 	 */
 	public function run_scan(): array {
-		$stats    = [ 'sources_added' => 0, 'sources_updated' => 0 ];
-		$surfaces = [ 'frontend' ];
+		$stats    = array(
+			'sources_added'   => 0,
+			'sources_updated' => 0,
+		);
+		$surfaces = array( 'frontend' );
 
 		if ( $this->gate->is_allowed( 'multi_surface_scan' ) ) {
-			$surfaces = [ 'frontend', 'admin', 'login', 'api' ];
+			$surfaces = array( 'frontend', 'admin', 'login', 'api' );
 		}
 
 		foreach ( $surfaces as $surface ) {
 			$urls = $this->get_crawl_urls( $surface );
 			foreach ( $urls as $url ) {
-				$result   = $this->crawl_url( $url, $surface );
+				$result                    = $this->crawl_url( $url, $surface );
 				$stats['sources_added']   += $result['added'];
 				$stats['sources_updated'] += $result['updated'];
 			}
@@ -76,22 +79,28 @@ class Discovery {
 	public function crawl_url( string $url, string $surface ): array {
 		$response = wp_remote_get(
 			$url,
-			[
+			array(
 				'timeout'    => 20,
 				'user-agent' => 'WP-CSP-Discovery/' . WP_CSP_VERSION,
 				'sslverify'  => true,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
 			$this->audit->log( 'discovery', 'crawl_failed', "Failed to fetch {$url}: " . $response->get_error_message(), 'warning' );
-			return [ 'added' => 0, 'updated' => 0 ];
+			return array(
+				'added'   => 0,
+				'updated' => 0,
+			);
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( $code < 200 || $code >= 400 ) {
 			$this->audit->log( 'discovery', 'crawl_http_error', "HTTP {$code} for {$url}.", 'warning' );
-			return [ 'added' => 0, 'updated' => 0 ];
+			return array(
+				'added'   => 0,
+				'updated' => 0,
+			);
 		}
 
 		$html    = wp_remote_retrieve_body( $response );
@@ -123,7 +132,7 @@ class Discovery {
 	 */
 	public function parse_html_sources( string $html, string $base_url ): array {
 		if ( empty( trim( $html ) ) ) {
-			return [];
+			return array();
 		}
 
 		$doc = new \DOMDocument();
@@ -131,7 +140,7 @@ class Discovery {
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		@$doc->loadHTML( '<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR );
 
-		$found = [];
+		$found = array();
 
 		// Scripts → script-src-elem
 		foreach ( $doc->getElementsByTagName( 'script' ) as $el ) {
@@ -142,7 +151,7 @@ class Discovery {
 		}
 
 		// Collect stylesheet hrefs for separate CSS parsing and classify here.
-		$stylesheet_urls = [];
+		$stylesheet_urls = array();
 		foreach ( $doc->getElementsByTagName( 'link' ) as $el ) {
 			$rel  = strtolower( trim( $el->getAttribute( 'rel' ) ) );
 			$href = trim( $el->getAttribute( 'href' ) );
@@ -204,11 +213,13 @@ class Discovery {
 
 		// <source> inside <audio>/<video> → media-src
 		foreach ( $doc->getElementsByTagName( 'source' ) as $el ) {
-			$src    = trim( $el->getAttribute( 'src' ) );
+			$src = trim( $el->getAttribute( 'src' ) );
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$parent = $el->parentNode;
 			if ( $src && ! $this->is_inline_data( $src ) && $parent ) {
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$parent_tag = strtolower( $parent->nodeName );
-				if ( in_array( $parent_tag, [ 'audio', 'video' ], true ) ) {
+				if ( in_array( $parent_tag, array( 'audio', 'video' ), true ) ) {
 					$found[] = $this->classify_url( $src, 'media-src', $base_url );
 				}
 			}
@@ -239,30 +250,30 @@ class Discovery {
 	 */
 	public function parse_stylesheet_sources( string $css_url, string $base_url ): array {
 		if ( empty( $css_url ) || ! filter_var( $css_url, FILTER_VALIDATE_URL ) ) {
-			return [];
+			return array();
 		}
 
 		$response = wp_remote_get(
 			$css_url,
-			[
+			array(
 				'timeout'    => 10,
 				'user-agent' => 'WP-CSP-Discovery/' . WP_CSP_VERSION,
 				'sslverify'  => true,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
 			$this->audit->log( 'discovery', 'css_fetch_failed', "Failed to fetch CSS {$css_url}: " . $response->get_error_message(), 'warning' );
-			return [];
+			return array();
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $response );
 		if ( 200 !== $code ) {
-			return [];
+			return array();
 		}
 
 		$css   = wp_remote_retrieve_body( $response );
-		$found = [];
+		$found = array();
 
 		// Match url() values inside @font-face blocks.
 		// Pattern: @font-face { ... src: url('...') ... }
@@ -296,9 +307,9 @@ class Discovery {
 				continue;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$existing = $wpdb->get_var(
 				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					"SELECT id FROM {$table} WHERE surface = %s AND directive = %s AND source_host = %s LIMIT 1",
 					$surface,
 					$src['directive'],
@@ -309,32 +320,38 @@ class Discovery {
 			if ( $existing ) {
 				$wpdb->update(
 					$table,
-					[ 'last_seen_at' => $now, 'source_uri' => $src['uri'] ],
-					[ 'id' => (int) $existing ],
-					[ '%s', '%s' ],
-					[ '%d' ]
+					array(
+						'last_seen_at' => $now,
+						'source_uri'   => $src['uri'],
+					),
+					array( 'id' => (int) $existing ),
+					array( '%s', '%s' ),
+					array( '%d' )
 				);
 				++$updated;
 			} else {
 				$wpdb->insert(
 					$table,
-					[
-						'surface'          => $surface,
-						'directive'        => $src['directive'],
-						'source_uri'       => $src['uri'],
-						'source_scheme'    => $src['scheme'],
-						'source_host'      => $src['host'],
-						'approval_state'   => 'pending',
-						'first_seen_at'    => $now,
-						'last_seen_at'     => $now,
-					],
-					[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+					array(
+						'surface'        => $surface,
+						'directive'      => $src['directive'],
+						'source_uri'     => $src['uri'],
+						'source_scheme'  => $src['scheme'],
+						'source_host'    => $src['host'],
+						'approval_state' => 'pending',
+						'first_seen_at'  => $now,
+						'last_seen_at'   => $now,
+					),
+					array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 				);
 				++$added;
 			}
 		}
 
-		return [ 'added' => $added, 'updated' => $updated ];
+		return array(
+			'added'   => $added,
+			'updated' => $updated,
+		);
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
@@ -350,12 +367,12 @@ class Discovery {
 			return null;
 		}
 
-		return [
+		return array(
 			'directive' => $directive,
 			'uri'       => esc_url_raw( $resolved ),
 			'host'      => strtolower( $parsed['host'] ),
-			'scheme'    => strtolower( $parsed['scheme'] ?? 'https' ),
-		];
+			'scheme'    => strtolower( isset( $parsed['scheme'] ) ? $parsed['scheme'] : 'https' ),
+		);
 	}
 
 	/**
@@ -386,7 +403,7 @@ class Discovery {
 			if ( empty( $parsed_base['host'] ) ) {
 				return null;
 			}
-			return ( $parsed_base['scheme'] ?? 'https' ) . '://' . $parsed_base['host'] . $raw_url;
+			return ( isset( $parsed_base['scheme'] ) ? $parsed_base['scheme'] : 'https' ) . '://' . $parsed_base['host'] . $raw_url;
 		}
 
 		// Relative path: resolve against base URL directory.
@@ -403,11 +420,11 @@ class Discovery {
 	 */
 	private function get_crawl_urls( string $surface ): array {
 		return match ( $surface ) {
-			'frontend' => [ get_home_url( '/' ) ],
-			'admin'    => [ admin_url() ],
-			'login'    => [ wp_login_url() ],
-			'api'      => [ rest_url() ],
-			default    => [],
+			'frontend' => array( get_home_url( '/' ) ),
+			'admin'    => array( admin_url() ),
+			'login'    => array( wp_login_url() ),
+			'api'      => array( rest_url() ),
+			default    => array(),
 		};
 	}
 }

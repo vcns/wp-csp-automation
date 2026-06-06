@@ -33,18 +33,18 @@ class Admin_UI {
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 	public function register(): void {
-		add_action( 'admin_menu',            [ $this, 'add_menu_pages' ] );
-		add_action( 'admin_init',            [ $this, 'register_settings' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-		add_action( 'admin_notices',         [ $this, 'display_admin_notices' ] );
+		add_action( 'admin_menu', array( $this, 'add_menu_pages' ) );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_notices', array( $this, 'display_admin_notices' ) );
 
 		// AJAX handlers.
-		add_action( 'wp_ajax_wp_csp_create_checkout',  [ $this, 'ajax_create_checkout' ] );
-		add_action( 'wp_ajax_wp_csp_manual_scan',      [ $this, 'ajax_manual_scan' ] );
-		add_action( 'wp_ajax_wp_csp_refresh_config',   [ $this, 'ajax_refresh_config' ] );
-		add_action( 'wp_ajax_wp_csp_approve_source',   [ $this, 'ajax_approve_source' ] );
-		add_action( 'wp_ajax_wp_csp_deny_source',      [ $this, 'ajax_deny_source' ] );
-		add_action( 'wp_ajax_wp_csp_toggle_mode',      [ $this, 'ajax_toggle_mode' ] );
+		add_action( 'wp_ajax_wp_csp_create_checkout', array( $this, 'ajax_create_checkout' ) );
+		add_action( 'wp_ajax_wp_csp_manual_scan', array( $this, 'ajax_manual_scan' ) );
+		add_action( 'wp_ajax_wp_csp_refresh_config', array( $this, 'ajax_refresh_config' ) );
+		add_action( 'wp_ajax_wp_csp_approve_source', array( $this, 'ajax_approve_source' ) );
+		add_action( 'wp_ajax_wp_csp_deny_source', array( $this, 'ajax_deny_source' ) );
+		add_action( 'wp_ajax_wp_csp_toggle_mode', array( $this, 'ajax_toggle_mode' ) );
 	}
 
 	// ── Menu registration ─────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ class Admin_UI {
 			__( 'CSP Manager', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-dashboard',
-			[ $this, 'render_dashboard' ],
+			array( $this, 'render_dashboard' ),
 			'dashicons-shield',
 			80
 		);
@@ -66,7 +66,7 @@ class Admin_UI {
 			__( 'Dashboard', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-dashboard',
-			[ $this, 'render_dashboard' ]
+			array( $this, 'render_dashboard' )
 		);
 
 		add_submenu_page(
@@ -75,7 +75,7 @@ class Admin_UI {
 			__( 'Settings', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-settings',
-			[ $this, 'render_settings' ]
+			array( $this, 'render_settings' )
 		);
 
 		add_submenu_page(
@@ -84,14 +84,14 @@ class Admin_UI {
 			__( 'Premium', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-entitlement',
-			[ $this, 'render_entitlement' ]
+			array( $this, 'render_entitlement' )
 		);
 	}
 
 	// ── Settings API ──────────────────────────────────────────────────────────
 
 	public function register_settings(): void {
-		$settings = [
+		$settings = array(
 			'wp_csp_stripe_mode'                   => 'sanitize_text_field',
 			'wp_csp_stripe_publishable_key'        => 'sanitize_text_field',
 			'wp_csp_stripe_secret_key'             => 'sanitize_text_field',
@@ -104,21 +104,21 @@ class Admin_UI {
 			'wp_csp_cron_hour'                     => 'absint',
 			'wp_csp_notify_email'                  => 'sanitize_email',
 			'wp_csp_enforce_gate_violation_window' => 'absint',
-		];
+		);
 
 		foreach ( $settings as $option => $callback ) {
-			register_setting( 'wp_csp_settings_group', $option, [ 'sanitize_callback' => $callback ] );
+			register_setting( 'wp_csp_settings_group', $option, array( 'sanitize_callback' => $callback ) );
 		}
 	}
 
 	// ── Asset enqueue ─────────────────────────────────────────────────────────
 
 	public function enqueue_assets( string $hook_suffix ): void {
-		$csp_pages = [
+		$csp_pages = array(
 			'toplevel_page_wp-csp-dashboard',
 			'csp-manager_page_wp-csp-settings',
 			'csp-manager_page_wp-csp-entitlement',
-		];
+		);
 		if ( ! in_array( $hook_suffix, $csp_pages, true ) ) {
 			return;
 		}
@@ -126,14 +126,14 @@ class Admin_UI {
 		wp_enqueue_style(
 			'wp-csp-admin',
 			WP_CSP_URL . 'assets/css/admin.css',
-			[],
+			array(),
 			WP_CSP_VERSION
 		);
 
 		wp_enqueue_script(
 			'wp-csp-admin',
 			WP_CSP_URL . 'assets/js/admin.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			WP_CSP_VERSION,
 			true
 		);
@@ -141,15 +141,15 @@ class Admin_UI {
 		wp_localize_script(
 			'wp-csp-admin',
 			'wpCspAdmin',
-			[
+			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'wp_csp_admin_nonce' ),
-				'i18n'    => [
+				'i18n'    => array(
 					'scanning'  => __( 'Scanning…', 'wp-csp-automation' ),
 					'scanDone'  => __( 'Scan complete.', 'wp-csp-automation' ),
 					'scanError' => __( 'Scan failed. Check error log.', 'wp-csp-automation' ),
-				],
-			]
+				),
+			)
 		);
 	}
 
@@ -179,7 +179,7 @@ class Admin_UI {
 	// ── Admin notices ─────────────────────────────────────────────────────────
 
 	public function display_admin_notices(): void {
-		$notices = get_option( 'wp_csp_admin_notices', [] );
+		$notices = get_option( 'wp_csp_admin_notices', array() );
 		if ( ! is_array( $notices ) || empty( $notices ) ) {
 			return;
 		}
@@ -201,7 +201,7 @@ class Admin_UI {
 	public function ajax_create_checkout(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-pro' ) );
@@ -210,9 +210,9 @@ class Admin_UI {
 			new \WP_Error( 'no_config', __( 'Plugin not fully initialised.', 'wp-csp-automation' ) );
 
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		} else {
-			wp_send_json_success( [ 'checkout_url' => esc_url_raw( $result ) ] );
+			wp_send_json_success( array( 'checkout_url' => esc_url_raw( $result ) ) );
 		}
 	}
 
@@ -221,14 +221,14 @@ class Admin_UI {
 	public function ajax_manual_scan(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$scheduler = new Scheduler( $this->plugin->audit );
 		$results   = $scheduler->run_manual_scan();
 
 		if ( isset( $results['error'] ) ) {
-			wp_send_json_error( [ 'message' => $results['error'] ] );
+			wp_send_json_error( array( 'message' => $results['error'] ) );
 		} else {
 			wp_send_json_success( $results );
 		}
@@ -239,14 +239,14 @@ class Admin_UI {
 	public function ajax_refresh_config(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$ok = $this->plugin->config->refresh();
 		if ( $ok ) {
-			wp_send_json_success( [ 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ] );
+			wp_send_json_success( array( 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ) );
 		} else {
-			wp_send_json_error( [ 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ] );
+			wp_send_json_error( array( 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ) );
 		}
 	}
 
@@ -270,14 +270,14 @@ class Admin_UI {
 
 	private function set_source_state( int $id, string $state ): void {
 		if ( $id <= 0 ) {
-			wp_send_json_error( [ 'message' => 'Invalid ID.' ] );
+			wp_send_json_error( array( 'message' => 'Invalid ID.' ) );
 		}
 		global $wpdb;
-		$data = [ 'approval_state' => $state ];
+		$data = array( 'approval_state' => $state );
 		if ( 'approved' === $state ) {
 			$data['approved_at'] = current_time( 'mysql', true );
 		}
-		$wpdb->update( $wpdb->prefix . 'csp_source_inventory', $data, [ 'id' => $id ], [ '%s', '%s' ], [ '%d' ] );
+		$wpdb->update( $wpdb->prefix . 'csp_source_inventory', $data, array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
 		wp_send_json_success();
 	}
 
@@ -290,33 +290,33 @@ class Admin_UI {
 		}
 
 		$surface = sanitize_text_field( wp_unslash( $_POST['surface'] ?? '' ) );
-		$mode    = sanitize_text_field( wp_unslash( $_POST['mode']    ?? '' ) );
+		$mode    = sanitize_text_field( wp_unslash( $_POST['mode'] ?? '' ) );
 
-		if ( ! in_array( $surface, [ 'frontend', 'admin', 'login', 'api' ], true ) ) {
-			wp_send_json_error( [ 'message' => 'Invalid surface.' ] );
+		if ( ! in_array( $surface, array( 'frontend', 'admin', 'login', 'api' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid surface.' ) );
 		}
-		if ( ! in_array( $mode, [ 'report-only', 'enforce', 'disabled' ], true ) ) {
-			wp_send_json_error( [ 'message' => 'Invalid mode.' ] );
+		if ( ! in_array( $mode, array( 'report-only', 'enforce', 'disabled' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid mode.' ) );
 		}
 
 		// Full promotion gate: enforce requires passing all configured checks.
 		if ( 'enforce' === $mode ) {
 			$gate_result = $this->gate_allows_enforce( $surface );
 			if ( true !== $gate_result ) {
-				wp_send_json_error( [ 'message' => $gate_result ] );
+				wp_send_json_error( array( 'message' => $gate_result ) );
 			}
 		}
 
 		global $wpdb;
 		$wpdb->update(
 			$wpdb->prefix . 'csp_policy_profiles',
-			[
+			array(
 				'mode'       => $mode,
 				'updated_at' => current_time( 'mysql', true ),
-			],
-			[ 'surface' => $surface ],
-			[ '%s', '%s' ],
-			[ '%s' ]
+			),
+			array( 'surface' => $surface ),
+			array( '%s', '%s' ),
+			array( '%s' )
 		);
 		wp_send_json_success();
 	}
@@ -393,7 +393,7 @@ class Admin_UI {
 
 		if ( $profile ) {
 			$expires_at = $profile['override_expires_at'] ?? null;
-			$owner      = $profile['override_owner']      ?? null;
+			$owner      = $profile['override_owner'] ?? null;
 
 			if ( ! empty( $expires_at ) && ! empty( $owner ) ) {
 				$expires_ts = strtotime( $expires_at );

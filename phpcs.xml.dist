@@ -17,8 +17,6 @@
   <exclude-pattern>test/*</exclude-pattern>
 
   <rule ref="WordPress-Core"/>
-  <rule ref="WordPress-Docs"/>
-  <rule ref="WordPress-Extra"/>
   <rule ref="PHPCompatibilityWP"/>
 
   <config name="testVersion" value="8.1-"/>

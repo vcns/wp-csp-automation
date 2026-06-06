@@ -31,7 +31,7 @@ class Scheduler {
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 	public function register(): void {
-		add_action( 'wp_csp_daily_scan', [ $this, 'run_daily_scan' ] );
+		add_action( 'wp_csp_daily_scan', array( $this, 'run_daily_scan' ) );
 	}
 
 	// ── Scan runner ───────────────────────────────────────────────────────────
@@ -43,9 +43,9 @@ class Scheduler {
 		$scan_id = $this->audit->start_scan( 'scheduled' );
 
 		try {
-			$plugin    = \WP_CSP\Plugin::instance();
-			$gate      = $plugin->gate;
-			$hash_mgr  = $plugin->hash_manager;
+			$plugin   = \WP_CSP\Plugin::instance();
+			$gate     = $plugin->gate;
+			$hash_mgr = $plugin->hash_manager;
 
 			$discovery = new Discovery( $this->audit, $gate );
 
@@ -59,19 +59,19 @@ class Scheduler {
 			$current_hashes = $hash_mgr->get_captured_hashes();
 			$hash_retired   = $hash_mgr->retire_stale( $current_hashes, 'frontend' );
 
-			$results = [
+			$results = array(
 				'sources_added'   => $discovery_results['sources_added'],
 				'sources_removed' => 0,
 				'hashes_added'    => 0,
 				'hashes_removed'  => $hash_retired,
 				'policy_changed'  => $discovery_results['sources_added'] > 0 || $hash_retired > 0,
-			];
+			);
 
 			$this->audit->finish_scan( $scan_id, $results );
 			$this->maybe_notify( $results );
 
 		} catch ( \Throwable $e ) {
-			$this->audit->finish_scan( $scan_id, [], 'failed' );
+			$this->audit->finish_scan( $scan_id, array(), 'failed' );
 			$this->audit->log( 'scheduler', 'scan_exception', $e->getMessage(), 'error' );
 		}
 	}
@@ -86,9 +86,9 @@ class Scheduler {
 		$scan_id = $this->audit->start_scan( 'manual' );
 
 		try {
-			$plugin    = \WP_CSP\Plugin::instance();
-			$gate      = $plugin->gate;
-			$hash_mgr  = $plugin->hash_manager;
+			$plugin   = \WP_CSP\Plugin::instance();
+			$gate     = $plugin->gate;
+			$hash_mgr = $plugin->hash_manager;
 
 			$discovery = new Discovery( $this->audit, $gate );
 
@@ -99,23 +99,23 @@ class Scheduler {
 			// buffer hooks will have fired during the admin page render and
 			// get_captured_hashes() will contain the admin surface's inline blocks.
 			$current_hashes = $hash_mgr->get_captured_hashes();
-			$hr = $hash_mgr->retire_stale( $current_hashes, 'frontend' );
+			$hr             = $hash_mgr->retire_stale( $current_hashes, 'frontend' );
 
-			$results = [
+			$results = array(
 				'sources_added'   => $dr['sources_added'],
 				'sources_removed' => 0,
 				'hashes_added'    => 0,
 				'hashes_removed'  => $hr,
 				'policy_changed'  => $dr['sources_added'] > 0 || $hr > 0,
-			];
+			);
 
 			$this->audit->finish_scan( $scan_id, $results );
 			return $results;
 
 		} catch ( \Throwable $e ) {
-			$this->audit->finish_scan( $scan_id, [], 'failed' );
+			$this->audit->finish_scan( $scan_id, array(), 'failed' );
 			$this->audit->log( 'scheduler', 'manual_scan_exception', $e->getMessage(), 'error' );
-			return [ 'error' => $e->getMessage() ];
+			return array( 'error' => $e->getMessage() );
 		}
 	}
 
