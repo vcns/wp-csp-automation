@@ -6,10 +6,12 @@
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
     "phpcompatibility/php-compatibility": "^9.3",
+    "phpcompatibility/phpcompatibility-wp": "^3.0@dev",
     "phpcsstandards/phpcsextra": "^1.2",
     "phpcsstandards/phpcsutils": "^1.1",
     "sirbrillig/phpcs-variable-analysis": "^2.12",
-    "wp-coding-standards/wpcs": "^3.1"
+    "wp-coding-standards/wpcs": "^3.1",
+    "phpunit/phpunit": "^10.0"
   },
   "config": {
     "allow-plugins": {

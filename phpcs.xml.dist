@@ -14,17 +14,15 @@
   <exclude-pattern>vendor/*</exclude-pattern>
   <exclude-pattern>.git/*</exclude-pattern>
   <exclude-pattern>docs/*</exclude-pattern>
+  <exclude-pattern>test/*</exclude-pattern>
 
   <rule ref="WordPress-Core"/>
   <rule ref="WordPress-Docs"/>
   <rule ref="WordPress-Extra"/>
-  <rule ref="PHPCompatibilityWP">
-    <config name="testVersion" value="8.1-"/>
-  </rule>
+  <rule ref="PHPCompatibilityWP"/>
 
+  <config name="testVersion" value="8.1-"/>
   <config name="minimum_supported_wp_version" value="6.4"/>
-
-  <rule ref="WordPress.Files.FileName"/>
 
   <rule ref="WordPress.WP.I18n">
     <properties>
