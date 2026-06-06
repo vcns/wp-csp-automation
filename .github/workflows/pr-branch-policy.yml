@@ -1,0 +1,41 @@
+name: PR Branch Policy
+
+on:
+  pull_request:
+    branches:
+      - development
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  enforce-source-branch-policy:
+    name: Enforce PR Source Branch Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate source branch for development
+        if: github.base_ref == 'development'
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$HEAD_REF" =~ ^feature/ && ! "$HEAD_REF" =~ ^fix/ && ! "$HEAD_REF" =~ ^hotfix/ ]]; then
+            echo "Pull requests into development must come from feature/*, fix/*, or hotfix/* branches. Got: $HEAD_REF"
+            exit 1
+          fi
+
+      - name: Validate source branch for main
+        if: github.base_ref == 'main'
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$HEAD_REF" =~ ^development$ && ! "$HEAD_REF" =~ ^release/ ]]; then
+            echo "Pull requests into main must come from development or release/* branches. Got: $HEAD_REF"
+            exit 1
+          fi

@@ -11,6 +11,10 @@
  *   - Approved hosts from csp_source_inventory appended per directive.
  *   - report-to and report-uri appended automatically.
  *   - 'strict-dynamic' added to script-src when profile enables it (pro feature).
+ *
+ * FIX: source host values are sanitised with sanitize_text_field() rather than
+ * esc_attr(). esc_attr() HTML-encodes characters such as & which are invalid
+ * in HTTP header values and would produce a malformed CSP directive.
  */
 
 declare( strict_types=1 );
@@ -35,7 +39,7 @@ class Policy_Builder {
 
 	public function register(): void {
 		// send_headers fires before any output, ideal for emitting CSP.
-		add_action( 'send_headers', [ $this, 'emit_header' ] );
+		add_action( 'send_headers', array( $this, 'emit_header' ) );
 	}
 
 	// ── Header emission ───────────────────────────────────────────────────────
@@ -71,7 +75,7 @@ class Policy_Builder {
 	public function build_policy_string( array $profile, string $surface ): string {
 		$nonce      = Plugin_Nonce_Manager::get_instance_nonce();
 		$directives = json_decode( $profile['directives'], true );
-		$overrides  = json_decode( $profile['overrides'],  true );
+		$overrides  = json_decode( $profile['overrides'], true );
 
 		if ( ! is_array( $directives ) ) {
 			return '';
@@ -86,7 +90,7 @@ class Policy_Builder {
 
 		// Inject nonce into script-src and style-src.
 		if ( ! empty( $nonce ) ) {
-			foreach ( [ 'script-src', 'script-src-elem', 'style-src', 'style-src-elem' ] as $dir ) {
+			foreach ( array( 'script-src', 'script-src-elem', 'style-src', 'style-src-elem' ) as $dir ) {
 				if ( isset( $directives[ $dir ] ) ) {
 					$directives[ $dir ][] = "'nonce-{$nonce}'";
 				}
@@ -103,11 +107,13 @@ class Policy_Builder {
 		}
 
 		// Append approved source hosts from inventory.
+		// FIX: use sanitize_text_field() not esc_attr() -- esc_attr() encodes
+		// characters such as & that are invalid in HTTP header values.
 		$sources = $this->load_approved_sources( $surface );
 		foreach ( $sources as $src ) {
 			$dir = $src['directive'];
 			if ( isset( $directives[ $dir ] ) ) {
-				$directives[ $dir ][] = esc_attr( $src['source_host'] );
+				$directives[ $dir ][] = sanitize_text_field( $src['source_host'] );
 			}
 		}
 
@@ -119,12 +125,12 @@ class Policy_Builder {
 		}
 
 		// Append reporting directive.
-		$report_uri = rest_url( 'csp-manager/v1/report' );
-		$directives['report-uri'] = [ $report_uri ];
-		$directives['report-to']  = [ 'csp-endpoint' ];
+		$report_uri               = rest_url( 'csp-manager/v1/report' );
+		$directives['report-uri'] = array( $report_uri );
+		$directives['report-to']  = array( 'csp-endpoint' );
 
 		// Serialise: each directive becomes "name src1 src2 src3".
-		$parts = [];
+		$parts = array();
 		foreach ( $directives as $directive => $sources_list ) {
 			if ( ! is_array( $sources_list ) ) {
 				continue;
@@ -158,47 +164,34 @@ class Policy_Builder {
 		$table = $wpdb->prefix . 'csp_policy_profiles';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE surface = %s LIMIT 1", $surface ), ARRAY_A );
-		return $row ?: null;
+		return ! empty( $row ) ? $row : null;
 	}
 
 	private function load_approved_hashes( string $surface ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_hash_inventory';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return $wpdb->get_results(
+		$rows  = $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT directive, hash_algo, hash_value FROM {$table} WHERE surface = %s AND status = 'active'",
 				$surface
 			),
 			ARRAY_A
-		) ?: [];
+		);
+		return ! empty( $rows ) ? $rows : array();
 	}
 
 	private function load_approved_sources( string $surface ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_source_inventory';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return $wpdb->get_results(
+		$rows  = $wpdb->get_results(
 			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT directive, source_host FROM {$table} WHERE surface = %s AND approval_state = 'approved'",
 				$surface
 			),
 			ARRAY_A
-		) ?: [];
-	}
-}
-
-/**
- * Thin static bridge so Policy_Builder can read the nonce without
- * requiring a direct reference to the Nonce_Manager singleton.
- */
-final class Plugin_Nonce_Manager {
-	public static function get_instance_nonce(): string {
-		static $nonce = null;
-		if ( null === $nonce ) {
-			$plugin = \WP_CSP\Plugin::instance();
-			$nonce  = isset( $plugin->nonce_manager ) ? $plugin->nonce_manager->get_nonce() : '';
-		}
-		return $nonce;
+		);
+		return ! empty( $rows ) ? $rows : array();
 	}
 }

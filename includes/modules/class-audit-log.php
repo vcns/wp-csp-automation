@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Audit_Log {
 
-	private array $buffer = [];
+	private array $buffer = array();
 
 	// ── Public API ────────────────────────────────────────────────────────────
 
@@ -37,13 +37,13 @@ class Audit_Log {
 		string $detail,
 		string $severity = 'info'
 	): void {
-		$entry = [
+		$entry = array(
 			'ts'        => current_time( 'mysql', true ),
 			'component' => $component,
 			'event'     => $event,
 			'detail'    => $detail,
 			'severity'  => $severity,
-		];
+		);
 
 		$this->buffer[] = $entry;
 
@@ -51,15 +51,17 @@ class Audit_Log {
 		$this->push_admin_notice( $entry );
 
 		// Always write warnings and errors to PHP error log.
-		if ( in_array( $severity, [ 'warning', 'error' ], true ) ) {
+		if ( in_array( $severity, array( 'warning', 'error' ), true ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( sprintf(
-				'[WP-CSP][%s][%s] %s: %s',
-				strtoupper( $severity ),
-				$component,
-				$event,
-				$detail
-			) );
+			error_log(
+				sprintf(
+					'[WP-CSP][%s][%s] %s: %s',
+					strtoupper( $severity ),
+					$component,
+					$event,
+					$detail
+				)
+			);
 		}
 	}
 
@@ -70,12 +72,12 @@ class Audit_Log {
 		global $wpdb;
 		$wpdb->insert(
 			$wpdb->prefix . 'csp_scan_logs',
-			[
+			array(
 				'trigger_type' => $trigger_type,
 				'status'       => 'running',
 				'started_at'   => current_time( 'mysql', true ),
-			],
-			[ '%s', '%s', '%s' ]
+			),
+			array( '%s', '%s', '%s' )
 		);
 		return (int) $wpdb->insert_id;
 	}
@@ -87,7 +89,7 @@ class Audit_Log {
 		global $wpdb;
 		$wpdb->update(
 			$wpdb->prefix . 'csp_scan_logs',
-			[
+			array(
 				'status'          => $status,
 				'sources_added'   => $results['sources_added'] ?? 0,
 				'sources_removed' => $results['sources_removed'] ?? 0,
@@ -97,10 +99,10 @@ class Audit_Log {
 				'diff_summary'    => isset( $results['diff'] ) ? wp_json_encode( $results['diff'] ) : null,
 				'warnings'        => isset( $results['warnings'] ) ? wp_json_encode( $results['warnings'] ) : null,
 				'completed_at'    => current_time( 'mysql', true ),
-			],
-			[ 'id' => $scan_id ],
-			[ '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s' ],
-			[ '%d' ]
+			),
+			array( 'id' => $scan_id ),
+			array( '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s' ),
+			array( '%d' )
 		);
 	}
 
@@ -118,9 +120,9 @@ class Audit_Log {
 			return; // Only surface warnings and errors.
 		}
 
-		$notices = get_option( 'wp_csp_admin_notices', [] );
+		$notices = get_option( 'wp_csp_admin_notices', array() );
 		if ( ! is_array( $notices ) ) {
-			$notices = [];
+			$notices = array();
 		}
 
 		$notices[] = $entry;

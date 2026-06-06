@@ -11,6 +11,7 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - Bootstrap file with plugin headers, constants, autoloader, activation, deactivation, and uninstall hooks.
 - Database installer for seven custom tables covering policy profiles, source inventory, hash inventory, violation reports, scan logs, entitlements, and processed Stripe webhook events.
 - Per-surface CSP engine for frontend, admin, login, and REST API requests.
+- Strict defaults for all 18 CSP directives, including `'none'` defaults where appropriate.
 - Nonce generation and injection through native WordPress 6.4+ script attribute hooks with legacy tag-filter fallback.
 - Policy builder capable of emitting strict `Content-Security-Policy` and `Content-Security-Policy-Report-Only` headers.
 - Crawl-based discovery workflow for external sources with approval and deny actions.
@@ -21,8 +22,11 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - Stripe checkout session creation without the Stripe PHP SDK, using the WordPress HTTP API.
 - Webhook verification with HMAC-SHA256 signing, replay-window tolerance, and idempotent event recording.
 - Local entitlement store bound to a stable hash of the site URL, including configurable grace periods.
+- Feature gate with explicit free-tier capabilities and local tier checks.
 - Remote product configuration fetched from DNS-discovered HTTPS JSON with Ed25519 signature verification.
+- Transient-cached remote configuration with configurable TTL and grace-window handling.
 - Admin UI covering dashboard, settings, entitlement display, checkout initiation, and manual rescans.
+- Full uninstall routine that drops all seven custom tables and removes plugin-owned `wp_csp_*` options.
 - Public WordPress.org `readme.txt` and repository documentation set.
 
 ### Security
