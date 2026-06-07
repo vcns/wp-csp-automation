@@ -7,14 +7,22 @@
  * matrix to determine what the site's current tier unlocks.
  *
  * Free features are always allowed regardless of entitlement.
+ *
+ * When the premium modules (Entitlement_Store, Config_Resolver) are not
+ * present — i.e. the offline/ directory is absent — this class degrades
+ * gracefully: all premium feature checks return false and the site runs
+ * on the free tier automatically.
+ *
+ * Premium feature keys:
+ *   trusted_types       — Trusted Types directives (require-trusted-types-for, trusted-types).
+ *                         Always deployed in report-only mode first — Chromium-strong; Baseline ~2028 (R5).
+ *   strict_dynamic      — Adds 'strict-dynamic' to script-src; suppresses host allowlists (R4).
+ *   multi_surface_scan  — Crawl admin, login, api surfaces (frontend is always free).
  */
 
 declare( strict_types=1 );
 
 namespace WP_CSP\Modules;
-
-use WP_CSP\Modules\Config_Resolver;
-use WP_CSP\Modules\Entitlement_Store;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,23 +38,26 @@ class Feature_Gate {
 		'violation_endpoint',
 	);
 
-	// Premium feature keys (checked against the remote config feature matrix).
-	// trusted_types: Trusted Types directives (require-trusted-types-for, trusted-types).
-	// Always deployed in report-only mode first — Chromium-strong; Baseline ~2028 (R5).
-	// strict_dynamic: adds 'strict-dynamic' to script-src; suppresses host allowlists (R4).
-	// multi_surface_scan: crawl admin, login, api surfaces (frontend is always free).
-
 	// Product key the free tier links to in the entitlement store.
 	private const PRODUCT_KEY = 'wp-csp-automation';
 
-	private Entitlement_Store $entitlements;
-	private Config_Resolver $config;
+	/**
+	 * Entitlement_Store instance, or null when the offline module is absent.
+	 * Typed as object to avoid autoloading the premium class at parse time.
+	 */
+	private ?object $entitlements;
+
+	/**
+	 * Config_Resolver instance, or null when the offline module is absent.
+	 * Typed as object to avoid autoloading the premium class at parse time.
+	 */
+	private ?object $config;
 
 	/** In-memory cache to avoid repeated DB + transient reads per request. */
 	private ?array $entitlement_cache = null;
 	private bool $cache_loaded        = false;
 
-	public function __construct( Entitlement_Store $entitlements, Config_Resolver $config ) {
+	public function __construct( ?object $entitlements = null, ?object $config = null ) {
 		$this->entitlements = $entitlements;
 		$this->config       = $config;
 	}
@@ -59,6 +70,10 @@ class Feature_Gate {
 	public function is_allowed( string $feature ): bool {
 		if ( in_array( $feature, self::FREE_FEATURES, true ) ) {
 			return true;
+		}
+
+		if ( null === $this->config ) {
+			return false; // no premium config — free tier only
 		}
 
 		$tier = $this->current_tier();
@@ -91,8 +106,10 @@ class Feature_Gate {
 
 	private function load_entitlement(): ?array {
 		if ( ! $this->cache_loaded ) {
-			$this->entitlement_cache = $this->entitlements->get_for_site( self::PRODUCT_KEY );
-			$this->cache_loaded      = true;
+			if ( null !== $this->entitlements ) {
+				$this->entitlement_cache = $this->entitlements->get_for_site( self::PRODUCT_KEY );
+			}
+			$this->cache_loaded = true;
 		}
 		return $this->entitlement_cache;
 	}

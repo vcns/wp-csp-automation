@@ -2,6 +2,11 @@
 /**
  * Central plugin orchestrator.
  * Bootstraps every module, registers REST routes, and wires WordPress hooks.
+ *
+ * Premium modules (Config_Resolver, Entitlement_Store, Checkout_Service,
+ * Webhook_Controller) are loaded only when the offline/ directory is present.
+ * When absent, the plugin runs on the free tier with $config and $entitlements
+ * set to null, and Feature_Gate degrades gracefully.
  */
 
 declare( strict_types=1 );
@@ -16,11 +21,7 @@ use WP_CSP\CSP\Policy_Builder;
 use WP_CSP\CSP\Scheduler;
 use WP_CSP\CSP\Violation_Reporter;
 use WP_CSP\Modules\Audit_Log;
-use WP_CSP\Modules\Config_Resolver;
-use WP_CSP\Modules\Entitlement_Store;
 use WP_CSP\Modules\Feature_Gate;
-use WP_CSP\Modules\Checkout_Service;
-use WP_CSP\Modules\Webhook_Controller;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -31,8 +32,9 @@ final class Plugin {
 	private static ?Plugin $instance = null;
 
 	// Shared module instances (read by Admin_UI and other consumers).
-	public Config_Resolver $config;
-	public Entitlement_Store $entitlements;
+	// Nullable: null when the premium offline/ modules are not installed.
+	public ?object $config       = null;
+	public ?object $entitlements = null;
 	public Feature_Gate $gate;
 	public Audit_Log $audit;
 	public Nonce_Manager $nonce_manager;
@@ -81,10 +83,18 @@ final class Plugin {
 	// ── Module bootstrap ──────────────────────────────────────────────────────
 
 	private function bootstrap(): void {
-		// Shared service layer.
-		$this->audit          = new Audit_Log();
-		$this->config         = new Config_Resolver( $this->audit );
-		$this->entitlements   = new Entitlement_Store( $this->audit );
+		// Always-available core services.
+		$this->audit = new Audit_Log();
+
+		// Premium modules — present only when offline/ directory is deployed.
+		if ( class_exists( 'WP_CSP\Modules\Config_Resolver' ) ) {
+			$this->config = new \WP_CSP\Modules\Config_Resolver( $this->audit );
+		}
+		if ( class_exists( 'WP_CSP\Modules\Entitlement_Store' ) ) {
+			$this->entitlements = new \WP_CSP\Modules\Entitlement_Store( $this->audit );
+		}
+
+		// Feature gate degrades to free tier when premium modules are absent.
 		$this->gate           = new Feature_Gate( $this->entitlements, $this->config );
 		$this->nonce_manager  = new Nonce_Manager( $this->gate );
 		$this->policy_builder = new Policy_Builder( $this->gate );
@@ -114,9 +124,14 @@ final class Plugin {
 			( new Conflict_Detector( $this->audit ) )->register();
 		}
 
-		// Stripe checkout + webhook.
-		$checkout = new Checkout_Service( $this->config, $this->audit );
-		new Webhook_Controller( $this->entitlements, $this->audit, $checkout );
+		// Stripe checkout + webhook — only when offline/ modules are present.
+		if (
+			class_exists( 'WP_CSP\Modules\Checkout_Service' ) &&
+			class_exists( 'WP_CSP\Modules\Webhook_Controller' )
+		) {
+			$checkout = new \WP_CSP\Modules\Checkout_Service( $this->config, $this->audit );
+			new \WP_CSP\Modules\Webhook_Controller( $this->entitlements, $this->audit, $checkout );
+		}
 
 		// Admin UI.
 		if ( is_admin() ) {
@@ -127,16 +142,28 @@ final class Plugin {
 	// ── REST routes ───────────────────────────────────────────────────────────
 
 	public function register_rest_routes(): void {
-		// Stripe webhook – public endpoint, verified by HMAC signature inside handler.
-		register_rest_route(
-			'csp-manager/v1',
-			'/stripe-webhook',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( new Webhook_Controller( $this->entitlements, $this->audit, new Checkout_Service( $this->config, $this->audit ) ), 'handle' ),
-				'permission_callback' => '__return_true',
-			)
-		);
+		// Stripe webhook — only registered when the offline/ payment modules exist.
+		if (
+			class_exists( 'WP_CSP\Modules\Webhook_Controller' ) &&
+			class_exists( 'WP_CSP\Modules\Checkout_Service' )
+		) {
+			register_rest_route(
+				'csp-manager/v1',
+				'/stripe-webhook',
+				array(
+					'methods'             => \WP_REST_Server::CREATABLE,
+					'callback'            => array(
+						new \WP_CSP\Modules\Webhook_Controller(
+							$this->entitlements,
+							$this->audit,
+							new \WP_CSP\Modules\Checkout_Service( $this->config, $this->audit )
+						),
+						'handle',
+					),
+					'permission_callback' => '__return_true',
+				)
+			);
+		}
 
 		// CSP violation report – public, from browsers.
 		register_rest_route(

@@ -60,7 +60,16 @@ spl_autoload_register(
 		$parts    = explode( '\\', $relative );
 		$filename = 'class-' . strtolower( str_replace( '_', '-', (string) array_pop( $parts ) ) ) . '.php';
 		$subdir   = ! empty( $parts ) ? strtolower( implode( '/', $parts ) ) . '/' : '';
-		$file     = WP_CSP_DIR . 'includes/' . $subdir . $filename;
+
+		// Public includes/ directory.
+		$file = WP_CSP_DIR . 'includes/' . $subdir . $filename;
+		if ( is_readable( $file ) ) {
+			require $file;
+			return;
+		}
+
+		// offline/ directory: proprietary modules never committed to the repository.
+		$file = WP_CSP_DIR . 'offline/' . $subdir . $filename;
 		if ( is_readable( $file ) ) {
 			require $file;
 		}
