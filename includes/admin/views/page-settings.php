@@ -9,11 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$stripe_mode   = get_option( 'wp_csp_stripe_mode', 'test' );
-$config_domain = get_option( 'wp_csp_config_dns_domain', '' );
+$stripe_mode    = get_option( 'wp_csp_stripe_mode', 'test' );
+$config_domain  = get_option( 'wp_csp_config_dns_domain', '' );
 $config_version = get_option( 'wp_csp_config_version', __( 'Not yet fetched', 'wp-csp-automation' ) );
 $config_fetched = get_option( 'wp_csp_config_last_fetched', '' );
-$webhook_url   = rest_url( 'csp-manager/v1/stripe-webhook' );
+$webhook_url    = rest_url( 'csp-manager/v1/stripe-webhook' );
 ?>
 <div class="wrap wp-csp-wrap">
 	<h1><?php esc_html_e( 'WP CSP Automation – Settings', 'wp-csp-automation' ); ?></h1>
@@ -73,7 +73,7 @@ $webhook_url   = rest_url( 'csp-manager/v1/stripe-webhook' );
 		<!-- ── Remote product config ────────────────────────────────────── -->
 		<h2 class="title"><?php esc_html_e( 'Remote Product Configuration (DNS)', 'wp-csp-automation' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'The plugin fetches product tier definitions and Stripe price IDs from a signed JSON document discovered via DNS. Non-secret data only. Stripe API keys are never in DNS.', 'wp-csp-automation' ); ?>
+			<?php esc_html_e( 'The plugin fetches product tier definitions and Stripe price IDs from a signed JSON document discovered via DNS. Non-secret data only.', 'wp-csp-automation' ); ?>
 		</p>
 		<table class="form-table" role="presentation">
 			<tr>
@@ -83,6 +83,17 @@ $webhook_url   = rest_url( 'csp-manager/v1/stripe-webhook' );
 						value="<?php echo esc_attr( $config_domain ); ?>"
 						class="regular-text" />
 					<p class="description"><?php esc_html_e( 'Default: _csp-config.wp-csp-automation.dev — leave unchanged unless self-hosting config.', 'wp-csp-automation' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="wp_csp_config_fallback_url"><?php esc_html_e( 'Fallback Config URL', 'wp-csp-automation' ); ?></label></th>
+				<td>
+					<input type="url" id="wp_csp_config_fallback_url" name="wp_csp_config_fallback_url"
+						value="<?php echo esc_attr( get_option( 'wp_csp_config_fallback_url', '' ) ); ?>"
+						class="regular-text" placeholder="https://example.com/csp-config.json" />
+					<p class="description">
+						<?php esc_html_e( 'Optional. A direct HTTPS URL to the signed config JSON document. Used when DNS TXT lookup fails or dns_get_record() is unavailable on this host (common on some shared hosting environments). Must start with https://. The same Ed25519 signature verification applies regardless of which resolution path is used. Leave empty to rely on DNS only.', 'wp-csp-automation' ); ?>
+					</p>
 				</td>
 			</tr>
 			<tr>
@@ -118,6 +129,30 @@ $webhook_url   = rest_url( 'csp-manager/v1/stripe-webhook' );
 						value="<?php echo esc_attr( get_option( 'wp_csp_config_grace_ttl', 86400 ) ); ?>"
 						min="3600" max="604800" class="small-text" />
 					<p class="description"><?php esc_html_e( 'How long to serve a stale config if the remote server is unreachable.', 'wp-csp-automation' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
+		<!-- ── Promotion gates ───────────────────────────────────────────── -->
+		<h2 class="title"><?php esc_html_e( 'Promotion Gates', 'wp-csp-automation' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'These settings control the conditions that must be met before a surface can be promoted from report-only to enforce mode.', 'wp-csp-automation' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">
+					<label for="wp_csp_enforce_gate_violation_window">
+						<?php esc_html_e( 'Violation-free window (hours)', 'wp-csp-automation' ); ?>
+					</label>
+				</th>
+				<td>
+					<input type="number" id="wp_csp_enforce_gate_violation_window"
+						name="wp_csp_enforce_gate_violation_window"
+						value="<?php echo esc_attr( get_option( 'wp_csp_enforce_gate_violation_window', 24 ) ); ?>"
+						min="1" max="720" class="small-text" />
+					<p class="description">
+						<?php esc_html_e( 'Number of hours without any CSP violations required before a surface can be promoted to enforce mode. Default: 24. Increase this for production sites to ensure stability.', 'wp-csp-automation' ); ?>
+					</p>
 				</td>
 			</tr>
 		</table>

@@ -40,7 +40,7 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
 
 ### 4.1 Per-Request Nonce Generation
 
-- The plugin must generate a cryptographically random nonce for every eligible HTTP response using `random_bytes(32)` encoded as Base64.
+- The plugin must generate a cryptographically random nonce for every eligible HTTP response using a **CSPRNG** (cryptographically secure pseudorandom number generator) producing **at least 128 bits of entropy**, Base64-encoded. (W3C CSP3 normative requirement; the current implementation uses `random_bytes(32)` = 256 bits, which satisfies this floor.)
 - The nonce must never be reused across requests.
 - The nonce must be inserted into CSP as `'nonce-{value}'` for `script-src` and `style-src` where applicable.
 
@@ -92,7 +92,20 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
   - `base-uri 'none'`
   - `script-src-attr 'none'`
   - `style-src-attr 'none'`
-- The builder must support optional `strict-dynamic` for `script-src`.
+- The builder must support optional `strict-dynamic` for `script-src`. When `'strict-dynamic'` is present, browsers ignore host-based allowlists in `script-src` (CSP3 §8.2); the builder must suppress those allowlists to avoid misleading noise.
+- The plugin must support `upgrade-insecure-requests` as an optional directive (own W3C spec). This directive auto-upgrades `http→https` for sub-resource requests; it does **not** replace HSTS (RFC 6797). It must not be emitted on the `api` surface (REST responses have no navigable resources).
+- The builder must support Trusted Types directives:
+  - `require-trusted-types-for 'script'` — forces typed values into DOM XSS sinks.
+  - `trusted-types <policy-list>` — allowlists Trusted Types policy names.
+  - Both must default to **disabled**. When enabled, they must always be emitted as **report-only** regardless of surface mode (Chromium-strong; Baseline widely-available ~August 2028 per web-features; R5).
+- The builder must support `sandbox` (document directive). `sandbox` is **ignored in CSP-Report-Only** mode and in `<meta http-equiv>` — the builder must suppress it in those contexts.
+- The builder must support `child-src` as a **legacy directive**, set to match `worker-src` by default. Required because Safari falls back `worker-src → child-src → script-src`; without it, nonces bleed through to workers in Safari.
+- The builder must **never emit** the following deprecated/removed directives:
+  - `plugin-types` — removed; plugins are gone from the web platform.
+  - `block-all-mixed-content` — obsolete; superseded by default browser auto-upgrade.
+  - `navigate-to` — removed from the CSP3 spec.
+  - `prefetch-src` — deprecated/non-standard; Chromium intent-to-remove.
+- Note: `script-src-elem`, `script-src-attr`, `style-src-elem`, and `style-src-attr` lack Safari support as of CSP3 WD-20260505; `script-src` and `style-src` remain the portable fallback and must also be set.
 - The plugin must forbid `'unsafe-inline'` and `'unsafe-eval'` in enforced mode unless explicitly approved by an administrator override with expiration, reason, and owner.
 
 ### 4.5 Hash Computation for Static Inline Blocks
@@ -127,10 +140,12 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
 - The plugin must support:
   - `Content-Security-Policy` (enforcement)
   - `Content-Security-Policy-Report-Only` (testing)
-- The plugin must support dual-report configuration with:
-  - `report-to`
-  - `report-uri` (legacy fallback)
-- The plugin must support `Reporting-Endpoints` header management for named report groups.
+- The plugin must support dual-report configuration:
+  - `report-to <endpoint-name>` (CSP3; references the `Reporting-Endpoints` header)
+  - `report-uri <url>` (deprecated in CSP3 but still the **most broadly supported** legacy fallback — must be kept)
+- The plugin must emit the `Reporting-Endpoints` HTTP response header (a **Structured Fields Dictionary** per **RFC 9651**, which obsoletes RFC 8941) declaring the named endpoint referenced by `report-to`. Without this header, browsers silently discard the `report-to` directive.
+- The plugin must also emit the legacy `Report-To` JSON header as a fallback for pre-Reporting-API browsers. Note: `Report-To` (JSON) is deprecated in favour of `Reporting-Endpoints` and must not be relied upon as the primary delivery mechanism.
+- Multiple `Content-Security-Policy` headers combine to the **most restrictive union** — the plugin must detect and warn when other sources emit competing CSP headers.
 
 ### 4.9 Conflict Detection
 
@@ -169,16 +184,26 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
 - The plugin must expose a REST endpoint at `/wp-json/csp-manager/v1/report` for CSP reports.
 - The endpoint must accept modern report payloads and legacy `application/csp-report` payloads.
 - The processor must deduplicate high-volume repeats and apply rate limits.
-- Stored report fields must include:
-  - blocked URL
-  - effective directive
-  - violated directive
-  - source file
-  - line and column (if available)
-  - disposition
-  - user agent
-  - profile/surface identifier
-  - timestamp
+- The endpoint must validate that the `Content-Type` header is `application/csp-report` or `application/reports+json` and reject other types with HTTP 400.
+- The endpoint must validate that the `document-uri` in the report belongs to this site's origin; cross-origin reports must be silently discarded (CSP reports are client-generated and spoofable).
+- Stored report fields must include both **legacy** (`application/csp-report`) and **Reporting API** (`application/reports+json`) field schemas, normalised to a single canonical internal schema:
+
+  | Internal field | Legacy (`csp-report`) key | Reporting API (`body`) key |
+  |----------------|---------------------------|----------------------------|
+  | `blocked_uri` | `blocked-uri` | `blockedURL` |
+  | `document_uri` | `document-uri` | `documentURL` |
+  | `violated_directive` | `violated-directive` | `violatedDirective` |
+  | `effective_directive` | `effective-directive` | `effectiveDirective` |
+  | `original_policy` | `original-policy` | `originalPolicy` |
+  | `source_file` | `source-file` | `sourceFile` |
+  | `line_number` | `line-number` | `lineNumber` |
+  | `column_number` | `column-number` | `columnNumber` |
+  | `status_code` | `status-code` | `statusCode` |
+  | `disposition` | `disposition` | `disposition` |
+  | `sample` | `script-sample` | `sample` |
+
+- The `sample` field is only populated when `'report-sample'` is present in the matching fetch directive. The plugin must include `'report-sample'` in its default `script-src`, `script-src-elem`, `style-src`, and `style-src-elem` directives.
+- Additional stored fields: `referrer`, `user_agent`, `profile_surface`, `reported_at`, `fingerprint`, `occurrence_count`.
 
 ### 4.14 Administrator Dashboard
 
@@ -198,16 +223,32 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
 - The plugin must include optional compatibility presets for common WordPress ecosystem components (e.g., security plugins, tag managers) but must keep strict defaults.
 - Any preset inclusion must be transparent, reviewable, and overrideable.
 
+### 4.16 Known Platform Constraints
+
+The following limitations are structural and must be surfaced to administrators rather than silently worked around:
+
+- **wp-admin strict CSP (WordPress core Trac #59446):** WordPress core does not yet nonce-stamp all inline scripts in the admin interface. The admin surface CSP profile is therefore **best-effort**; some admin UI components may be blocked under strict enforcement. The plugin must display an informational notice when the admin surface is promoted to enforce mode.
+- **Hardcoded `<script>` tags in core themes (Trac #63806):** Some bundled WordPress themes emit `<script>` tags that bypass the script enqueueing APIs and will not receive nonces. These will be blocked by a strict nonce-based CSP.
+- **Script API requirement:** Only scripts registered via the WordPress script APIs (`wp_enqueue_script`, `wp_add_inline_script`, `wp_print_inline_script_tag`, `wp_enqueue_script_module`) are automatically nonce-stamped. Third-party inline scripts that bypass these APIs must be approved via hash or source allowlist.
+- **`sandbox` directive limitations:** The `sandbox` directive is ignored by browsers in `Content-Security-Policy-Report-Only` mode and in `<meta http-equiv>` delivery. The plugin must suppress `sandbox` in both contexts.
+- **Trusted Types cross-browser availability:** As of June 2026, Trusted Types has strong Chromium/Chrome/Edge support (≥83) but lacks Safari support. The Baseline "widely available" milestone is projected around August 2028. The plugin must default Trusted Types to report-only and must not promote it to enforce mode automatically.
+
 ---
 
 ## 5. Non-Functional Requirements
 
 - The plugin must be compatible with WordPress 6.4+ and PHP 8.1+.
-- The plugin must support multisite.
+- The plugin must support multisite. Network-level policies must take precedence over site-level policies where a network administrator has locked settings; site administrators may only tighten, not loosen, network policy.
 - All stored data must use custom tables suitable for high-volume reports and source inventories.
 - Input must be sanitized and output escaped.
 - Background jobs must be resilient to partial failure and resumable.
 - Performance objective must be defined as a percentile SLO (for example, p95 response overhead target), not a fixed per-request absolute value.
+- **Capability and permission model:** The capability required for approving sources or overriding CSP directives must be documented. Different operations may require different capabilities (e.g., `manage_options` for policy promotion, a narrower cap for source approval review).
+- **Immutable audit log:** All policy changes, source approvals, override grants, and scan events must be written to an append-only database table (`csp_audit_log`). No `UPDATE` or `DELETE` must ever be issued against this table.
+- **Data retention:** Violation reports must be automatically purged after a configurable retention window (default 90 days). A value of 0 must mean keep forever. Purge must run as part of the daily cron scan.
+- **Report endpoint abuse protection:** The `/report` endpoint must validate the request `Content-Type` header and reject non-CSP content types with HTTP 400. The `document-uri` field must be validated against the site origin; cross-origin reports must be silently discarded. The existing per-surface rate limit (500/hour) must be maintained.
+- **Dashboard accessibility and internationalisation:** All admin UI strings must be wrapped in translation functions. Admin notices must use ARIA-compatible markup.
+- **Multisite network-vs-site policy precedence:** Must be defined before multisite support is considered complete.
 
 ---
 
@@ -219,18 +260,49 @@ The plugin is limited to CSP improvements only and does not implement non-CSP ha
 - Report ingestion supports both `report-to` and legacy `report-uri` formats.
 - Conflicting CSP sources are detected and surfaced with remediation guidance.
 - Daily and manual rebuild flows produce deterministic policy outputs and auditable diffs.
+- **R5 (Trusted Types):** A Trusted Types report-only policy (`require-trusted-types-for 'script'`) can be emitted on any surface and its violations are ingested and stored by the `/report` endpoint.
+- **R6 (upgrade-insecure-requests):** `upgrade-insecure-requests` can be enabled per surface and appears in the emitted CSP header. Enabling it must not cause `block-all-mixed-content` to be emitted (it is in the denylist).
+- **R7 (report-sample):** When `'report-sample'` is present in `script-src`, a synthetic inline violation produces a non-empty `sample` field in the stored `csp_violation_reports` row.
+- **R4 (denylist):** Inserting any of `plugin-types`, `block-all-mixed-content`, `navigate-to`, or `prefetch-src` directly into a profile's `overrides` JSON must result in those directives being absent from the emitted CSP header, and an audit log warning must be written.
+- **R1/Reporting-Endpoints:** After plugin activation, `curl -I <site>` must return both a `Reporting-Endpoints: csp-endpoint="..."` header and a `Content-Security-Policy:` (or `Content-Security-Policy-Report-Only:`) header containing `report-to csp-endpoint`.
+- **Emitted policy quality:** The enforced mode CSP policy for the frontend surface must pass an external CSP evaluator (e.g., Google CSP Evaluator) with no `'unsafe-inline'` or `'unsafe-eval'` present.
 
 ---
 
-## 7. Out of Scope
+## 7. Standards and References
 
-- Non-CSP hardening controls (WAF rules, authentication hardening, malware cleanup, patch automation).
-- Automatic source code refactoring of third-party plugin/theme inline JavaScript.
+CSP is governed by the **W3C Web Application Security Working Group**, not IETF. The IANA "Content Security Policy Directives" registry (last updated 2023-02-03, 16 CSP2 directives only) lags the living standard and is **not authoritative** for the current directive set.
+
+| Document | Body | Status | Relevance |
+|----------|------|--------|-----------|
+| [CSP Level 2](https://www.w3.org/TR/CSP2/) | W3C | **Recommendation** (2015) | Baseline fetch/document/navigation/reporting directives |
+| [CSP Level 3](https://www.w3.org/TR/CSP3/) (WD-20260505) | W3C | **Working Draft** | Current normative reference; widely implemented despite WD status |
+| [Trusted Types](https://www.w3.org/TR/trusted-types/) | W3C | Working Draft | `require-trusted-types-for`, `trusted-types` directives |
+| [Upgrade Insecure Requests](https://www.w3.org/TR/upgrade-insecure-requests/) | W3C | Candidate Recommendation | `upgrade-insecure-requests` directive |
+| [Mixed Content](https://www.w3.org/TR/mixed-content/) | W3C | Recommendation | Context for why `block-all-mixed-content` is now obsolete |
+| [CSP: Embedded Enforcement](https://www.w3.org/TR/csp-embedded-enforcement/) | W3C | Working Draft | `csp` iframe attribute, `Sec-Required-CSP`, `Allow-CSP-From` |
+| [Reporting API](https://www.w3.org/TR/reporting/) | W3C | Working Draft | `Reporting-Endpoints` header; `application/reports+json` format |
+| **RFC 7762** | IETF | Informational | Establishes IANA CSP Directives registry; registration policy "Specification Required" |
+| **RFC 7034** | IETF | Informational | `X-Frame-Options`; superseded by CSP `frame-ancestors` |
+| **RFC 6454** | IETF | Proposed Standard | The Web Origin Concept — foundation of CSP source matching |
+| **RFC 9110** (STD 97) | IETF | **Internet Standard** | HTTP Semantics; CSP3 ABNF references §5.6.1 for list rules |
+| **RFC 5234** (STD 68) | IETF | **Internet Standard** | ABNF — grammar notation used throughout all CSP specs |
+| **RFC 9651** | IETF | Proposed Standard | Structured Field Values — `Reporting-Endpoints` is a Dictionary; **obsoletes RFC 8941** |
+| **RFC 6797** | IETF | Proposed Standard | HTTP Strict Transport Security (HSTS); `upgrade-insecure-requests` does not replace it |
+| **BCP 14** (RFC 2119 + RFC 8174) | IETF | Best Current Practice | Normative language conventions (MUST, SHOULD, etc.) |
+
+---
+
+## 8. Out of Scope
+
+- Non-CSP host-header security, hardening controls (WAF rules, authentication hardening, malware cleanup, patch automation).
+- Server or client-side caching
+- Automatic source code refactoring of third-party plugin/theme inline JavaScript (might be great to consider in future, but i'm not capable of doing this - perhaps one day)
 - Management of non-WordPress applications hosted on the same server.
 
 ---
 
-## 8. Open Items
+## 9. Open Items
 
 - Database schema definition for policy profiles, source inventory, hash inventory, and report events.
 - REST API contract details for report ingestion and dashboard queries.

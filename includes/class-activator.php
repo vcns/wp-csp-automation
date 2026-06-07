@@ -3,6 +3,9 @@
  * Fired during plugin activation.
  * Creates custom database tables, seeds default option values, and
  * schedules the daily rescan cron event.
+ *
+ * Schema version 2 adds override_expires_at and override_owner to
+ * csp_policy_profiles to support the full promotion gate checks (§4.12).
  */
 
 declare( strict_types=1 );
@@ -32,21 +35,27 @@ class Activator {
 		$p  = $wpdb->prefix;
 
 		// 1. Per-surface CSP policy profiles
-		dbDelta( "CREATE TABLE {$p}csp_policy_profiles (
+		// v2: adds override_expires_at and override_owner for promotion gate §4.12.
+		dbDelta(
+			"CREATE TABLE {$p}csp_policy_profiles (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   surface varchar(32) NOT NULL,
   mode varchar(16) NOT NULL DEFAULT 'report-only',
   directives longtext NOT NULL,
   overrides longtext NOT NULL,
   strict_dynamic tinyint(1) NOT NULL DEFAULT 0,
+  override_expires_at datetime DEFAULT NULL,
+  override_owner varchar(255) DEFAULT NULL,
   created_at datetime NOT NULL,
   updated_at datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY surface (surface)
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 2. Discovered / approved external source URLs
-		dbDelta( "CREATE TABLE {$p}csp_source_inventory (
+		dbDelta(
+			"CREATE TABLE {$p}csp_source_inventory (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   surface varchar(32) NOT NULL,
   directive varchar(64) NOT NULL,
@@ -66,10 +75,12 @@ class Activator {
   KEY directive (directive),
   KEY approval_state (approval_state),
   UNIQUE KEY surf_dir_host (surface, directive, source_host(191))
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 3. Inline script/style SHA-256 hashes
-		dbDelta( "CREATE TABLE {$p}csp_hash_inventory (
+		dbDelta(
+			"CREATE TABLE {$p}csp_hash_inventory (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   surface varchar(32) NOT NULL,
   directive varchar(64) NOT NULL,
@@ -87,10 +98,15 @@ class Activator {
   KEY directive (directive),
   KEY status (status),
   UNIQUE KEY hash_uniq (directive, hash_value)
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 4. Ingested CSP violation reports
-		dbDelta( "CREATE TABLE {$p}csp_violation_reports (
+		// v3: adds sample column — populated only when 'report-sample' is in the policy.
+		// sample contains the first 40 chars of the offending inline block (browser-truncated).
+		// legacy field: script-sample; Reporting API field: sample (research.md R7).
+		dbDelta(
+			"CREATE TABLE {$p}csp_violation_reports (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   profile_surface varchar(32) NOT NULL,
   blocked_uri varchar(2048) NOT NULL,
@@ -105,6 +121,7 @@ class Activator {
   disposition varchar(16) NOT NULL DEFAULT 'report',
   referrer varchar(2048) DEFAULT NULL,
   user_agent varchar(512) DEFAULT NULL,
+  sample varchar(256) DEFAULT NULL,
   reported_at datetime NOT NULL,
   fingerprint varchar(64) NOT NULL,
   occurrence_count int(11) NOT NULL DEFAULT 1,
@@ -113,10 +130,12 @@ class Activator {
   KEY violated_directive (violated_directive),
   KEY fingerprint (fingerprint),
   KEY reported_at (reported_at)
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 5. Scan / rescan run history
-		dbDelta( "CREATE TABLE {$p}csp_scan_logs (
+		dbDelta(
+			"CREATE TABLE {$p}csp_scan_logs (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   trigger_type varchar(16) NOT NULL,
   status varchar(16) NOT NULL DEFAULT 'running',
@@ -132,10 +151,12 @@ class Activator {
   PRIMARY KEY  (id),
   KEY status (status),
   KEY trigger_type (trigger_type)
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 6. Per-site payment entitlements
-		dbDelta( "CREATE TABLE {$p}csp_entitlements (
+		dbDelta(
+			"CREATE TABLE {$p}csp_entitlements (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   site_identity varchar(255) NOT NULL,
   product_key varchar(64) NOT NULL,
@@ -158,10 +179,12 @@ class Activator {
   KEY product_key (product_key),
   KEY status (status),
   UNIQUE KEY session_id (stripe_session_id)
-) {$cc};" );
+) {$cc};"
+		);
 
 		// 7. Stripe event idempotency log
-		dbDelta( "CREATE TABLE {$p}csp_processed_events (
+		dbDelta(
+			"CREATE TABLE {$p}csp_processed_events (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   stripe_event_id varchar(255) NOT NULL,
   stripe_session_id varchar(255) DEFAULT NULL,
@@ -172,7 +195,25 @@ class Activator {
   PRIMARY KEY  (id),
   UNIQUE KEY stripe_event_id (stripe_event_id),
   KEY stripe_session_id (stripe_session_id)
-) {$cc};" );
+) {$cc};"
+		);
+
+		// 8. Append-only structured audit log (R10).
+		// No UPDATE or DELETE is ever issued against this table — it is an immutable record.
+		dbDelta(
+			"CREATE TABLE {$p}csp_audit_log (
+  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  component varchar(64) NOT NULL,
+  event varchar(128) NOT NULL,
+  detail text DEFAULT NULL,
+  severity varchar(16) NOT NULL DEFAULT 'info',
+  user_id bigint(20) UNSIGNED DEFAULT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY severity (severity),
+  KEY created_at (created_at)
+) {$cc};"
+		);
 
 		update_option( 'wp_csp_db_version', WP_CSP_DB_VERSION );
 	}
@@ -180,18 +221,28 @@ class Activator {
 	// ── Default options ───────────────────────────────────────────────────────
 
 	private static function set_default_options(): void {
-		$defaults = [
-			'wp_csp_stripe_mode'             => 'test',
-			'wp_csp_stripe_publishable_key'  => '',
-			'wp_csp_stripe_secret_key'       => '',
-			'wp_csp_webhook_secret'          => '',
-			'wp_csp_config_dns_domain'       => WP_CSP_CONFIG_DNS_RECORD,
-			'wp_csp_config_cache_ttl'        => 3600,    // 1 hour normal cache
-			'wp_csp_config_grace_ttl'        => 86400,   // 24 hour stale-on-error window
-			'wp_csp_entitlement_grace_hours' => 72,
-			'wp_csp_cron_hour'               => 2,
-			'wp_csp_notify_email'            => get_option( 'admin_email' ),
-		];
+		$defaults = array(
+			'wp_csp_stripe_mode'                   => 'test',
+			'wp_csp_stripe_publishable_key'        => '',
+			'wp_csp_stripe_secret_key'             => '',
+			'wp_csp_webhook_secret'                => '',
+			'wp_csp_config_dns_domain'             => WP_CSP_CONFIG_DNS_RECORD,
+			// Fallback HTTPS URL used when DNS TXT lookup fails or dns_get_record
+			// is unavailable on the host. Must be a valid https:// URL pointing
+			// to a signed config JSON document. Leave empty to disable.
+			'wp_csp_config_fallback_url'           => '',
+			'wp_csp_config_cache_ttl'              => 3600,
+			'wp_csp_config_grace_ttl'              => 86400,
+			'wp_csp_entitlement_grace_hours'       => 72,
+			'wp_csp_cron_hour'                     => 2,
+			'wp_csp_notify_email'                  => get_option( 'admin_email' ),
+			// Promotion gate: minimum hours without a high-severity violation
+			// before enforce mode is permitted. Default: 24 hours.
+			'wp_csp_enforce_gate_violation_window' => 24,
+			// Data retention: violation reports older than this many days are purged
+			// by the daily cron scan. 0 = keep forever (not recommended for busy sites).
+			'wp_csp_violation_retention_days'      => 90,
+		);
 
 		foreach ( $defaults as $key => $value ) {
 			if ( false === get_option( $key ) ) {
@@ -207,57 +258,78 @@ class Activator {
 		$table = $wpdb->prefix . 'csp_policy_profiles';
 		$now   = current_time( 'mysql', true );
 
-		foreach ( [ 'frontend', 'admin', 'login', 'api' ] as $surface ) {
+		foreach ( array( 'frontend', 'admin', 'login', 'api' ) as $surface ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE surface = %s LIMIT 1", $surface ) );
 			if ( ! $exists ) {
 				$wpdb->insert(
 					$table,
-					[
-						'surface'        => $surface,
-						'mode'           => 'report-only',
-						'directives'     => wp_json_encode( self::default_directives( $surface ) ),
-						'overrides'      => wp_json_encode( [] ),
-						'strict_dynamic' => 0,
-						'created_at'     => $now,
-						'updated_at'     => $now,
-					],
-					[ '%s', '%s', '%s', '%s', '%d', '%s', '%s' ]
+					array(
+						'surface'             => $surface,
+						'mode'                => 'report-only',
+						'directives'          => wp_json_encode( self::default_directives( $surface ) ),
+						'overrides'           => wp_json_encode( array() ),
+						'strict_dynamic'      => 0,
+						'override_expires_at' => null,
+						'override_owner'      => null,
+						'created_at'          => $now,
+						'updated_at'          => $now,
+					),
+					array( '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 				);
 			}
 		}
 	}
 
-	/**
-	 * Strict-defaults per §4.4 of the directive: all 18 CSP directives present,
-	 * nothing implicitly open, nonces/hashes added at request time.
-	 */
 	private static function default_directives( string $surface ): array {
-		$d = [
-			'default-src'      => [ "'none'" ],
-			'script-src'       => [],   // populated with nonces/hashes at request time
-			'script-src-elem'  => [],
-			'script-src-attr'  => [ "'none'" ],
-			'style-src'        => [],
-			'style-src-elem'   => [],
-			'style-src-attr'   => [ "'none'" ],
-			'img-src'          => [ "'self'", 'data:' ],
-			'font-src'         => [ "'self'" ],
-			'connect-src'      => [ "'self'" ],
-			'frame-src'        => [ "'none'" ],
-			'frame-ancestors'  => [ "'none'" ],
-			'base-uri'         => [ "'none'" ],
-			'form-action'      => [ "'self'" ],
-			'object-src'       => [ "'none'" ],
-			'media-src'        => [ "'none'" ],
-			'worker-src'       => [ "'none'" ],
-			'manifest-src'     => [ "'self'" ],
-		];
+		// 'report-sample' added to script/style-src so browsers include the offending
+		// inline code snippet in violation reports (R7). Harmless when no violation occurs.
+		$d = array(
+			'default-src'               => array( "'none'" ),
+			'script-src'                => array( "'report-sample'" ),
+			'script-src-elem'           => array( "'report-sample'" ),
+			'script-src-attr'           => array( "'none'" ),
+			'style-src'                 => array( "'report-sample'" ),
+			'style-src-elem'            => array( "'report-sample'" ),
+			'style-src-attr'            => array( "'none'" ),
+			'img-src'                   => array( "'self'", 'data:' ),
+			'font-src'                  => array( "'self'" ),
+			'connect-src'               => array( "'self'" ),
+			'frame-src'                 => array( "'none'" ),
+			'frame-ancestors'           => array( "'none'" ),
+			'base-uri'                  => array( "'none'" ),
+			'form-action'               => array( "'self'" ),
+			'object-src'                => array( "'none'" ),
+			'media-src'                 => array( "'none'" ),
+			// worker-src: explicitly set on all surfaces. child-src is also set as a
+			// legacy fallback: Safari falls back worker-src → child-src → script-src,
+			// so without child-src the nonce would bleed through to workers in Safari.
+			'worker-src'                => array( "'none'" ),
+			'child-src'                 => array( "'none'" ),
+			'manifest-src'              => array( "'self'" ),
+			// upgrade-insecure-requests: auto-upgrades http→https for sub-resource requests.
+			// Boolean directive (empty array = valueless). Does NOT replace HSTS (RFC 6797).
+			// Skipped on the api surface (REST responses have no navigable resources).
+			// Not emitted on api surface — handled below.
+			// fenced-frame-src: experimental Privacy Sandbox directive; 'none' is safe.
+			'fenced-frame-src'          => array( "'none'" ),
+			// sandbox: null = disabled. Set to an array of allow-* flags to enable.
+			// Ignored by browsers in CSP-Report-Only mode and in <meta http-equiv>.
+			'sandbox'                   => null,
+			// Trusted Types directives: empty = disabled (premium feature).
+			// When enabled, always deploy in report-only first (Chromium-strong; R5).
+			'require-trusted-types-for' => array(),
+			'trusted-types'             => array(),
+		);
 
-		// WordPress admin embeds iframes legitimately (theme previews, editors).
 		if ( 'admin' === $surface ) {
-			$d['frame-src']      = [ "'self'" ];
-			$d['frame-ancestors'] = [ "'self'" ];
+			$d['frame-src']       = array( "'self'" );
+			$d['frame-ancestors'] = array( "'self'" );
+		}
+
+		// upgrade-insecure-requests on all surfaces except api.
+		if ( 'api' !== $surface ) {
+			$d['upgrade-insecure-requests'] = array();
 		}
 
 		return $d;

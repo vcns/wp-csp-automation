@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Nonce_Manager {
 
-	private string       $nonce       = '';
+	private string $nonce = '';
 	private Feature_Gate $gate;
 
 	public function __construct( Feature_Gate $gate ) {
@@ -36,19 +36,19 @@ class Nonce_Manager {
 
 	public function register(): void {
 		// Generate nonce once, very early, before any output.
-		add_action( 'init', [ $this, 'generate' ], 1 );
+		add_action( 'init', array( $this, 'generate' ), 1 );
 
 		// WP 6.4+ native hooks (preferred — no regex on tag strings).
-		add_filter( 'wp_script_attributes',        [ $this, 'add_script_nonce_attr' ], 10, 1 );
-		add_filter( 'wp_inline_script_attributes', [ $this, 'add_script_nonce_attr' ], 10, 1 );
+		add_filter( 'wp_script_attributes', array( $this, 'add_script_nonce_attr' ), 10, 1 );
+		add_filter( 'wp_inline_script_attributes', array( $this, 'add_script_nonce_attr' ), 10, 1 );
 
 		// Legacy tag-string fallback.
-		add_filter( 'script_loader_tag', [ $this, 'inject_nonce_into_script_tag' ], 10, 3 );
-		add_filter( 'style_loader_tag',  [ $this, 'inject_nonce_into_style_tag' ],  10, 4 );
+		add_filter( 'script_loader_tag', array( $this, 'inject_nonce_into_script_tag' ), 10, 3 );
+		add_filter( 'style_loader_tag', array( $this, 'inject_nonce_into_style_tag' ), 10, 4 );
 
 		// Expose nonce to front-end JS (e.g. Stripe.js inline init).
-		add_action( 'wp_head',    [ $this, 'add_meta_nonce' ], 1 );
-		add_action( 'admin_head', [ $this, 'add_meta_nonce' ], 1 );
+		add_action( 'wp_head', array( $this, 'add_meta_nonce' ), 1 );
+		add_action( 'admin_head', array( $this, 'add_meta_nonce' ), 1 );
 	}
 
 	// ── Nonce lifecycle ───────────────────────────────────────────────────────

@@ -30,8 +30,8 @@ class Webhook_Controller {
 	private const TIMESTAMP_TOLERANCE = 300; // seconds
 
 	private Entitlement_Store $entitlements;
-	private Audit_Log         $audit;
-	private Checkout_Service  $checkout;
+	private Audit_Log $audit;
+	private Checkout_Service $checkout;
 
 	public function __construct(
 		Entitlement_Store $entitlements,
@@ -58,23 +58,23 @@ class Webhook_Controller {
 
 		if ( empty( $raw_body ) || empty( $sig_header ) ) {
 			$this->audit->log( 'webhook', 'missing_payload', 'Empty body or missing Stripe-Signature header.' );
-			return new WP_REST_Response( [ 'error' => 'bad_request' ], 400 );
+			return new WP_REST_Response( array( 'error' => 'bad_request' ), 400 );
 		}
 
 		$secret = (string) get_option( 'wp_csp_webhook_secret', '' );
 		if ( empty( $secret ) ) {
 			$this->audit->log( 'webhook', 'no_secret', 'Webhook endpoint secret is not configured.' );
-			return new WP_REST_Response( [ 'error' => 'configuration_error' ], 500 );
+			return new WP_REST_Response( array( 'error' => 'configuration_error' ), 500 );
 		}
 
 		if ( ! $this->verify_signature( $raw_body, $sig_header, $secret ) ) {
 			$this->audit->log( 'webhook', 'signature_failed', 'Stripe-Signature verification failed.' );
-			return new WP_REST_Response( [ 'error' => 'unauthorized' ], 401 );
+			return new WP_REST_Response( array( 'error' => 'unauthorized' ), 401 );
 		}
 
 		$event = json_decode( $raw_body, true );
 		if ( ! is_array( $event ) || empty( $event['id'] ) || empty( $event['type'] ) ) {
-			return new WP_REST_Response( [ 'error' => 'malformed_event' ], 400 );
+			return new WP_REST_Response( array( 'error' => 'malformed_event' ), 400 );
 		}
 
 		return $this->dispatch( $event );
@@ -89,7 +89,7 @@ class Webhook_Controller {
 		// Idempotency guard.
 		if ( $this->is_already_processed( $event_id ) ) {
 			$this->audit->log( 'webhook', 'duplicate_event', "Event {$event_id} already processed." );
-			return new WP_REST_Response( [ 'status' => 'already_processed' ], 200 );
+			return new WP_REST_Response( array( 'status' => 'already_processed' ), 200 );
 		}
 
 		switch ( $event_type ) {
@@ -102,8 +102,8 @@ class Webhook_Controller {
 
 			default:
 				// Accept but ignore unhandled event types so Stripe doesn't retry.
-				$this->record_event( $event_id, null, $event_type, 'skipped', "Unhandled event type." );
-				return new WP_REST_Response( [ 'status' => 'ignored' ], 200 );
+				$this->record_event( $event_id, null, $event_type, 'skipped', 'Unhandled event type.' );
+				return new WP_REST_Response( array( 'status' => 'ignored' ), 200 );
 		}
 	}
 
@@ -111,21 +111,21 @@ class Webhook_Controller {
 
 	private function handle_checkout_completed( array $event ): WP_REST_Response {
 		$event_id = sanitize_text_field( $event['id'] );
-		$session  = $event['data']['object'] ?? [];
+		$session  = $event['data']['object'] ?? array();
 
 		if ( empty( $session['id'] ) || ( $session['payment_status'] ?? '' ) !== 'paid' ) {
 			$this->record_event( $event_id, $session['id'] ?? null, $event['type'], 'skipped', 'Payment not marked paid.' );
-			return new WP_REST_Response( [ 'status' => 'skipped_not_paid' ], 200 );
+			return new WP_REST_Response( array( 'status' => 'skipped_not_paid' ), 200 );
 		}
 
-		$session_id   = sanitize_text_field( $session['id'] );
-		$metadata     = $session['metadata'] ?? [];
-		$product_key  = sanitize_text_field( $metadata['product_key'] ?? '' );
+		$session_id    = sanitize_text_field( $session['id'] );
+		$metadata      = $session['metadata'] ?? array();
+		$product_key   = sanitize_text_field( $metadata['product_key'] ?? '' );
 		$site_identity = sanitize_text_field( $metadata['site_identity'] ?? '' );
 
 		if ( empty( $product_key ) || empty( $site_identity ) ) {
 			$this->record_event( $event_id, $session_id, $event['type'], 'failed', 'Missing metadata fields.' );
-			return new WP_REST_Response( [ 'status' => 'bad_metadata' ], 200 );
+			return new WP_REST_Response( array( 'status' => 'bad_metadata' ), 200 );
 		}
 
 		$this->entitlements->grant(
@@ -139,18 +139,18 @@ class Webhook_Controller {
 		$this->record_event( $event_id, $session_id, $event['type'], 'fulfilled', "Entitlement granted for {$product_key}." );
 		$this->audit->log( 'webhook', 'entitlement_granted', "Product '{$product_key}' unlocked for site identity {$site_identity}." );
 
-		return new WP_REST_Response( [ 'status' => 'fulfilled' ], 200 );
+		return new WP_REST_Response( array( 'status' => 'fulfilled' ), 200 );
 	}
 
 	private function handle_payment_failed( array $event ): WP_REST_Response {
-		$event_id  = sanitize_text_field( $event['id'] );
-		$session   = $event['data']['object'] ?? [];
+		$event_id   = sanitize_text_field( $event['id'] );
+		$session    = $event['data']['object'] ?? array();
 		$session_id = sanitize_text_field( $session['id'] ?? '' );
 
 		$this->audit->log( 'webhook', 'payment_failed', "Session {$session_id} async payment failed." );
 		$this->record_event( $event_id, $session_id, $event['type'], 'skipped', 'Async payment failed.' );
 
-		return new WP_REST_Response( [ 'status' => 'acknowledged' ], 200 );
+		return new WP_REST_Response( array( 'status' => 'acknowledged' ), 200 );
 	}
 
 	// ── Stripe signature verification ─────────────────────────────────────────
@@ -164,7 +164,7 @@ class Webhook_Controller {
 	 *   compare timing-safe with provided v1 signature
 	 */
 	private function verify_signature( string $raw_body, string $sig_header, string $secret ): bool {
-		$pairs = [];
+		$pairs = array();
 		foreach ( explode( ',', $sig_header ) as $part ) {
 			$kv = explode( '=', trim( $part ), 2 );
 			if ( 2 === count( $kv ) ) {
@@ -206,15 +206,15 @@ class Webhook_Controller {
 		global $wpdb;
 		$wpdb->insert(
 			$wpdb->prefix . 'csp_processed_events',
-			[
+			array(
 				'stripe_event_id'   => $event_id,
 				'stripe_session_id' => $session_id,
 				'event_type'        => $event_type,
 				'processed_at'      => current_time( 'mysql', true ),
 				'outcome'           => $outcome,
 				'detail'            => $detail,
-			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s' ]
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 	}
 }

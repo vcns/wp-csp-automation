@@ -33,18 +33,18 @@ class Admin_UI {
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 	public function register(): void {
-		add_action( 'admin_menu',            [ $this, 'add_menu_pages' ] );
-		add_action( 'admin_init',            [ $this, 'register_settings' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-		add_action( 'admin_notices',         [ $this, 'display_admin_notices' ] );
+		add_action( 'admin_menu', array( $this, 'add_menu_pages' ) );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_notices', array( $this, 'display_admin_notices' ) );
 
 		// AJAX handlers.
-		add_action( 'wp_ajax_wp_csp_create_checkout',  [ $this, 'ajax_create_checkout' ] );
-		add_action( 'wp_ajax_wp_csp_manual_scan',      [ $this, 'ajax_manual_scan' ] );
-		add_action( 'wp_ajax_wp_csp_refresh_config',   [ $this, 'ajax_refresh_config' ] );
-		add_action( 'wp_ajax_wp_csp_approve_source',   [ $this, 'ajax_approve_source' ] );
-		add_action( 'wp_ajax_wp_csp_deny_source',      [ $this, 'ajax_deny_source' ] );
-		add_action( 'wp_ajax_wp_csp_toggle_mode',      [ $this, 'ajax_toggle_mode' ] );
+		add_action( 'wp_ajax_wp_csp_create_checkout', array( $this, 'ajax_create_checkout' ) );
+		add_action( 'wp_ajax_wp_csp_manual_scan', array( $this, 'ajax_manual_scan' ) );
+		add_action( 'wp_ajax_wp_csp_refresh_config', array( $this, 'ajax_refresh_config' ) );
+		add_action( 'wp_ajax_wp_csp_approve_source', array( $this, 'ajax_approve_source' ) );
+		add_action( 'wp_ajax_wp_csp_deny_source', array( $this, 'ajax_deny_source' ) );
+		add_action( 'wp_ajax_wp_csp_toggle_mode', array( $this, 'ajax_toggle_mode' ) );
 	}
 
 	// ── Menu registration ─────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ class Admin_UI {
 			__( 'CSP Manager', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-dashboard',
-			[ $this, 'render_dashboard' ],
+			array( $this, 'render_dashboard' ),
 			'dashicons-shield',
 			80
 		);
@@ -66,7 +66,7 @@ class Admin_UI {
 			__( 'Dashboard', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-dashboard',
-			[ $this, 'render_dashboard' ]
+			array( $this, 'render_dashboard' )
 		);
 
 		add_submenu_page(
@@ -75,7 +75,7 @@ class Admin_UI {
 			__( 'Settings', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-settings',
-			[ $this, 'render_settings' ]
+			array( $this, 'render_settings' )
 		);
 
 		add_submenu_page(
@@ -84,39 +84,43 @@ class Admin_UI {
 			__( 'Premium', 'wp-csp-automation' ),
 			'manage_options',
 			'wp-csp-entitlement',
-			[ $this, 'render_entitlement' ]
+			array( $this, 'render_entitlement' )
 		);
 	}
 
 	// ── Settings API ──────────────────────────────────────────────────────────
 
 	public function register_settings(): void {
-		$settings = [
-			'wp_csp_stripe_mode'             => 'sanitize_text_field',
-			'wp_csp_stripe_publishable_key'  => 'sanitize_text_field',
-			'wp_csp_stripe_secret_key'       => 'sanitize_text_field',
-			'wp_csp_webhook_secret'          => 'sanitize_text_field',
-			'wp_csp_config_dns_domain'       => 'sanitize_text_field',
-			'wp_csp_config_cache_ttl'        => 'absint',
-			'wp_csp_config_grace_ttl'        => 'absint',
-			'wp_csp_entitlement_grace_hours' => 'absint',
-			'wp_csp_cron_hour'               => 'absint',
-			'wp_csp_notify_email'            => 'sanitize_email',
-		];
+		$settings = array(
+			'wp_csp_stripe_mode'                   => 'sanitize_text_field',
+			'wp_csp_stripe_publishable_key'        => 'sanitize_text_field',
+			'wp_csp_stripe_secret_key'             => 'sanitize_text_field',
+			'wp_csp_webhook_secret'                => 'sanitize_text_field',
+			'wp_csp_config_dns_domain'             => 'sanitize_text_field',
+			'wp_csp_config_fallback_url'           => 'esc_url_raw',
+			'wp_csp_config_cache_ttl'              => 'absint',
+			'wp_csp_config_grace_ttl'              => 'absint',
+			'wp_csp_entitlement_grace_hours'       => 'absint',
+			'wp_csp_cron_hour'                     => 'absint',
+			'wp_csp_notify_email'                  => 'sanitize_email',
+			'wp_csp_enforce_gate_violation_window' => 'absint',
+			// Data retention: days to keep violation reports (0 = keep forever).
+			'wp_csp_violation_retention_days'      => 'absint',
+		);
 
 		foreach ( $settings as $option => $callback ) {
-			register_setting( 'wp_csp_settings_group', $option, [ 'sanitize_callback' => $callback ] );
+			register_setting( 'wp_csp_settings_group', $option, array( 'sanitize_callback' => $callback ) );
 		}
 	}
 
 	// ── Asset enqueue ─────────────────────────────────────────────────────────
 
 	public function enqueue_assets( string $hook_suffix ): void {
-		$csp_pages = [
+		$csp_pages = array(
 			'toplevel_page_wp-csp-dashboard',
 			'csp-manager_page_wp-csp-settings',
 			'csp-manager_page_wp-csp-entitlement',
-		];
+		);
 		if ( ! in_array( $hook_suffix, $csp_pages, true ) ) {
 			return;
 		}
@@ -124,14 +128,14 @@ class Admin_UI {
 		wp_enqueue_style(
 			'wp-csp-admin',
 			WP_CSP_URL . 'assets/css/admin.css',
-			[],
+			array(),
 			WP_CSP_VERSION
 		);
 
 		wp_enqueue_script(
 			'wp-csp-admin',
 			WP_CSP_URL . 'assets/js/admin.js',
-			[ 'jquery' ],
+			array( 'jquery' ),
 			WP_CSP_VERSION,
 			true
 		);
@@ -139,15 +143,15 @@ class Admin_UI {
 		wp_localize_script(
 			'wp-csp-admin',
 			'wpCspAdmin',
-			[
+			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'wp_csp_admin_nonce' ),
-				'i18n'    => [
+				'i18n'    => array(
 					'scanning'  => __( 'Scanning…', 'wp-csp-automation' ),
 					'scanDone'  => __( 'Scan complete.', 'wp-csp-automation' ),
 					'scanError' => __( 'Scan failed. Check error log.', 'wp-csp-automation' ),
-				],
-			]
+				),
+			)
 		);
 	}
 
@@ -177,7 +181,12 @@ class Admin_UI {
 	// ── Admin notices ─────────────────────────────────────────────────────────
 
 	public function display_admin_notices(): void {
-		$notices = get_option( 'wp_csp_admin_notices', [] );
+		// Platform constraint warning (R9): wp-admin strict CSP is best-effort because
+		// WordPress core Trac #59446 is unresolved. Only show when the admin surface
+		// profile is in enforce mode, and only once per session per user.
+		$this->maybe_show_admin_csp_warning();
+
+		$notices = get_option( 'wp_csp_admin_notices', array() );
 		if ( ! is_array( $notices ) || empty( $notices ) ) {
 			return;
 		}
@@ -191,8 +200,49 @@ class Admin_UI {
 				esc_html( $notice['detail'] )
 			);
 		}
-		// Clear after display.
 		delete_option( 'wp_csp_admin_notices' );
+	}
+
+	/**
+	 * Shows a one-per-session notice when the admin surface CSP is in enforce mode.
+	 * WordPress core Trac #59446 means some admin UI components may break under
+	 * strict nonce-based CSP. This warns the admin to monitor violations first.
+	 */
+	private function maybe_show_admin_csp_warning(): void {
+		$user_id  = get_current_user_id();
+		$transkey = 'wp_csp_admin59446_warned_' . $user_id;
+		if ( get_transient( $transkey ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'csp_policy_profiles';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$mode = $wpdb->get_var( $wpdb->prepare( "SELECT mode FROM {$table} WHERE surface = %s LIMIT 1", 'admin' ) );
+
+		if ( 'enforce' !== $mode ) {
+			return;
+		}
+
+		set_transient( $transkey, 1, DAY_IN_SECONDS );
+		printf(
+			'<div class="notice notice-info is-dismissible"><p>%s</p></div>',
+			wp_kses(
+				sprintf(
+					/* translators: %s: URL to WordPress core Trac ticket */
+					__( '<strong>WP CSP Automation:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved — some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'wp-csp-automation' ),
+					'https://core.trac.wordpress.org/ticket/59446'
+				),
+				array(
+					'strong' => array(),
+					'a'      => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+				)
+			)
+		);
 	}
 
 	// ── AJAX: create Stripe checkout ──────────────────────────────────────────
@@ -200,18 +250,18 @@ class Admin_UI {
 	public function ajax_create_checkout(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-pro' ) );
-		$result      = $this->plugin->config ? // Config resolver available?
+		$result      = $this->plugin->config ?
 			( new \WP_CSP\Modules\Checkout_Service( $this->plugin->config, $this->plugin->audit ) )->create_session( $product_key ) :
 			new \WP_Error( 'no_config', __( 'Plugin not fully initialised.', 'wp-csp-automation' ) );
 
 		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( [ 'message' => $result->get_error_message() ] );
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		} else {
-			wp_send_json_success( [ 'checkout_url' => esc_url_raw( $result ) ] );
+			wp_send_json_success( array( 'checkout_url' => esc_url_raw( $result ) ) );
 		}
 	}
 
@@ -220,14 +270,14 @@ class Admin_UI {
 	public function ajax_manual_scan(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$scheduler = new Scheduler( $this->plugin->audit );
 		$results   = $scheduler->run_manual_scan();
 
 		if ( isset( $results['error'] ) ) {
-			wp_send_json_error( [ 'message' => $results['error'] ] );
+			wp_send_json_error( array( 'message' => $results['error'] ) );
 		} else {
 			wp_send_json_success( $results );
 		}
@@ -238,14 +288,14 @@ class Admin_UI {
 	public function ajax_refresh_config(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( [ 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ], 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
 		$ok = $this->plugin->config->refresh();
 		if ( $ok ) {
-			wp_send_json_success( [ 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ] );
+			wp_send_json_success( array( 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ) );
 		} else {
-			wp_send_json_error( [ 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ] );
+			wp_send_json_error( array( 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ) );
 		}
 	}
 
@@ -269,14 +319,14 @@ class Admin_UI {
 
 	private function set_source_state( int $id, string $state ): void {
 		if ( $id <= 0 ) {
-			wp_send_json_error( [ 'message' => 'Invalid ID.' ] );
+			wp_send_json_error( array( 'message' => 'Invalid ID.' ) );
 		}
 		global $wpdb;
-		$data = [ 'approval_state' => $state ];
+		$data = array( 'approval_state' => $state );
 		if ( 'approved' === $state ) {
 			$data['approved_at'] = current_time( 'mysql', true );
 		}
-		$wpdb->update( $wpdb->prefix . 'csp_source_inventory', $data, [ 'id' => $id ], [ '%s', '%s' ], [ '%d' ] );
+		$wpdb->update( $wpdb->prefix . 'csp_source_inventory', $data, array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
 		wp_send_json_success();
 	}
 
@@ -289,36 +339,54 @@ class Admin_UI {
 		}
 
 		$surface = sanitize_text_field( wp_unslash( $_POST['surface'] ?? '' ) );
-		$mode    = sanitize_text_field( wp_unslash( $_POST['mode']    ?? '' ) );
+		$mode    = sanitize_text_field( wp_unslash( $_POST['mode'] ?? '' ) );
 
-		if ( ! in_array( $surface, [ 'frontend', 'admin', 'login', 'api' ], true ) ) {
-			wp_send_json_error( [ 'message' => 'Invalid surface.' ] );
+		if ( ! in_array( $surface, array( 'frontend', 'admin', 'login', 'api' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid surface.' ) );
 		}
-		if ( ! in_array( $mode, [ 'report-only', 'enforce', 'disabled' ], true ) ) {
-			wp_send_json_error( [ 'message' => 'Invalid mode.' ] );
+		if ( ! in_array( $mode, array( 'report-only', 'enforce', 'disabled' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid mode.' ) );
 		}
 
-		// §4.12 Promotion gate: enforce requires at least one approved source or hash.
-		if ( 'enforce' === $mode && ! $this->gate_allows_enforce( $surface ) ) {
-			wp_send_json_error( [ 'message' => __( 'Cannot promote to enforce: no approved sources or hashes found for this surface.', 'wp-csp-automation' ) ] );
+		// Full promotion gate: enforce requires passing all configured checks.
+		if ( 'enforce' === $mode ) {
+			$gate_result = $this->gate_allows_enforce( $surface );
+			if ( true !== $gate_result ) {
+				wp_send_json_error( array( 'message' => $gate_result ) );
+			}
 		}
 
 		global $wpdb;
 		$wpdb->update(
 			$wpdb->prefix . 'csp_policy_profiles',
-			[
+			array(
 				'mode'       => $mode,
 				'updated_at' => current_time( 'mysql', true ),
-			],
-			[ 'surface' => $surface ],
-			[ '%s', '%s' ],
-			[ '%s' ]
+			),
+			array( 'surface' => $surface ),
+			array( '%s', '%s' ),
+			array( '%s' )
 		);
 		wp_send_json_success();
 	}
 
-	private function gate_allows_enforce( string $surface ): bool {
+	// ── Promotion gate ────────────────────────────────────────────────────────
+
+	/**
+	 * Checks all configured gates before allowing enforce mode promotion.
+	 *
+	 * Implements §4.12:
+	 *   Gate 1 -- At least one approved source or hash must exist for the surface.
+	 *   Gate 2 -- No violations recorded within the configured time window.
+	 *   Gate 3 -- No active temporary override that has not yet expired.
+	 *
+	 * @param  string       $surface  CSP surface identifier.
+	 * @return true|string  true if all gates pass; a human-readable failure reason string otherwise.
+	 */
+	private function gate_allows_enforce( string $surface ): bool|string {
 		global $wpdb;
+
+		// ── Gate 1: approved source or hash inventory ─────────────────────────
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$src_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -333,6 +401,62 @@ class Admin_UI {
 				$surface
 			)
 		);
-		return ( $src_count + $hash_count ) > 0;
+
+		if ( ( $src_count + $hash_count ) === 0 ) {
+			return __( 'Cannot promote to enforce: no approved sources or hashes found for this surface. Run a scan and approve at least one source first.', 'wp-csp-automation' );
+		}
+
+		// ── Gate 2: no violations within the configured time window ───────────
+		$window_hours = max( 1, (int) get_option( 'wp_csp_enforce_gate_violation_window', 24 ) );
+		$since        = gmdate( 'Y-m-d H:i:s', time() - ( $window_hours * HOUR_IN_SECONDS ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$recent_violations = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->prefix}csp_violation_reports
+				WHERE profile_surface = %s
+				AND reported_at >= %s",
+				$surface,
+				$since
+			)
+		);
+
+		if ( $recent_violations > 0 ) {
+			return sprintf(
+				/* translators: 1: violation count, 2: hours */
+				__( 'Cannot promote to enforce: %1$d violation(s) recorded for this surface in the last %2$d hour(s). Resolve violations in report-only mode first, or extend the violation window in Settings.', 'wp-csp-automation' ),
+				$recent_violations,
+				$window_hours
+			);
+		}
+
+		// ── Gate 3: no active unresolved temporary override ───────────────────
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$profile = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT override_expires_at, override_owner FROM {$wpdb->prefix}csp_policy_profiles WHERE surface = %s LIMIT 1",
+				$surface
+			),
+			ARRAY_A
+		);
+
+		if ( $profile ) {
+			$expires_at = $profile['override_expires_at'] ?? null;
+			$owner      = $profile['override_owner'] ?? null;
+
+			if ( ! empty( $expires_at ) && ! empty( $owner ) ) {
+				$expires_ts = strtotime( $expires_at );
+				if ( false !== $expires_ts && $expires_ts > time() ) {
+					return sprintf(
+						/* translators: 1: override owner, 2: expiry datetime */
+						__( 'Cannot promote to enforce: a temporary override set by "%1$s" is active until %2$s. Wait for it to expire or remove it before enabling enforce mode.', 'wp-csp-automation' ),
+						esc_html( $owner ),
+						esc_html( $expires_at )
+					);
+				}
+			}
+		}
+
+		return true;
 	}
 }

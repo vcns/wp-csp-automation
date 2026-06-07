@@ -57,20 +57,20 @@ class Entitlement_Store {
 
 		$wpdb->insert(
 			$table,
-			[
-				'site_identity'             => $site_identity,
-				'product_key'               => $product_key,
-				'tier'                      => $this->resolve_tier( $product_key ),
-				'status'                    => self::STATUS_ACTIVE,
-				'stripe_customer_id'        => $stripe_customer_id,
-				'stripe_session_id'         => $stripe_session_id,
-				'stripe_payment_intent_id'  => $stripe_payment_intent_id,
-				'granted_at'                => $now,
-				'last_validated_at'         => $now,
-				'created_at'                => $now,
-				'updated_at'                => $now,
-			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			array(
+				'site_identity'            => $site_identity,
+				'product_key'              => $product_key,
+				'tier'                     => $this->resolve_tier( $product_key ),
+				'status'                   => self::STATUS_ACTIVE,
+				'stripe_customer_id'       => $stripe_customer_id,
+				'stripe_session_id'        => $stripe_session_id,
+				'stripe_payment_intent_id' => $stripe_payment_intent_id,
+				'granted_at'               => $now,
+				'last_validated_at'        => $now,
+				'created_at'               => $now,
+				'updated_at'               => $now,
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		$this->audit->log( 'entitlement', 'granted', "Granted '{$product_key}' for site identity {$site_identity}." );
@@ -85,19 +85,19 @@ class Entitlement_Store {
 
 		$rows = $wpdb->update(
 			$wpdb->prefix . 'csp_entitlements',
-			[
+			array(
 				'status'            => self::STATUS_REVOKED,
 				'revoked_at'        => $now,
 				'revocation_reason' => sanitize_text_field( $reason ),
 				'updated_at'        => $now,
-			],
-			[
+			),
+			array(
 				'site_identity' => $site_identity,
 				'product_key'   => $product_key,
 				'status'        => self::STATUS_ACTIVE,
-			],
-			[ '%s', '%s', '%s', '%s' ],
-			[ '%s', '%s', '%s' ]
+			),
+			array( '%s', '%s', '%s', '%s' ),
+			array( '%s', '%s', '%s' )
 		);
 
 		return (bool) $rows;
@@ -110,13 +110,13 @@ class Entitlement_Store {
 		global $wpdb;
 		$wpdb->update(
 			$wpdb->prefix . 'csp_entitlements',
-			[
+			array(
 				'last_validated_at' => current_time( 'mysql', true ),
 				'updated_at'        => current_time( 'mysql', true ),
-			],
-			[ 'id' => $entitlement_id ],
-			[ '%s', '%s' ],
-			[ '%d' ]
+			),
+			array( 'id' => $entitlement_id ),
+			array( '%s', '%s' ),
+			array( '%d' )
 		);
 	}
 
@@ -134,9 +134,10 @@ class Entitlement_Store {
 		$grace_cutoff  = gmdate( 'Y-m-d H:i:s', time() - ( $grace_hours * HOUR_IN_SECONDS ) );
 
 		// Active or within grace window.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				"SELECT * FROM {$table}
 				WHERE site_identity = %s
 				  AND product_key = %s
@@ -153,7 +154,7 @@ class Entitlement_Store {
 			ARRAY_A
 		);
 
-		return $row ?: null;
+		return ! empty( $row ) ? $row : null;
 	}
 
 	/**
@@ -162,8 +163,15 @@ class Entitlement_Store {
 	public function get_all(): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_entitlements';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY created_at DESC", ARRAY_A ) ?: [];
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$table} ORDER BY created_at DESC"
+			),
+			ARRAY_A
+		);
+		return ! empty( $rows ) ? $rows : array();
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
@@ -177,9 +185,9 @@ class Entitlement_Store {
 	 * Extend as product catalog grows.
 	 */
 	private function resolve_tier( string $product_key ): string {
-		$map = [
-			'wp-csp-pro' => 'pro',
-		];
-		return $map[ $product_key ] ?? 'pro';
+		$map = array(
+			'wp-csp-automation' => 'pro',
+		);
+		return isset( $map[ $product_key ] ) ? $map[ $product_key ] : 'pro';
 	}
 }

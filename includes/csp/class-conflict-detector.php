@@ -34,10 +34,10 @@ class Conflict_Detector {
 
 	public function register(): void {
 		// Hook late into wp_headers to detect competing CSP values already queued.
-		add_filter( 'wp_headers', [ $this, 'check_headers_filter' ], PHP_INT_MAX );
+		add_filter( 'wp_headers', array( $this, 'check_headers_filter' ), PHP_INT_MAX );
 
 		// Run a background probe once per day via a transient gate.
-		add_action( 'admin_init', [ $this, 'maybe_run_probe' ] );
+		add_action( 'admin_init', array( $this, 'maybe_run_probe' ) );
 	}
 
 	// ── Header filter hook ────────────────────────────────────────────────────
@@ -50,11 +50,11 @@ class Conflict_Detector {
 	 * @return array          Unchanged – we only detect, never remove.
 	 */
 	public function check_headers_filter( array $headers ): array {
-		$conflict_keys = [
+		$conflict_keys = array(
 			'Content-Security-Policy',
 			'Content-Security-Policy-Report-Only',
 			'X-Content-Security-Policy', // Legacy IE header.
-		];
+		);
 
 		foreach ( $conflict_keys as $key ) {
 			if ( isset( $headers[ $key ] ) ) {
@@ -94,21 +94,21 @@ class Conflict_Detector {
 	public function run_probe( string $url ): array {
 		$response = wp_remote_head(
 			$url,
-			[
+			array(
 				'timeout'   => 10,
 				'sslverify' => true,
-				'headers'   => [ 'X-WP-CSP-Probe' => '1' ],
-			]
+				'headers'   => array( 'X-WP-CSP-Probe' => '1' ),
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return [];
+			return array();
 		}
 
 		$headers = wp_remote_retrieve_headers( $response );
-		$found   = [];
+		$found   = array();
 
-		foreach ( [ 'content-security-policy', 'content-security-policy-report-only' ] as $hdr ) {
+		foreach ( array( 'content-security-policy', 'content-security-policy-report-only' ) as $hdr ) {
 			$val = $headers->offsetGet( $hdr );
 			if ( $val ) {
 				// Check if we see multiple values (duplicate header).

@@ -38,9 +38,19 @@ class Violation_Reporter {
 
 	/**
 	 * Handles POST /csp-manager/v1/report
-	 * Accepts both application/csp-report and application/reports+json payloads.
+	 * Accepts application/csp-report (legacy) and application/reports+json (Reporting API).
+	 * Rejects any other Content-Type — browsers must send one of these two (R10).
 	 */
 	public function handle( WP_REST_Request $request ): WP_REST_Response {
+		// Validate Content-Type to reduce spoofing surface. application/json is accepted
+		// as a legacy fallback — some older Chromium versions used it before the spec settled.
+		$ct      = $request->get_content_type();
+		$ct_val  = is_array( $ct ) ? ( $ct['value'] ?? '' ) : '';
+		$allowed = array( 'application/csp-report', 'application/reports+json', 'application/json' );
+		if ( '' !== $ct_val && ! in_array( $ct_val, $allowed, true ) ) {
+			return new WP_REST_Response( null, 400 );
+		}
+
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 		$raw = file_get_contents( 'php://input' );
 		if ( empty( $raw ) ) {
@@ -69,15 +79,15 @@ class Violation_Reporter {
 	private function normalise_body( array $body ): array {
 		// CSP Level 3: { "csp-report": { … } }
 		if ( isset( $body['csp-report'] ) && is_array( $body['csp-report'] ) ) {
-			return [ $this->map_csp_report( $body['csp-report'] ) ];
+			return array( $this->map_csp_report( $body['csp-report'] ) );
 		}
 
 		// Reporting API (array of report objects): [ { "type": "csp-violation", "body": { … } } ]
 		if ( isset( $body[0]['type'] ) ) {
-			$out = [];
+			$out = array();
 			foreach ( $body as $item ) {
-				if ( in_array( $item['type'] ?? '', [ 'csp-violation', 'content-security-policy' ], true )
-					&& is_array( $item['body'] ?? null )
+				if ( in_array( isset( $item['type'] ) ? $item['type'] : '', array( 'csp-violation', 'content-security-policy' ), true )
+					&& is_array( isset( $item['body'] ) ? $item['body'] : null )
 				) {
 					$out[] = $this->map_reporting_api( $item['body'] );
 				}
@@ -85,39 +95,45 @@ class Violation_Reporter {
 			return $out;
 		}
 
-		return [];
+		return array();
 	}
 
 	private function map_csp_report( array $r ): array {
-		return [
-			'blocked_uri'          => $r['blocked-uri']           ?? '',
-			'document_uri'         => $r['document-uri']          ?? '',
-			'violated_directive'   => $r['violated-directive']     ?? '',
-			'effective_directive'  => $r['effective-directive']    ?? $r['violated-directive'] ?? '',
-			'original_policy'      => $r['original-policy']       ?? '',
-			'source_file'          => $r['source-file']           ?? '',
-			'line_number'          => isset( $r['line-number'] )   ? (int) $r['line-number'] : null,
-			'column_number'        => isset( $r['column-number'] ) ? (int) $r['column-number'] : null,
-			'status_code'          => isset( $r['status-code'] )   ? (int) $r['status-code'] : null,
-			'disposition'          => $r['disposition']            ?? 'report',
-			'referrer'             => $r['referrer']               ?? '',
-		];
+		// Legacy field names use hyphens (application/csp-report format).
+		// script-sample is only present when 'report-sample' is in the policy (R7).
+		return array(
+			'blocked_uri'         => isset( $r['blocked-uri'] ) ? $r['blocked-uri'] : '',
+			'document_uri'        => isset( $r['document-uri'] ) ? $r['document-uri'] : '',
+			'violated_directive'  => isset( $r['violated-directive'] ) ? $r['violated-directive'] : '',
+			'effective_directive' => isset( $r['effective-directive'] ) ? $r['effective-directive'] : ( isset( $r['violated-directive'] ) ? $r['violated-directive'] : '' ),
+			'original_policy'     => isset( $r['original-policy'] ) ? $r['original-policy'] : '',
+			'source_file'         => isset( $r['source-file'] ) ? $r['source-file'] : '',
+			'line_number'         => isset( $r['line-number'] ) ? (int) $r['line-number'] : null,
+			'column_number'       => isset( $r['column-number'] ) ? (int) $r['column-number'] : null,
+			'status_code'         => isset( $r['status-code'] ) ? (int) $r['status-code'] : null,
+			'disposition'         => isset( $r['disposition'] ) ? $r['disposition'] : 'report',
+			'referrer'            => isset( $r['referrer'] ) ? $r['referrer'] : '',
+			'sample'              => isset( $r['script-sample'] ) ? $r['script-sample'] : '',
+		);
 	}
 
 	private function map_reporting_api( array $b ): array {
-		return [
-			'blocked_uri'          => $b['blockedURL']           ?? '',
-			'document_uri'         => $b['documentURL']          ?? '',
-			'violated_directive'   => $b['violatedDirective']    ?? '',
-			'effective_directive'  => $b['effectiveDirective']   ?? $b['violatedDirective'] ?? '',
-			'original_policy'      => $b['originalPolicy']       ?? '',
-			'source_file'          => $b['sourceFile']           ?? '',
-			'line_number'          => isset( $b['lineNumber'] )   ? (int) $b['lineNumber'] : null,
-			'column_number'        => isset( $b['columnNumber'] ) ? (int) $b['columnNumber'] : null,
-			'status_code'          => isset( $b['statusCode'] )   ? (int) $b['statusCode'] : null,
-			'disposition'          => $b['disposition']           ?? 'report',
-			'referrer'             => $b['referrer']              ?? '',
-		];
+		// Reporting API field names use camelCase (application/reports+json format).
+		// sample is only present when 'report-sample' is in the policy (R7).
+		return array(
+			'blocked_uri'         => isset( $b['blockedURL'] ) ? $b['blockedURL'] : '',
+			'document_uri'        => isset( $b['documentURL'] ) ? $b['documentURL'] : '',
+			'violated_directive'  => isset( $b['violatedDirective'] ) ? $b['violatedDirective'] : '',
+			'effective_directive' => isset( $b['effectiveDirective'] ) ? $b['effectiveDirective'] : ( isset( $b['violatedDirective'] ) ? $b['violatedDirective'] : '' ),
+			'original_policy'     => isset( $b['originalPolicy'] ) ? $b['originalPolicy'] : '',
+			'source_file'         => isset( $b['sourceFile'] ) ? $b['sourceFile'] : '',
+			'line_number'         => isset( $b['lineNumber'] ) ? (int) $b['lineNumber'] : null,
+			'column_number'       => isset( $b['columnNumber'] ) ? (int) $b['columnNumber'] : null,
+			'status_code'         => isset( $b['statusCode'] ) ? (int) $b['statusCode'] : null,
+			'disposition'         => isset( $b['disposition'] ) ? $b['disposition'] : 'report',
+			'referrer'            => isset( $b['referrer'] ) ? $b['referrer'] : '',
+			'sample'              => isset( $b['sample'] ) ? $b['sample'] : '',
+		);
 	}
 
 	// ── Storage ───────────────────────────────────────────────────────────────
@@ -128,10 +144,21 @@ class Violation_Reporter {
 
 		$blocked_uri        = sanitize_text_field( substr( $r['blocked_uri'], 0, 2048 ) );
 		$violated_directive = sanitize_text_field( substr( $r['violated_directive'], 0, 128 ) );
-		$surface            = $this->surface_from_document_uri( $r['document_uri'] ?? '' );
+		$document_uri       = isset( $r['document_uri'] ) ? $r['document_uri'] : '';
+		$surface            = $this->surface_from_document_uri( $document_uri );
 
 		if ( empty( $violated_directive ) ) {
 			return;
+		}
+
+		// Reject spoofed cross-origin reports: document-uri must be on this site's host.
+		// CSP violation reports are client-generated and therefore spoofable (research.md).
+		if ( ! empty( $document_uri ) ) {
+			$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
+			$doc_host  = wp_parse_url( $document_uri, PHP_URL_HOST );
+			if ( ! empty( $doc_host ) && $doc_host !== $site_host ) {
+				return; // silently discard; do not reveal rejection to the sender
+			}
 		}
 
 		// Rate-limit check.
@@ -145,9 +172,12 @@ class Violation_Reporter {
 		$fingerprint = hash( 'sha256', $surface . '|' . $blocked_uri . '|' . $violated_directive );
 		$now         = current_time( 'mysql', true );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$existing = $wpdb->get_var(
-			$wpdb->prepare( "SELECT id FROM {$table} WHERE fingerprint = %s LIMIT 1", $fingerprint )
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared	
+				"SELECT id FROM {$table} WHERE fingerprint = %s LIMIT 1",
+				$fingerprint
+			)
 		);
 
 		if ( $existing ) {
@@ -162,25 +192,28 @@ class Violation_Reporter {
 		} else {
 			$wpdb->insert(
 				$table,
-				[
-					'profile_surface'      => $surface,
-					'blocked_uri'          => $blocked_uri,
-					'document_uri'         => sanitize_text_field( substr( $r['document_uri'] ?? '', 0, 2048 ) ),
-					'violated_directive'   => $violated_directive,
-					'effective_directive'  => sanitize_text_field( substr( $r['effective_directive'] ?? '', 0, 128 ) ),
-					'original_policy'      => sanitize_textarea_field( $r['original_policy'] ?? '' ),
-					'source_file'          => sanitize_text_field( substr( $r['source_file'] ?? '', 0, 512 ) ),
-					'line_number'          => $r['line_number'],
-					'column_number'        => $r['column_number'],
-					'status_code'          => $r['status_code'],
-					'disposition'          => in_array( $r['disposition'] ?? '', [ 'enforce', 'report' ], true ) ? $r['disposition'] : 'report',
-					'referrer'             => sanitize_text_field( substr( $r['referrer'] ?? '', 0, 2048 ) ),
-					'user_agent'           => sanitize_text_field( substr( $_SERVER['HTTP_USER_AGENT'] ?? '', 0, 512 ) ),
-					'reported_at'          => $now,
-					'fingerprint'          => $fingerprint,
-					'occurrence_count'     => 1,
-				],
-				[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d' ]
+				array(
+					'profile_surface'     => $surface,
+					'blocked_uri'         => $blocked_uri,
+					'document_uri'        => sanitize_text_field( substr( $document_uri, 0, 2048 ) ),
+					'violated_directive'  => $violated_directive,
+					'effective_directive' => sanitize_text_field( substr( isset( $r['effective_directive'] ) ? $r['effective_directive'] : '', 0, 128 ) ),
+					'original_policy'     => sanitize_textarea_field( isset( $r['original_policy'] ) ? $r['original_policy'] : '' ),
+					'source_file'         => sanitize_text_field( substr( isset( $r['source_file'] ) ? $r['source_file'] : '', 0, 512 ) ),
+					'line_number'         => $r['line_number'],
+					'column_number'       => $r['column_number'],
+					'status_code'         => $r['status_code'],
+					'disposition'         => in_array( isset( $r['disposition'] ) ? $r['disposition'] : '', array( 'enforce', 'report' ), true ) ? $r['disposition'] : 'report',
+					'referrer'            => sanitize_text_field( substr( isset( $r['referrer'] ) ? $r['referrer'] : '', 0, 2048 ) ),
+					'user_agent'          => sanitize_text_field( substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', 0, 512 ) ),
+					// sample: first ~40 chars of the offending inline block; only present
+					// when 'report-sample' is in the policy (browsers truncate at 40 chars).
+					'sample'              => sanitize_text_field( substr( isset( $r['sample'] ) ? $r['sample'] : '', 0, 256 ) ),
+					'reported_at'         => $now,
+					'fingerprint'         => $fingerprint,
+					'occurrence_count'    => 1,
+				),
+				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 			);
 		}
 	}
@@ -189,7 +222,8 @@ class Violation_Reporter {
 		if ( empty( $uri ) ) {
 			return 'frontend';
 		}
-		$path = wp_parse_url( $uri, PHP_URL_PATH ) ?? '';
+		$path = wp_parse_url( $uri, PHP_URL_PATH );
+		$path = ! empty( $path ) ? $path : '';
 		if ( str_contains( $path, '/wp-admin' ) ) {
 			return 'admin';
 		}
