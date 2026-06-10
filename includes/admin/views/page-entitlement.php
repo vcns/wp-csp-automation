@@ -79,16 +79,10 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 	<!-- ── Buy Pro ────────────────────────────────────────────────────────── -->
 	<h2 style="margin-top:2em"><?php esc_html_e( 'Upgrade to Pro', 'wp-csp-automation' ); ?></h2>
 
-		<?php if ( empty( get_option( 'wp_csp_stripe_secret_key' ) ) ) : ?>
+		<?php if ( ! defined( 'WP_CSP_WORKER_URL' ) || empty( WP_CSP_WORKER_URL ) ) : ?>
 	<div class="notice notice-error inline">
 		<p>
-			<?php
-			printf(
-				/* translators: %s: link to the Settings page */
-				esc_html__( 'Stripe API keys are not configured. Please add them on the %s before purchasing.', 'wp-csp-automation' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=wp-csp-settings' ) ) . '">' . esc_html__( 'Settings page', 'wp-csp-automation' ) . '</a>'
-			);
-			?>
+			<?php esc_html_e( 'Licensing server URL is not configured. Define WP_CSP_WORKER_URL in wp-csp-automation.php.', 'wp-csp-automation' ); ?>
 		</p>
 	</div>
 	<?php else : ?>

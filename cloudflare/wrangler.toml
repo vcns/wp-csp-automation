@@ -1,0 +1,26 @@
+name       = "wp-csp-automation"
+main       = "worker.js"
+compatibility_date = "2024-06-20"
+
+[vars]
+# Switch to "live" when ready for production.
+STRIPE_MODE = "test"
+
+# ── KV namespace ──────────────────────────────────────────────────────────────
+# Create with: wrangler kv namespace create ENTITLEMENTS
+# Then paste the returned id below.
+[[kv_namespaces]]
+binding    = "ENTITLEMENTS"
+id         = "03b094a33d484daabb04ad4336e12382"
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+# Uncomment and adjust if using a custom domain:
+# [[routes]]
+# pattern = "wp-csp-config.jacksonfamily.me/*"
+# zone_name = "jacksonfamily.me"
+
+# ── Secrets (never put values here — use `wrangler secret put` or dashboard) ──
+# STRIPE_TEST_SECRET_KEY
+# STRIPE_LIVE_SECRET_KEY
+# STRIPE_TEST_WEBHOOK_SECRET
+# STRIPE_LIVE_WEBHOOK_SECRET

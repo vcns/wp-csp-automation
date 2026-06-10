@@ -1,18 +1,55 @@
+# Version control
 .git/
+.gitignore
+.gitattributes
+
+# CI / automation config
 .github/
 .wordpress-org/
+
+# Dev tooling IDE folders (gitignored locally, excluded here for rsync safety)
+.claude/
+.codex/
+.cursor/
+
+# Key files (gitignored via .*key pattern; belt-and-braces)
+.private_key/
+.public_key/
+
+# Cloudflare Worker source — not part of the WordPress plugin
+cloudflare/
+
+# Offline/proprietary modules — gitignored and never distributed
+offline/
+
+# Build artefacts and local tooling
 build/
 dist/
 tools/
+node_modules/
+
+# Composer deps not bundled in releases (no autoloader used at runtime)
 vendor/
-docs/
 composer.json
 composer.lock
+
+# Node tooling
+package.json
+package-lock.json
+
+# Test suite
+test/
+phpunit.xml
 phpcs.xml.dist
+
+# Developer documentation (not needed by end users)
+docs/
+requirements_spec.md
+research.md
 CHANGELOG.md
 CONTRIBUTING.md
 SECURITY.md
-.gitignore
-.gitattributes
+
+# OS artefacts
 .DS_Store
 Thumbs.db

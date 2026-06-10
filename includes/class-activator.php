@@ -222,10 +222,6 @@ class Activator {
 
 	private static function set_default_options(): void {
 		$defaults = array(
-			'wp_csp_stripe_mode'                   => 'test',
-			'wp_csp_stripe_publishable_key'        => '',
-			'wp_csp_stripe_secret_key'             => '',
-			'wp_csp_webhook_secret'                => '',
 			'wp_csp_config_dns_domain'             => WP_CSP_CONFIG_DNS_RECORD,
 			// Fallback HTTPS URL used when DNS TXT lookup fails or dns_get_record
 			// is unavailable on the host. Must be a valid https:// URL pointing

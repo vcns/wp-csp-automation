@@ -4,15 +4,6 @@ WP CSP Automation Manager is a WordPress plugin that helps site owners roll out 
 
 It provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, and an optional premium entitlement model backed by one-time Stripe Checkout.
 
-## Why there are two readme files
-
-This repository intentionally uses both of these files:
-
-- `README.md` for GitHub
-- `readme.txt` for WordPress.org plugin directory metadata and parsing
-
-`readme.txt` should stay in the repository because WordPress.org expects that format. `README.md` exists to make the GitHub repository readable in normal Markdown form.
-
 ## Features
 
 ### Free features
@@ -47,18 +38,32 @@ This repository intentionally uses both of these files:
 
 ## Installation
 
-### From the WordPress dashboard
+### Install from GitHub Releases
 
-1. Go to `Plugins -> Add New Plugin`.
-2. Search for `WP CSP Automation Manager`.
-3. Click install, then activate the plugin.
+Every tagged release publishes a ready-to-install ZIP to the
+[Releases page](https://github.com/sjackson0109/wp-csp-automation/releases).
 
-### Manual installation
+**Option A — WordPress admin upload (recommended)**
 
-1. Download the plugin ZIP package.
-2. In WordPress, go to `Plugins -> Add New Plugin -> Upload Plugin`.
-3. Select the ZIP file and install it.
+1. Download `wp-csp-automation-vX.Y.Z.zip` from the Assets section of the release.
+2. In WordPress go to **Plugins → Add New Plugin → Upload Plugin**.
+3. Choose the downloaded ZIP and click **Install Now**.
 4. Activate the plugin.
+
+**Option B — SFTP / SCP**
+
+1. Download `wp-csp-automation-vX.Y.Z.zip` from the Assets section of the release.
+2. Extract the ZIP locally — it unpacks to a single `wp-csp-automation/` folder.
+3. Upload that folder to `/wp-content/plugins/` on your server via SFTP or SCP.
+4. Activate the plugin from **Plugins → Installed Plugins** in the WordPress admin.
+
+### From the WordPress plugin directory
+
+Once published to WordPress.org:
+
+1. Go to **Plugins → Add New Plugin**.
+2. Search for `WP CSP Automation Manager`.
+3. Click **Install**, then **Activate**.
 
 ### After activation
 
@@ -78,35 +83,42 @@ This repository intentionally uses both of these files:
 
 ## Premium activation
 
-Premium activation is handled through Stripe Checkout and local entitlement storage.
+Premium activation uses Stripe Checkout routed through a Cloudflare Worker licensing server.
+Stripe API keys never touch the WordPress installation — they live as Worker secrets on the
+server side.
 
-1. Configure the Stripe mode, publishable key, secret key, and webhook secret in the plugin settings.
-2. Ensure your Stripe webhook endpoint points to the plugin REST route.
-3. Start checkout from the plugin's premium or entitlement screen.
-4. Complete the one-time Stripe payment.
-5. Wait for the verified Stripe webhook to grant the entitlement locally.
+1. Open **CSP Manager → Entitlement** in the WordPress admin.
+2. Click **Upgrade to Pro** — this sends your site's identity to the licensing server and
+   opens a Stripe Checkout page.
+3. Complete the one-time payment.
+4. Stripe delivers the payment confirmation webhook to the licensing server, which records the
+   entitlement.
+5. Return to the Entitlement page — the plugin syncs automatically and activates Pro features.
 
 Important behaviour:
 
-- Free features do not require Stripe at all.
-- Premium access is not granted from the browser redirect alone.
-- The entitlement becomes active after the webhook is verified and stored locally.
-- The entitlement is tied to the current site's identity.
+- Free features do not require any payment or configuration at all.
+- Premium access is not granted from the browser redirect alone — it requires the Stripe webhook
+  to be verified by the licensing server.
+- The entitlement is tied to the current site's URL.
+- No Stripe keys are stored in WordPress or visible in the plugin settings.
 
 ## Stripe and external services
 
-Stripe is used only for the premium purchase flow.
+Stripe is used only for the premium purchase flow. All Stripe interaction happens through a
+Cloudflare Worker licensing server — the WordPress plugin never holds or transmits Stripe keys.
 
-- The plugin creates one-time Stripe Checkout Sessions.
-- It verifies Stripe webhook signatures before granting entitlements.
-- It does not require the Stripe PHP SDK.
-- It does not perform per-request remote licence checks during normal runtime.
+- The plugin sends site identity and return URLs to the Worker; the Worker creates the Checkout Session.
+- Stripe delivers webhook events directly to the Worker, which verifies signatures and records entitlements.
+- The plugin does not require the Stripe PHP SDK.
+- The plugin does not perform per-request remote licence checks during normal runtime — entitlement
+  state is cached locally and re-synced on demand.
 
-The plugin also fetches a remote configuration document from a DNS-discovered HTTPS endpoint that you control.
+The plugin also fetches a remote configuration document from a DNS-discovered HTTPS endpoint.
 
-- This remote config contains public product metadata only.
-- It must not contain Stripe secrets, webhook secrets, or private signing keys.
+- This remote config contains public product metadata only (version, feature flags, pricing display).
 - It is signature-verified with Ed25519 when `libsodium` is available.
+- It never contains Stripe secrets, webhook secrets, or private signing keys.
 
 ## Privacy
 
@@ -121,7 +133,6 @@ No telemetry or background tracking is intended as part of the normal plugin run
 
 ## Repository guides
 
-- Public plugin directory content: [readme.txt](readme.txt)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Remote config and signing: [docs/remote-config-and-signing.md](docs/remote-config-and-signing.md)
 - Stripe operations: [docs/stripe-operations.md](docs/stripe-operations.md)

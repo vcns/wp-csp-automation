@@ -92,10 +92,6 @@ class Admin_UI {
 
 	public function register_settings(): void {
 		$settings = array(
-			'wp_csp_stripe_mode'                   => 'sanitize_text_field',
-			'wp_csp_stripe_publishable_key'        => 'sanitize_text_field',
-			'wp_csp_stripe_secret_key'             => 'sanitize_text_field',
-			'wp_csp_webhook_secret'                => 'sanitize_text_field',
 			'wp_csp_config_dns_domain'             => 'sanitize_text_field',
 			'wp_csp_config_fallback_url'           => 'esc_url_raw',
 			'wp_csp_config_cache_ttl'              => 'absint',
@@ -253,10 +249,10 @@ class Admin_UI {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
-		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-pro' ) );
-		$result      = $this->plugin->config ?
-			( new \WP_CSP\Modules\Checkout_Service( $this->plugin->config, $this->plugin->audit ) )->create_session( $product_key ) :
-			new \WP_Error( 'no_config', __( 'Plugin not fully initialised.', 'wp-csp-automation' ) );
+		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-automation' ) );
+		$result      = class_exists( 'WP_CSP\Modules\Checkout_Service' )
+			? ( new \WP_CSP\Modules\Checkout_Service( $this->plugin->audit ) )->create_session( $product_key )
+			: new \WP_Error( 'no_checkout', __( 'Checkout module not available.', 'wp-csp-automation' ) );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -291,6 +287,10 @@ class Admin_UI {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
 		}
 
+		if ( null === $this->plugin->config ) {
+			wp_send_json_error( array( 'message' => __( 'Remote config module not available on free tier.', 'wp-csp-automation' ) ) );
+			return;
+		}
 		$ok = $this->plugin->config->refresh();
 		if ( $ok ) {
 			wp_send_json_success( array( 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ) );

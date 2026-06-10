@@ -9,7 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$stripe_mode    = get_option( 'wp_csp_stripe_mode', 'test' );
 $config_domain  = get_option( 'wp_csp_config_dns_domain', '' );
 $config_version = get_option( 'wp_csp_config_version', __( 'Not yet fetched', 'wp-csp-automation' ) );
 $config_fetched = get_option( 'wp_csp_config_last_fetched', '' );
@@ -21,54 +20,11 @@ $webhook_url    = rest_url( 'csp-manager/v1/stripe-webhook' );
 	<form method="post" action="options.php">
 		<?php settings_fields( 'wp_csp_settings_group' ); ?>
 
-		<!-- ── Stripe configuration ─────────────────────────────────────── -->
-		<h2 class="title"><?php esc_html_e( 'Stripe Configuration', 'wp-csp-automation' ); ?></h2>
+		<!-- ── Payment / licensing ──────────────────────────────────────── -->
+		<h2 class="title"><?php esc_html_e( 'Payments &amp; Licensing', 'wp-csp-automation' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Enter your Stripe API keys. Secret keys are stored in the WordPress options table and never exposed to the browser or DNS.', 'wp-csp-automation' ); ?>
+			<?php esc_html_e( 'Payment processing is handled entirely by the remote licensing server. Your Stripe API keys never touch this WordPress installation — they live as encrypted secrets on the Cloudflare Worker. There is nothing to configure here.', 'wp-csp-automation' ); ?>
 		</p>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="wp_csp_stripe_mode"><?php esc_html_e( 'Mode', 'wp-csp-automation' ); ?></label></th>
-				<td>
-					<select id="wp_csp_stripe_mode" name="wp_csp_stripe_mode">
-						<option value="test" <?php selected( $stripe_mode, 'test' ); ?>><?php esc_html_e( 'Test', 'wp-csp-automation' ); ?></option>
-						<option value="live" <?php selected( $stripe_mode, 'live' ); ?>><?php esc_html_e( 'Live', 'wp-csp-automation' ); ?></option>
-					</select>
-					<p class="description"><?php esc_html_e( 'Use Test mode until you have verified the full payment and webhook flow.', 'wp-csp-automation' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="wp_csp_stripe_publishable_key"><?php esc_html_e( 'Publishable Key', 'wp-csp-automation' ); ?></label></th>
-				<td>
-					<input type="text" id="wp_csp_stripe_publishable_key" name="wp_csp_stripe_publishable_key"
-						value="<?php echo esc_attr( get_option( 'wp_csp_stripe_publishable_key', '' ) ); ?>"
-						class="regular-text" autocomplete="off" />
-					<p class="description"><?php esc_html_e( 'Starts with pk_test_ or pk_live_', 'wp-csp-automation' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="wp_csp_stripe_secret_key"><?php esc_html_e( 'Secret Key', 'wp-csp-automation' ); ?></label></th>
-				<td>
-					<input type="password" id="wp_csp_stripe_secret_key" name="wp_csp_stripe_secret_key"
-						value="<?php echo esc_attr( get_option( 'wp_csp_stripe_secret_key', '' ) ); ?>"
-						class="regular-text" autocomplete="new-password" />
-					<p class="description"><?php esc_html_e( 'Starts with sk_test_ or sk_live_. Never share this key.', 'wp-csp-automation' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="wp_csp_webhook_secret"><?php esc_html_e( 'Webhook Signing Secret', 'wp-csp-automation' ); ?></label></th>
-				<td>
-					<input type="password" id="wp_csp_webhook_secret" name="wp_csp_webhook_secret"
-						value="<?php echo esc_attr( get_option( 'wp_csp_webhook_secret', '' ) ); ?>"
-						class="regular-text" autocomplete="new-password" />
-					<p class="description">
-						<?php esc_html_e( 'Starts with whsec_. Register the following endpoint URL in your Stripe dashboard:', 'wp-csp-automation' ); ?>
-						<br><code><?php echo esc_html( $webhook_url ); ?></code>
-						<br><?php esc_html_e( 'Events to send: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed', 'wp-csp-automation' ); ?>
-					</p>
-				</td>
-			</tr>
-		</table>
 
 		<!-- ── Remote product config ────────────────────────────────────── -->
 		<h2 class="title"><?php esc_html_e( 'Remote Product Configuration (DNS)', 'wp-csp-automation' ); ?></h2>

@@ -124,14 +124,8 @@ final class Plugin {
 			( new Conflict_Detector( $this->audit ) )->register();
 		}
 
-		// Stripe checkout + webhook — only when offline/ modules are present.
-		if (
-			class_exists( 'WP_CSP\Modules\Checkout_Service' ) &&
-			class_exists( 'WP_CSP\Modules\Webhook_Controller' )
-		) {
-			$checkout = new \WP_CSP\Modules\Checkout_Service( $this->config, $this->audit );
-			new \WP_CSP\Modules\Webhook_Controller( $this->entitlements, $this->audit, $checkout );
-		}
+		// Stripe checkout proxy — only when the offline/ module is present.
+		// Webhook processing happens in the Cloudflare Worker, not here.
 
 		// Admin UI.
 		if ( is_admin() ) {
@@ -142,28 +136,7 @@ final class Plugin {
 	// ── REST routes ───────────────────────────────────────────────────────────
 
 	public function register_rest_routes(): void {
-		// Stripe webhook — only registered when the offline/ payment modules exist.
-		if (
-			class_exists( 'WP_CSP\Modules\Webhook_Controller' ) &&
-			class_exists( 'WP_CSP\Modules\Checkout_Service' )
-		) {
-			register_rest_route(
-				'csp-manager/v1',
-				'/stripe-webhook',
-				array(
-					'methods'             => \WP_REST_Server::CREATABLE,
-					'callback'            => array(
-						new \WP_CSP\Modules\Webhook_Controller(
-							$this->entitlements,
-							$this->audit,
-							new \WP_CSP\Modules\Checkout_Service( $this->config, $this->audit )
-						),
-						'handle',
-					),
-					'permission_callback' => '__return_true',
-				)
-			);
-		}
+		// Stripe webhooks are handled by the Cloudflare Worker — no WordPress route needed.
 
 		// CSP violation report – public, from browsers.
 		register_rest_route(

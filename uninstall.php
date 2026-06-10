@@ -19,6 +19,7 @@ $tables = array(
 	'csp_scan_logs',
 	'csp_entitlements',
 	'csp_processed_events',
+	'csp_audit_log',
 );
 
 foreach ( $tables as $table ) {
@@ -29,10 +30,6 @@ foreach ( $tables as $table ) {
 // ── Delete options ────────────────────────────────────────────────────────────
 $options = array(
 	'wp_csp_db_version',
-	'wp_csp_stripe_mode',
-	'wp_csp_stripe_publishable_key',
-	'wp_csp_stripe_secret_key',
-	'wp_csp_webhook_secret',
 	'wp_csp_config_dns_domain',
 	'wp_csp_config_fallback_url',
 	'wp_csp_config_cache_ttl',
@@ -43,6 +40,7 @@ $options = array(
 	'wp_csp_enforce_gate_violation_window',
 	'wp_csp_cron_hour',
 	'wp_csp_notify_email',
+	'wp_csp_violation_retention_days',
 	'wp_csp_admin_notices',
 );
 
