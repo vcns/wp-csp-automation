@@ -337,6 +337,16 @@ The `sample` field is only populated by the browser when `'report-sample'` is pr
 - The remote configuration must contain public product metadata only. It must never contain Stripe secrets, webhook secrets, or private signing keys.
 - When verification fails, the plugin must fall back to a cached copy if available and log the failure to `csp_audit_log`.
 
+### 4.16 Known Platform Constraints
+
+The following limitations are structural and must be surfaced to administrators rather than silently worked around:
+
+- **wp-admin strict CSP (WordPress core Trac #59446):** WordPress core does not yet nonce-stamp all inline scripts in the admin interface. The admin surface CSP profile is therefore **best-effort**; some admin UI components may be blocked under strict enforcement. The plugin must display an informational notice when the admin surface is promoted to enforce mode.
+- **Hardcoded `<script>` tags in core themes (Trac #63806):** Some bundled WordPress themes emit `<script>` tags that bypass the script enqueueing APIs and will not receive nonces. These will be blocked by a strict nonce-based CSP.
+- **Script API requirement:** Only scripts registered via the WordPress script APIs (`wp_enqueue_script`, `wp_add_inline_script`, `wp_print_inline_script_tag`, `wp_enqueue_script_module`) are automatically nonce-stamped. Third-party inline scripts that bypass these APIs must be approved via hash or source allowlist.
+- **`sandbox` directive limitations:** The `sandbox` directive is ignored by browsers in `Content-Security-Policy-Report-Only` mode and in `<meta http-equiv>` delivery. The plugin must suppress `sandbox` in both contexts.
+- **Trusted Types cross-browser availability:** As of June 2026, Trusted Types has strong Chromium/Chrome/Edge support (≥83) but lacks Safari support. The Baseline "widely available" milestone is projected around August 2028. The plugin must default Trusted Types to report-only and must not promote it to enforce mode automatically.
+
 ---
 
 ## 6. Non-Functional Requirements
