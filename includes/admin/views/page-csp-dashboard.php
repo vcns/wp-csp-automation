@@ -60,8 +60,8 @@ if ( $src_surface && $src_state ) {
 $sources = ! empty( $sources_raw ) ? $sources_raw : array();
 
 // Violations – paginated.
-$viol_page_num  = max( 1, (int) ( isset( $_GET['v_paged'] ) ? $_GET['v_paged'] : 1 ) );
-$viol_offset    = ( $viol_page_num - 1 ) * $per_page;
+$viol_page_num = max( 1, (int) ( isset( $_GET['v_paged'] ) ? $_GET['v_paged'] : 1 ) );
+$viol_offset   = ( $viol_page_num - 1 ) * $per_page;
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- No user input; only $wpdb->prefix used in query.
 $viol_total     = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}csp_violation_reports" );
 $viol_pages     = max( 1, (int) ceil( $viol_total / $per_page ) );
@@ -244,11 +244,23 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 		</tbody>
 	</table>
 
-	<?php if ( $viol_pages > 1 ) : ?>
+		<?php if ( $viol_pages > 1 ) : ?>
 	<div class="tablenav bottom" style="margin-top:1em">
 		<div class="tablenav-pages">
 			<?php if ( $viol_page_num > 1 ) : ?>
-			<a class="button" href="<?php echo esc_url( add_query_arg( array( 'tab' => 'violations', 'v_paged' => $viol_page_num - 1 ), $base_url ) ); ?>">&laquo; <?php esc_html_e( 'Previous', 'wp-csp-automation' ); ?></a>
+			<a class="button" href="
+				<?php
+				echo esc_url(
+					add_query_arg(
+						array(
+							'tab'     => 'violations',
+							'v_paged' => $viol_page_num - 1,
+						),
+						$base_url
+					)
+				);
+				?>
+									">&laquo; <?php esc_html_e( 'Previous', 'wp-csp-automation' ); ?></a>
 			<?php endif; ?>
 			<span style="margin:0 8px">
 				<?php
@@ -261,7 +273,19 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 				?>
 			</span>
 			<?php if ( $viol_page_num < $viol_pages ) : ?>
-			<a class="button" href="<?php echo esc_url( add_query_arg( array( 'tab' => 'violations', 'v_paged' => $viol_page_num + 1 ), $base_url ) ); ?>"><?php esc_html_e( 'Next', 'wp-csp-automation' ); ?> &raquo;</a>
+			<a class="button" href="
+				<?php
+				echo esc_url(
+					add_query_arg(
+						array(
+							'tab'     => 'violations',
+							'v_paged' => $viol_page_num + 1,
+						),
+						$base_url
+					)
+				);
+				?>
+									"><?php esc_html_e( 'Next', 'wp-csp-automation' ); ?> &raquo;</a>
 			<?php endif; ?>
 		</div>
 	</div>
