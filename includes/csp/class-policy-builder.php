@@ -50,8 +50,20 @@ class Policy_Builder {
 
 	private Feature_Gate $gate;
 
-	public function __construct( Feature_Gate $gate ) {
-		$this->gate = $gate;
+	/** @var callable|null */
+	private $hash_loader;
+
+	/** @var callable|null */
+	private $source_loader;
+
+	public function __construct(
+		Feature_Gate $gate,
+		?callable $hash_loader = null,
+		?callable $source_loader = null
+	) {
+		$this->gate          = $gate;
+		$this->hash_loader   = $hash_loader;
+		$this->source_loader = $source_loader;
 	}
 
 	// ── Bootstrap ─────────────────────────────────────────────────────────────

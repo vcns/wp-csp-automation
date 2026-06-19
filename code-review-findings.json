@@ -1,0 +1,62 @@
+[
+  {
+    "file": "includes/admin/views/page-csp-dashboard.php",
+    "line": 21,
+    "summary": "Wrong admin page slug used throughout the dashboard view — all tab links and filter form submissions route to an unregistered page.",
+    "failure_scenario": "$base_url is built with 'wp-csp-automation-dashboard' (line 21) and the Sources filter hidden input echoes the same value (line 155), but add_menu_page() and add_submenu_page() in class-admin-ui.php register the slug as 'wp-csp-dashboard'. Every tab navigation link and filter form POST resolves to an unregistered slug; WordPress responds with a 'You do not have sufficient permissions' error or a blank page, making the entire dashboard nonfunctional in production."
+  },
+  {
+    "file": "includes/admin/views/page-csp-dashboard.php",
+    "line": 152,
+    "summary": "Sources tab is paginated via LIMIT/OFFSET but has no prev/next pagination UI — rows 21+ are permanently unreachable.",
+    "failure_scenario": "The sources query uses $per_page=20 and $offset=(page-1)*20 (lines 49-58), but neither $src_total nor $src_pages is ever computed, and no tablenav/pagination link block exists inside the sources tab section (lines 152-216). A site with more than 20 approved source hosts silently shows only the first 20 with no way for the admin to advance to the next page."
+  },
+  {
+    "file": "includes/admin/views/page-csp-dashboard.php",
+    "line": 66,
+    "summary": "All four tab queries (profiles, sources, violations COUNT + data, scan-log) run unconditionally before the tab branch — three unnecessary DB round-trips on every page load.",
+    "failure_scenario": "The data-query block (lines 23-74) executes four independent table queries before the first if/elseif tab check at line 109. An admin viewing the Profiles tab still fires SELECT COUNT(*) against csp_violation_reports plus a paginated SELECT * on the same table. On a site with tens of thousands of violation rows, the COUNT alone is a sequential full-scan on every dashboard page load regardless of which tab is active."
+  },
+  {
+    "file": "test/bootstrap.php",
+    "line": 34,
+    "summary": "PSR-4 autoloader registered at line 34 but test stubs (including NonceBridge.php) are required 311 lines later — any class touch between those lines loads the real production class, defeating the stub.",
+    "failure_scenario": "spl_autoload_register() fires at line 34; require_once for NonceBridge.php runs at line 345. Any production WP_CSP\\* class instantiated or referenced between those lines causes the real class to be autoloaded before the stub file is reached. The class_exists(, false) guard in NonceBridge.php is a one-off bandaid for Plugin_Nonce_Manager; every other stub added to the suite without the same guard is a latent ordering bug waiting to cause a test regression."
+  },
+  {
+    "file": "includes/admin/views/page-csp-dashboard.php",
+    "line": 63,
+    "summary": "$viol_page_num is not clamped to $viol_pages — a URL like ?v_paged=9999 shows an empty table labeled 'Page 9999 of 3' with no error or redirect.",
+    "failure_scenario": "max(1, (int)$_GET['v_paged']) floors at 1 but applies no ceiling. A bookmark or manual URL edit to ?v_paged=9999 computes $viol_offset=199960 and get_results() returns an empty array. The pagination UI renders 'Page 9999 of 3' (or equivalent) with a missing 'Next' link, giving the admin no indication that the page is out of range and no path back to valid data without editing the URL."
+  },
+  {
+    "file": "test/bootstrap.php",
+    "line": 248,
+    "summary": "wpdb_stub::prepare() regex handles only %s and %d — silently corrupts %% (escaped percent), %f, and %i if any future query uses them.",
+    "failure_scenario": "A LIKE-pattern query such as prepare('SELECT * FROM t WHERE col LIKE %s', '%foo%') passes today because the argument is a complete string. But a query using a literal percent via prepare('... LIKE %s%%', 'foo') will have the %% left as literal %% rather than collapsed to %, producing 'foo%%' in the stub while the real wpdb would produce 'foo%'. The mismatch is silent — tests pass, production queries differ — and will only surface when a developer adds a LIKE pattern or numeric format specifier."
+  },
+  {
+    "file": "test/unit/WebhookControllerTest.php",
+    "line": 21,
+    "summary": "WP_REST_Request and WP_REST_Response stubs defined inline rather than in bootstrap.php — future test files alphabetically before 'W' that need these classes will fail with 'class not found'.",
+    "failure_scenario": "PHPUnit discovers test files in filesystem (alphabetical) order. WebhookControllerTest.php loads last. Any new test file with a name earlier than 'W' (e.g., RestEndpointTest.php) that references WP_REST_Response will encounter an undefined class, because the stubs only exist once WebhookControllerTest is loaded. The class_exists() guards prevent duplicate-definition errors but do nothing to guarantee first-definition."
+  },
+  {
+    "file": "includes/csp/class-policy-builder.php",
+    "line": 234,
+    "summary": "Changing load_approved_hashes() and load_approved_sources() from private to protected is a bandaid over a missing dependency-injection seam — it permanently exposes internal DB-load logic as an overridable extension point.",
+    "failure_scenario": "The visibility change was necessary because test anonymous subclasses need to override these methods, but the root cause is that Policy_Builder hard-codes its data sources inside private methods rather than accepting them via constructor injection. Any future production plugin that extends Policy_Builder can now silently override load_approved_sources() to return unsanitized or attacker-controlled data, which flows directly into the CSP header string. A constructor-injected data-loader interface (or callable) would solve the test problem without widening the attack surface."
+  },
+  {
+    "file": "test/bootstrap.php",
+    "line": 44,
+    "summary": "Autoloader falls back to offline/ (gitignored) with no error when neither path resolves — CI green-lights code that would fatal at runtime if a class migrated to offline/.",
+    "failure_scenario": "If a class is developed under offline/ and tested locally (where offline/ exists), the autoloader silently resolves it and tests pass. In CI (clean checkout, no offline/) the require is simply skipped; the fatal 'Class not found' only fires when that class is first instantiated, not at autoload time. A developer could ship a plugin with a missing class that looks fully tested, because CI runs against the same test suite without exercising the missing path."
+  },
+  {
+    "file": "test/unit/NonceBridge.php",
+    "line": 17,
+    "summary": "Stale PHPDoc comment on NonceBridge.php says 'Must be loaded by bootstrap.php BEFORE any plugin file' — bootstrap.php loads it 311 lines after registering the autoloader, violating the stated invariant.",
+    "failure_scenario": "The comment creates a false sense of correctness. The actual load order (autoloader at line 34, NonceBridge require at line 345) means any class resolution between those lines can load Plugin_Nonce_Manager before the stub wins. The class_exists(, false) guard in line 17 of NonceBridge.php is the real defence; the doc comment points to a structural guarantee that does not exist."
+  }
+]

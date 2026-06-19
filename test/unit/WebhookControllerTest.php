@@ -5,8 +5,7 @@
  * Tests HMAC-SHA256 signature verification, timestamp replay window,
  * idempotency guard, and entitlement grant dispatch.
  *
- * WP_REST_Request and WP_REST_Response are stubbed below so no WordPress
- * install is required.
+ * WP_REST_Request and WP_REST_Response are stubbed in test/bootstrap.php.
  */
 
 declare( strict_types=1 );
@@ -16,21 +15,6 @@ use WP_CSP\Modules\Audit_Log;
 use WP_CSP\Modules\Checkout_Service;
 use WP_CSP\Modules\Entitlement_Store;
 use WP_CSP\Modules\Webhook_Controller;
-
-// ── Minimal REST stubs ────────────────────────────────────────────────────────
-if ( ! class_exists( 'WP_REST_Request' ) ) {
-	class WP_REST_Request {
-		public function __construct( public string $method = 'POST', public string $route = '' ) {}
-	}
-}
-
-if ( ! class_exists( 'WP_REST_Response' ) ) {
-	class WP_REST_Response {
-		public function __construct( public mixed $data = null, public int $status = 200 ) {}
-		public function get_status(): int { return $this->status; }
-		public function get_data(): mixed { return $this->data; }
-	}
-}
 
 class WebhookControllerTest extends TestCase {
 

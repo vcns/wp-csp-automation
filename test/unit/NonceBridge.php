@@ -2,9 +2,13 @@
 /**
  * Test stub for WP_CSP\CSP\Plugin_Nonce_Manager.
  *
- * Must be loaded by bootstrap.php BEFORE any plugin file that defines the real
- * Plugin_Nonce_Manager (i.e. class-policy-builder.php). Because this file is
- * in the WP_CSP\CSP namespace it must have no code outside the namespace block.
+ * bootstrap.php requires this file BEFORE registering the PSR-4 autoloader so
+ * this stub definition wins the race against the real class. The class_exists()
+ * guard below is belt-and-braces — the pre-autoloader require is the primary
+ * protection; the guard covers any future load-order regression.
+ *
+ * Because this stub is in the WP_CSP\CSP namespace it must have no code
+ * outside the namespace block.
  *
  * The stub reads from a test global so PolicyBuilderTest can inject a nonce
  * without needing Plugin::instance() or a real WordPress request.

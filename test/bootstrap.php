@@ -46,6 +46,8 @@ spl_autoload_register( static function ( string $class ): void {
 	}
 	if ( is_readable( $file ) ) {
 		require $file;
+	} else {
+		trigger_error( "WP_CSP test autoloader: cannot resolve {$class}", E_USER_NOTICE );
 	}
 } );
 
@@ -216,7 +218,35 @@ if ( ! function_exists( 'hash_equals' ) ) {
 	// Native PHP function; already available in PHP 8.1+. Stub only if absent.
 }
 
-// ── WP_Error stub ─────────────────────────────────────────────────────────────
+// ── WP_Error / REST stubs ─────────────────────────────────────────────────────
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		public function __construct( public string $method = 'POST', public string $route = '' ) {}
+
+		public function get_body(): string {
+			return $GLOBALS['_wp_rest_body'] ?? '';
+		}
+
+		public function get_header( string $name ): ?string {
+			return $GLOBALS['_wp_rest_headers'][ $name ] ?? null;
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		public function __construct( public mixed $data = null, public int $status = 200 ) {}
+
+		public function get_status(): int {
+			return $this->status;
+		}
+
+		public function get_data(): mixed {
+			return $this->data;
+		}
+	}
+}
+
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		private string $code;

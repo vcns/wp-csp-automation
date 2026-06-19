@@ -206,68 +206,29 @@ class PolicyBuilderTest extends TestCase {
 		];
 	}
 
-	/**
-	 * Builds a policy string after injecting a nonce via a subclass that
-	 * stubs the static bridge and DB reads.
-	 */
 	private function build_with_nonce( array $profile, string $surface, string $nonce ): string {
 		$builder = $this->make_db_stub_builder( nonce: $nonce );
 		return $builder->build_policy_string( $profile, $surface );
 	}
 
-	/**
-	 * Builds a policy string with pre-configured approved sources.
-	 *
-	 * @param array<int,array<string,string>> $sources
-	 */
 	private function build_with_approved_sources( array $profile, string $surface, array $sources ): string {
 		$builder = $this->make_db_stub_builder( approved_sources: $sources );
 		return $builder->build_policy_string( $profile, $surface );
 	}
 
-	/**
-	 * Returns a Policy_Builder subclass that stubs DB reads and the nonce bridge.
-	 */
 	private function make_db_stub_builder(
 		string $nonce = '',
 		array $approved_hashes = [],
 		array $approved_sources = []
 	): Policy_Builder {
-		return new class(
+		$GLOBALS['_wp_csp_test_nonce'] = $nonce;
+		return new Policy_Builder(
 			$this->gate,
-			$nonce,
-			$approved_hashes,
-			$approved_sources
-		) extends Policy_Builder {
-
-			public function __construct(
-				Feature_Gate $gate,
-				private string $stub_nonce,
-				private array  $stub_hashes,
-				private array  $stub_sources
-			) {
-				parent::__construct( $gate );
-			}
-
-			protected function load_approved_hashes( string $surface ): array {
-				return $this->stub_hashes;
-			}
-
-			protected function load_approved_sources( string $surface ): array {
-				return $this->stub_sources;
-			}
-
-			public function build_policy_string( array $profile, string $surface ): string {
-				// Temporarily override the static nonce bridge by injecting via
-				// a local constant-like mechanism.
-				$GLOBALS['_wp_csp_test_nonce'] = $this->stub_nonce;
-				$result = parent::build_policy_string( $profile, $surface );
-				unset( $GLOBALS['_wp_csp_test_nonce'] );
-				return $result;
-			}
-		};
+			fn( string $s ) => $approved_hashes,
+			fn( string $s ) => $approved_sources
+		);
 	}
 }
 
-// Plugin_Nonce_Manager stub is defined in tests/stubs/NonceBridge.php
-// which is loaded by tests/bootstrap.php before any test class is instantiated.
+// Plugin_Nonce_Manager stub is defined in test/unit/NonceBridge.php,
+// required by test/bootstrap.php before spl_autoload_register() is called.
