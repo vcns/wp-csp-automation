@@ -15,11 +15,110 @@ use WP_CSP\Modules\Audit_Log;
 
 class ViolationReporterTest extends TestCase {
 
-	private Audit_Log $audit;
+	private Audit_Log          $audit;
+	private Violation_Reporter $reporter;
 
 	protected function setUp(): void {
 		wp_test_reset_globals();
-		$this->audit = $this->createMock( Audit_Log::class );
+		$this->audit    = $this->createMock( Audit_Log::class );
+		$this->reporter = new Violation_Reporter( $this->audit );
+	}
+
+	// ── handle(): Content-Type enforcement ───────────────────────────────────
+
+	public function test_wrong_content_type_returns_400(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'text/plain';
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://evil.com"}}'
+		);
+
+		$response = $this->reporter->handle( $request );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public function test_csp_report_content_type_is_accepted(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://cdn.example.com"}}'
+		);
+
+		$response = $this->reporter->handle( $request );
+
+		$this->assertSame( 204, $response->get_status() );
+	}
+
+	public function test_reports_json_content_type_is_accepted(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/reports+json';
+		$request = $this->make_request(
+			'[{"type":"csp-violation","body":{"violatedDirective":"script-src","documentURL":"https://example.com/","blockedURL":"https://cdn.example.com"}}]'
+		);
+
+		$response = $this->reporter->handle( $request );
+
+		$this->assertSame( 204, $response->get_status() );
+	}
+
+	// ── handle(): Cross-origin rejection ──────────────────────────────────────
+
+	public function test_cross_origin_document_uri_is_silently_discarded(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://attacker.net/page","blocked-uri":"https://cdn.example.com"}}'
+		);
+
+		$response = $this->reporter->handle( $request );
+
+		// Still returns 204 — must not reveal rejection to the sender.
+		$this->assertSame( 204, $response->get_status() );
+		// Rate-limit transient must not be set (report was dropped before rate check).
+		$this->assertArrayNotHasKey( 'wp_csp_viol_rate_frontend', $GLOBALS['_wp_transients'] );
+	}
+
+	// ── handle(): Rate limiting ────────────────────────────────────────────────
+
+	public function test_report_is_dropped_when_rate_limit_exceeded(): void {
+		$GLOBALS['_wp_rest_headers']['content-type']            = 'application/csp-report';
+		$GLOBALS['_wp_transients']['wp_csp_viol_rate_frontend'] = 500;
+
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://cdn.example.com"}}'
+		);
+
+		$this->reporter->handle( $request );
+
+		$this->assertSame( 500, $GLOBALS['_wp_transients']['wp_csp_viol_rate_frontend'] );
+		$this->assertNull( $GLOBALS['_wpdb_last_operation'] );
+	}
+
+	// ── handle(): Deduplication (UPDATE vs INSERT) ────────────────────────────
+
+	public function test_duplicate_report_triggers_update_not_insert(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+		// get_var returns a non-null row ID → duplicate detected, UPDATE path taken.
+		$GLOBALS['_wpdb_get_var'] = '42';
+
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://cdn.example.com"}}'
+		);
+
+		$this->reporter->handle( $request );
+
+		$this->assertSame( 'query', $GLOBALS['_wpdb_last_operation'] );
+	}
+
+	public function test_new_report_triggers_insert(): void {
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+		// get_var returns null → no existing row, INSERT path taken.
+		$GLOBALS['_wpdb_get_var'] = null;
+
+		$request = $this->make_request(
+			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://cdn.example.com"}}'
+		);
+
+		$this->reporter->handle( $request );
+
+		$this->assertSame( 'insert', $GLOBALS['_wpdb_last_operation'] );
 	}
 
 	// ── Payload normalisation ─────────────────────────────────────────────────
@@ -220,6 +319,11 @@ class ViolationReporterTest extends TestCase {
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
+
+	private function make_request( string $body ): WP_REST_Request {
+		$GLOBALS['_wp_rest_body'] = $body;
+		return new WP_REST_Request( 'POST', '/csp-manager/v1/report' );
+	}
 
 	/**
 	 * Returns a Violation_Reporter subclass that captures store_report() calls

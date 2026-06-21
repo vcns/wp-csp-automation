@@ -190,6 +190,12 @@ if ( ! function_exists( 'get_site_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( string $path = '', string $scheme = '' ): string {
+		return 'https://example.com' . ( '' !== $path ? '/' . ltrim( $path, '/' ) : '' );
+	}
+}
+
 if ( ! function_exists( 'admin_url' ) ) {
 	function admin_url( string $path = '', string $scheme = 'admin' ): string {
 		return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
@@ -229,6 +235,18 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 
 		public function get_header( string $name ): ?string {
 			return $GLOBALS['_wp_rest_headers'][ $name ] ?? null;
+		}
+
+		public function get_content_type(): ?array {
+			$raw = $GLOBALS['_wp_rest_headers']['content-type'] ?? null;
+			if ( null === $raw ) {
+				return null;
+			}
+			$parts = explode( ';', $raw, 2 );
+			return array(
+				'value'      => trim( $parts[0] ),
+				'parameters' => isset( $parts[1] ) ? array( 'params' => trim( $parts[1] ) ) : array(),
+			);
 		}
 	}
 }
@@ -278,8 +296,11 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 		public function prepare( string $query, mixed ...$args ): string {
 			$i = 0;
 			return (string) preg_replace_callback(
-				'/%(s|d)/',
+				'/%%|%(s|d)/',
 				static function ( array $m ) use ( &$i, $args ): string {
+					if ( '%%' === $m[0] ) {
+						return '%';
+					}
 					$val = $args[ $i++ ] ?? '';
 					return 's' === $m[1]
 						? "'" . addslashes( (string) $val ) . "'"
@@ -301,7 +322,13 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 			return $GLOBALS['_wpdb_get_results'] ?? [];
 		}
 
+		public function query( string $sql ): int|false {
+			$GLOBALS['_wpdb_last_operation'] = 'query';
+			return $GLOBALS['_wpdb_query_result'] ?? 1;
+		}
+
 		public function insert( string $table, array $data, array $format = [] ): int|false {
+			$GLOBALS['_wpdb_last_operation'] = 'insert';
 			return $GLOBALS['_wpdb_insert_result'] ?? 1;
 		}
 
@@ -364,6 +391,11 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wpdb_insert_result']      = 1;
 	$GLOBALS['_wpdb_update_result']      = 0;
 	$GLOBALS['wpdb']                     = new wpdb_stub();
+	$GLOBALS['_wp_csp_test_nonce']       = '';
+	$GLOBALS['_wp_rest_body']            = '';
+	$GLOBALS['_wp_rest_headers']         = [];
+	$GLOBALS['_wpdb_query_result']       = 1;
+	$GLOBALS['_wpdb_last_operation']     = null;
 }
 
 // Initialise globals so classes loaded at parse time do not hit undefined array errors.

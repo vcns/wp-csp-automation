@@ -149,4 +149,15 @@ class NonceManagerTest extends TestCase {
 
 		$this->assertSame( $tag, $result );
 	}
+
+	// ── CSP header safety ─────────────────────────────────────────────────────
+
+	public function test_nonce_is_safe_for_embedding_in_csp_header(): void {
+		// Semicolons break directive boundaries; whitespace splits tokens; single
+		// quotes collide with the 'nonce-…' keyword syntax. None must appear.
+		$this->manager->generate();
+		$nonce = $this->manager->get_nonce();
+
+		$this->assertDoesNotMatchRegularExpression( '/[;\s\']/', $nonce );
+	}
 }

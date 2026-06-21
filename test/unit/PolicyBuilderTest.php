@@ -164,6 +164,56 @@ class PolicyBuilderTest extends TestCase {
 		$this->assertStringContainsString( 'report-to csp-endpoint', $policy );
 	}
 
+	// ── CSP header output format ──────────────────────────────────────────────
+
+	public function test_build_output_has_semicolon_separated_directive_format(): void {
+		$profile = $this->make_profile( [
+			'default-src' => [ "'none'" ],
+			'script-src'  => [ "'self'" ],
+			'style-src'   => [ "'self'" ],
+		] );
+
+		$policy = $this->builder->build_policy_string( $profile, 'frontend' );
+
+		// Every directive in the output must be separated by "; " and each part
+		// must start with a recognised directive keyword (not a value).
+		$parts = array_filter( array_map( 'trim', explode( ';', $policy ) ) );
+		foreach ( $parts as $part ) {
+			$this->assertMatchesRegularExpression(
+				'/^[a-z][-a-z]+(\s|$)/',
+				$part,
+				"Directive part does not start with a directive keyword: $part"
+			);
+		}
+	}
+
+	// ── strict-dynamic host suppression ──────────────────────────────────────
+
+	public function test_build_strict_dynamic_suppresses_host_sources_from_script_src(): void {
+		$this->gate->method( 'is_allowed' )->with( 'strict_dynamic' )->willReturn( true );
+
+		$profile = $this->make_profile(
+			[ 'default-src' => [ "'none'" ], 'script-src' => [] ],
+			strict_dynamic: true
+		);
+
+		// Inject cdn.example.com as an approved host source for script-src.
+		$builder = $this->make_db_stub_builder(
+			approved_sources: [ [ 'directive' => 'script-src', 'source_host' => 'cdn.example.com' ] ]
+		);
+		// Gate must allow strict_dynamic for this builder too.
+		$builder2 = new Policy_Builder(
+			$this->gate,
+			fn( string $s ) => [],
+			fn( string $s ) => [ [ 'directive' => 'script-src', 'source_host' => 'cdn.example.com' ] ]
+		);
+
+		$policy = $builder2->build_policy_string( $profile, 'frontend' );
+
+		$this->assertStringContainsString( "'strict-dynamic'", $policy );
+		$this->assertStringNotContainsString( 'cdn.example.com', $policy );
+	}
+
 	// ── object-src and base-uri hardening ────────────────────────────────────
 
 	public function test_build_includes_object_src_none(): void {

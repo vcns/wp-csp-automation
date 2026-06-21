@@ -51,8 +51,7 @@ class Violation_Reporter {
 			return new WP_REST_Response( null, 400 );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		$raw = file_get_contents( 'php://input' );
+		$raw = $request->get_body();
 		if ( empty( $raw ) ) {
 			return new WP_REST_Response( null, 204 );
 		}

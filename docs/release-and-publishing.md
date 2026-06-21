@@ -193,6 +193,7 @@ The free plugin should remain functional and useful on its own. Avoid making the
 Before publishing each version:
 
 - confirm version numbers are aligned
+- confirm README.md, readme.txt, SECURITY.md, and docs/architecture.md are mutually consistent and accurately reflect the behaviour of the version being released
 - confirm branch protections and CI are active
 - confirm remote config public key is correct for that release
 - confirm no development keys or test endpoints remain in code or docs

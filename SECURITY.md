@@ -46,7 +46,7 @@ Good-faith security research is welcome provided you:
 
 Current design assumptions for this plugin:
 
-- Stripe secret keys and webhook secrets are stored only in WordPress options and never published in client-side code.
+- The Stripe webhook verification secret is stored only in WordPress options and never published in client-side code. Stripe API secret keys are held exclusively in the Cloudflare Worker as Worker secrets and are never transmitted to or stored by the WordPress plugin.
 - Premium entitlement decisions are made locally from database state and verified Stripe webhook events.
 - Remote product configuration must never contain secrets.
 - Signed remote configuration uses Ed25519 signatures and should be verified with libsodium whenever available.
