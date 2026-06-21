@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows semantic versioning for plugin releases.
 
-## [Unreleased] — branch: feature/formal-alignment
+## [Unreleased]
+
+> **Note:** The changes listed below are present in the current codebase (v0.2.0, DB schema v4) and will be formally versioned in the next release.
 
 ### Added
 

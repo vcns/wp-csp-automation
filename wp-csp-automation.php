@@ -44,20 +44,30 @@ define( 'WP_CSP_URL', plugin_dir_url( __FILE__ ) );
  * Generated with sodium_crypto_sign_keypair(). Replace this placeholder
  * once you have run the key-generation script — see offline/keygen.php.
  * The Stripe publishable key goes in WordPress settings, NOT here.
+ *
+ * Overridable by defining WP_CSP_CONFIG_PUBLIC_KEY in wp-config.php before
+ * this plugin loads. Do not make this filterable — a plugin-layer override
+ * could redirect signature verification to an attacker-controlled key.
  */
-define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'D/9fAq0rZLeWbHeh8hK0+C0viK36f+ee4LcP2D/J3Tg=' );
+defined( 'WP_CSP_CONFIG_PUBLIC_KEY' ) || define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'D/9fAq0rZLeWbHeh8hK0+C0viK36f+ee4LcP2D/J3Tg=' );
 
 /**
  * DNS TXT record queried to discover the latest signed config URL.
+ *
+ * Overridable by defining WP_CSP_CONFIG_DNS_RECORD in wp-config.php.
  */
-define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp-csp-automation.jacksonfamily.me' );
+defined( 'WP_CSP_CONFIG_DNS_RECORD' ) || define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp-csp-automation.jacksonfamily.me' );
 
 /**
  * Base URL of the Cloudflare Worker that serves config, handles checkout
  * session creation, and stores entitlements. All Stripe keys live here as
  * Worker secrets — never on the customer's WordPress installation.
+ *
+ * Overridable by defining WP_CSP_WORKER_URL in wp-config.php. Do not make
+ * this filterable — a plugin-layer override could redirect requests to a
+ * malicious endpoint.
  */
-define( 'WP_CSP_WORKER_URL', 'https://wp-csp-config.jacksonfamily.me' );
+defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://wp-csp-config.jacksonfamily.me' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register(

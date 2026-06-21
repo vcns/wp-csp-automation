@@ -50,8 +50,20 @@ class Policy_Builder {
 
 	private Feature_Gate $gate;
 
-	public function __construct( Feature_Gate $gate ) {
-		$this->gate = $gate;
+	/** @var callable|null */
+	private $hash_loader;
+
+	/** @var callable|null */
+	private $source_loader;
+
+	public function __construct(
+		Feature_Gate $gate,
+		?callable $hash_loader = null,
+		?callable $source_loader = null
+	) {
+		$this->gate          = $gate;
+		$this->hash_loader   = $hash_loader;
+		$this->source_loader = $source_loader;
 	}
 
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
@@ -232,6 +244,9 @@ class Policy_Builder {
 	}
 
 	private function load_approved_hashes( string $surface ): array {
+		if ( null !== $this->hash_loader ) {
+			return ( $this->hash_loader )( $surface );
+		}
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_hash_inventory';
 		$rows  = $wpdb->get_results(
@@ -246,6 +261,9 @@ class Policy_Builder {
 	}
 
 	private function load_approved_sources( string $surface ): array {
+		if ( null !== $this->source_loader ) {
+			return ( $this->source_loader )( $surface );
+		}
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_source_inventory';
 		$rows  = $wpdb->get_results(
