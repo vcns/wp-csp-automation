@@ -2,10 +2,13 @@
 /**
  * Test stub for WP_CSP\CSP\Plugin_Nonce_Manager.
  *
- * bootstrap.php requires this file BEFORE registering the PSR-4 autoloader so
- * this stub definition wins the race against the real class. The class_exists()
- * guard below is belt-and-braces — the pre-autoloader require is the primary
- * protection; the guard covers any future load-order regression.
+ * bootstrap.php requires this file at the end of its setup block, after
+ * spl_autoload_register(). The class_exists() guard below (with the second
+ * argument false to suppress autoloading) is the actual runtime protection —
+ * it prevents the stub from being defined if the real class was already loaded
+ * by the autoloader. Any code added to bootstrap.php that references
+ * Plugin_Nonce_Manager before this require_once will load the real class and
+ * silently bypass this stub.
  *
  * Because this stub is in the WP_CSP\CSP namespace it must have no code
  * outside the namespace block.

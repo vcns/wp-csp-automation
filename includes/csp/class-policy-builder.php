@@ -243,7 +243,10 @@ class Policy_Builder {
 		return ! empty( $row ) ? $row : null;
 	}
 
-	protected function load_approved_hashes( string $surface ): array {
+	private function load_approved_hashes( string $surface ): array {
+		if ( null !== $this->hash_loader ) {
+			return ( $this->hash_loader )( $surface );
+		}
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_hash_inventory';
 		$rows  = $wpdb->get_results(
@@ -257,7 +260,10 @@ class Policy_Builder {
 		return ! empty( $rows ) ? $rows : array();
 	}
 
-	protected function load_approved_sources( string $surface ): array {
+	private function load_approved_sources( string $surface ): array {
+		if ( null !== $this->source_loader ) {
+			return ( $this->source_loader )( $surface );
+		}
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_source_inventory';
 		$rows  = $wpdb->get_results(
