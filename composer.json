@@ -5,9 +5,6 @@
   "license": "GPL-2.0-or-later",
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-    "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "phpcompatibility/php-compatibility": "^9.3",
-    "phpcsstandards/phpcsextra": "^1.2",
     "phpcsstandards/phpcsutils": "^1.1",
     "sirbrillig/phpcs-variable-analysis": "^2.12",
     "wp-coding-standards/wpcs": "^3.1",

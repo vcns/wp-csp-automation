@@ -22,7 +22,13 @@ define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 define( 'WP_CSP_CONFIG_DNS_RECORD', '_csp-config.wp-csp-automation.dev' );
 define( 'HOUR_IN_SECONDS',       3600 );
 define( 'DAY_IN_SECONDS',        86400 );
-define( 'DNS_TXT',               16 );
+if ( ! defined( 'DNS_TXT' ) ) {
+	define( 'DNS_TXT', 16 );
+}
+define( 'WP_CSP_WORKER_URL',     'https://wp-csp-config.example.com' );
+define( 'ARRAY_A',               'ARRAY_A' );
+define( 'ARRAY_N',               'ARRAY_N' );
+define( 'OBJECT',                'OBJECT' );
 
 // ── PSR-4 autoloader (mirrors wp-csp-automation.php) ─────────────────────────
 spl_autoload_register( static function ( string $class ): void {
