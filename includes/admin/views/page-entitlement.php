@@ -20,55 +20,55 @@ $result     = isset( $_GET['csp_result'] ) ? sanitize_text_field( wp_unslash( $_
 $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_GET['session_id'] ) ) : '';
 ?>
 <div class="wrap wp-csp-wrap">
-	<h1><?php esc_html_e( 'WP CSP Automation – Premium', 'wp-csp-automation' ); ?></h1>
+	<h1><?php esc_html_e( 'VCNS CSP Manager – Premium', 'vcns-csp-manager' ); ?></h1>
 
 	<?php if ( 'success' === $result ) : ?>
 	<div class="notice notice-success">
 		<p>
-			<?php esc_html_e( 'Payment received. Your premium entitlement will be activated within a few seconds once the webhook is confirmed.', 'wp-csp-automation' ); ?>
-			<?php esc_html_e( 'Refresh this page in a moment to see your updated status.', 'wp-csp-automation' ); ?>
+			<?php esc_html_e( 'Payment received. Your premium entitlement will be activated within a few seconds once the webhook is confirmed.', 'vcns-csp-manager' ); ?>
+			<?php esc_html_e( 'Refresh this page in a moment to see your updated status.', 'vcns-csp-manager' ); ?>
 		</p>
 	</div>
 	<?php elseif ( 'cancelled' === $result ) : ?>
 	<div class="notice notice-warning">
-		<p><?php esc_html_e( 'Checkout was cancelled. No payment was taken.', 'wp-csp-automation' ); ?></p>
+		<p><?php esc_html_e( 'Checkout was cancelled. No payment was taken.', 'vcns-csp-manager' ); ?></p>
 	</div>
 	<?php endif; ?>
 
 	<!-- ── Current entitlement status ────────────────────────────────────── -->
-	<h2><?php esc_html_e( 'Current Status', 'wp-csp-automation' ); ?></h2>
+	<h2><?php esc_html_e( 'Current Status', 'vcns-csp-manager' ); ?></h2>
 	<table class="widefat striped" style="max-width:700px">
 		<tbody>
 			<tr>
-				<th><?php esc_html_e( 'Tier', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Tier', 'vcns-csp-manager' ); ?></th>
 				<td>
 					<?php if ( $is_pro ) : ?>
-						<span style="color:#2ea44f;font-weight:bold"><?php esc_html_e( 'Pro', 'wp-csp-automation' ); ?></span>
+						<span style="color:#2ea44f;font-weight:bold"><?php esc_html_e( 'Pro', 'vcns-csp-manager' ); ?></span>
 					<?php else : ?>
-						<?php esc_html_e( 'Free', 'wp-csp-automation' ); ?>
+						<?php esc_html_e( 'Free', 'vcns-csp-manager' ); ?>
 					<?php endif; ?>
 				</td>
 			</tr>
 			<?php if ( $entitlement ) : ?>
 			<tr>
-				<th><?php esc_html_e( 'Status', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Status', 'vcns-csp-manager' ); ?></th>
 				<td><?php echo esc_html( ucfirst( $entitlement['status'] ) ); ?></td>
 			</tr>
 			<tr>
-				<th><?php esc_html_e( 'Granted', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Granted', 'vcns-csp-manager' ); ?></th>
 				<td><?php echo esc_html( $entitlement['granted_at'] ); ?></td>
 			</tr>
 			<tr>
-				<th><?php esc_html_e( 'Stripe Session', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Stripe Session', 'vcns-csp-manager' ); ?></th>
 				<td><code><?php echo esc_html( $entitlement['stripe_session_id'] ); ?></code></td>
 			</tr>
 			<tr>
-				<th><?php esc_html_e( 'Last Validated', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Last Validated', 'vcns-csp-manager' ); ?></th>
 				<td><?php echo esc_html( isset( $entitlement['last_validated_at'] ) ? $entitlement['last_validated_at'] : '&mdash;' ); ?></td>
 			</tr>
 			<?php endif; ?>
 			<tr>
-				<th><?php esc_html_e( 'Site Identity', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Site Identity', 'vcns-csp-manager' ); ?></th>
 				<td><code><?php echo esc_html( $plugin->entitlements->get_site_identity() ); ?></code></td>
 			</tr>
 		</tbody>
@@ -77,12 +77,12 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 	<?php if ( ! $is_pro ) : ?>
 
 	<!-- ── Buy Pro ────────────────────────────────────────────────────────── -->
-	<h2 style="margin-top:2em"><?php esc_html_e( 'Upgrade to Pro', 'wp-csp-automation' ); ?></h2>
+	<h2 style="margin-top:2em"><?php esc_html_e( 'Upgrade to Pro', 'vcns-csp-manager' ); ?></h2>
 
 		<?php if ( ! defined( 'WP_CSP_WORKER_URL' ) || empty( WP_CSP_WORKER_URL ) ) : ?>
 	<div class="notice notice-error inline">
 		<p>
-			<?php esc_html_e( 'Licensing server URL is not configured. Define WP_CSP_WORKER_URL in wp-csp-automation.php.', 'wp-csp-automation' ); ?>
+			<?php esc_html_e( 'Licensing server URL is not configured. Define WP_CSP_WORKER_URL in wp-csp-automation.php.', 'vcns-csp-manager' ); ?>
 		</p>
 	</div>
 	<?php else : ?>
@@ -99,15 +99,15 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 				$currency = strtoupper( isset( $product['currency'] ) ? $product['currency'] : 'USD' );
 				echo esc_html( number_format( $amount, 2 ) . ' ' . $currency );
 				?>
-				<span style="font-size:0.4em;font-weight:normal"><?php esc_html_e( 'one-time', 'wp-csp-automation' ); ?></span>
+				<span style="font-size:0.4em;font-weight:normal"><?php esc_html_e( 'one-time', 'vcns-csp-manager' ); ?></span>
 			</p>
 
 				<?php if ( ! empty( $product['features'] ) && in_array( '*', $product['features'], true ) ) : ?>
 			<ul style="margin:1em 0">
-				<li><?php esc_html_e( 'All CSP surfaces (admin, login, API)', 'wp-csp-automation' ); ?></li>
-				<li><?php esc_html_e( 'Strict-Dynamic support', 'wp-csp-automation' ); ?></li>
-				<li><?php esc_html_e( 'Violation analytics export', 'wp-csp-automation' ); ?></li>
-				<li><?php esc_html_e( 'Promotion-gate enforcement', 'wp-csp-automation' ); ?></li>
+				<li><?php esc_html_e( 'All CSP surfaces (admin, login, API)', 'vcns-csp-manager' ); ?></li>
+				<li><?php esc_html_e( 'Strict-Dynamic support', 'vcns-csp-manager' ); ?></li>
+				<li><?php esc_html_e( 'Violation analytics export', 'vcns-csp-manager' ); ?></li>
+				<li><?php esc_html_e( 'Promotion-gate enforcement', 'vcns-csp-manager' ); ?></li>
 			</ul>
 			<?php endif; ?>
 
@@ -115,7 +115,7 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 				class="button button-primary wp-csp-buy-btn"
 				data-product-key="<?php echo esc_attr( $key ); ?>"
 				style="width:100%">
-				<?php esc_html_e( 'Buy Now', 'wp-csp-automation' ); ?>
+				<?php esc_html_e( 'Buy Now', 'vcns-csp-manager' ); ?>
 			</button>
 		</div>
 		<?php endforeach; ?>
@@ -125,8 +125,8 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 				<?php
 				printf(
 					/* translators: %s: link to trigger a config refresh */
-					esc_html__( 'Product catalog not yet loaded. %s to fetch the latest config from DNS.', 'wp-csp-automation' ),
-					'<a href="#" id="wp-csp-refresh-config">' . esc_html__( 'Refresh', 'wp-csp-automation' ) . '</a>'
+					esc_html__( 'Product catalog not yet loaded. %s to fetch the latest config from DNS.', 'vcns-csp-manager' ),
+					'<a href="#" id="wp-csp-refresh-config">' . esc_html__( 'Refresh', 'vcns-csp-manager' ) . '</a>'
 				);
 				?>
 			</p>
@@ -134,7 +134,7 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 		<?php endif; ?>
 	</div>
 	<p class="description" style="margin-top:1.5em">
-		<?php esc_html_e( 'Clicking Buy Now redirects you to Stripe-hosted checkout. Your entitlement is activated after payment confirmation via webhook — not on redirect alone.', 'wp-csp-automation' ); ?>
+		<?php esc_html_e( 'Clicking Buy Now redirects you to Stripe-hosted checkout. Your entitlement is activated after payment confirmation via webhook — not on redirect alone.', 'vcns-csp-manager' ); ?>
 	</p>
 	<?php endif; // Stripe key configured ?>
 
@@ -142,13 +142,13 @@ $session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_
 
 	<?php if ( $is_pro ) : ?>
 	<!-- ── Pro features summary ───────────────────────────────────────────── -->
-	<h2 style="margin-top:2em"><?php esc_html_e( 'Pro Features', 'wp-csp-automation' ); ?></h2>
+	<h2 style="margin-top:2em"><?php esc_html_e( 'Pro Features', 'vcns-csp-manager' ); ?></h2>
 	<ul>
-		<li><?php esc_html_e( 'Multi-surface CSP profiles (admin, login, API)', 'wp-csp-automation' ); ?></li>
-		<li><?php esc_html_e( 'strict-dynamic in script-src', 'wp-csp-automation' ); ?></li>
-		<li><?php esc_html_e( 'Violation analytics and CSV export', 'wp-csp-automation' ); ?></li>
-		<li><?php esc_html_e( 'Promotion gates: enforce mode gated behind approved inventory', 'wp-csp-automation' ); ?></li>
-		<li><?php esc_html_e( 'Priority email support', 'wp-csp-automation' ); ?></li>
+		<li><?php esc_html_e( 'Multi-surface CSP profiles (admin, login, API)', 'vcns-csp-manager' ); ?></li>
+		<li><?php esc_html_e( 'strict-dynamic in script-src', 'vcns-csp-manager' ); ?></li>
+		<li><?php esc_html_e( 'Violation analytics and CSV export', 'vcns-csp-manager' ); ?></li>
+		<li><?php esc_html_e( 'Promotion gates: enforce mode gated behind approved inventory', 'vcns-csp-manager' ); ?></li>
+		<li><?php esc_html_e( 'Priority email support', 'vcns-csp-manager' ); ?></li>
 	</ul>
 	<?php endif; ?>
 

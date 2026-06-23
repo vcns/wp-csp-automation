@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<ruleset name="WP CSP Automation Manager">
+<ruleset name="VCNS CSP Manager">
   <description>Project PHPCS rules for the WordPress plugin.</description>
 
   <arg name="basepath" value="."/>
@@ -23,7 +23,7 @@
   <rule ref="WordPress.WP.I18n">
     <properties>
       <property name="text_domain" type="array">
-        <element value="wp-csp-automation"/>
+        <element value="vcns-csp-manager"/>
       </property>
     </properties>
   </rule>

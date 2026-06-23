@@ -51,8 +51,8 @@ class Admin_UI {
 
 	public function add_menu_pages(): void {
 		add_menu_page(
-			__( 'CSP Manager', 'wp-csp-automation' ),
-			__( 'CSP Manager', 'wp-csp-automation' ),
+			__( 'CSP Manager', 'vcns-csp-manager' ),
+			__( 'CSP Manager', 'vcns-csp-manager' ),
 			'manage_options',
 			'wp-csp-dashboard',
 			array( $this, 'render_dashboard' ),
@@ -62,8 +62,8 @@ class Admin_UI {
 
 		add_submenu_page(
 			'wp-csp-dashboard',
-			__( 'CSP Dashboard', 'wp-csp-automation' ),
-			__( 'Dashboard', 'wp-csp-automation' ),
+			__( 'CSP Dashboard', 'vcns-csp-manager' ),
+			__( 'Dashboard', 'vcns-csp-manager' ),
 			'manage_options',
 			'wp-csp-dashboard',
 			array( $this, 'render_dashboard' )
@@ -71,8 +71,8 @@ class Admin_UI {
 
 		add_submenu_page(
 			'wp-csp-dashboard',
-			__( 'Settings', 'wp-csp-automation' ),
-			__( 'Settings', 'wp-csp-automation' ),
+			__( 'Settings', 'vcns-csp-manager' ),
+			__( 'Settings', 'vcns-csp-manager' ),
 			'manage_options',
 			'wp-csp-settings',
 			array( $this, 'render_settings' )
@@ -80,8 +80,8 @@ class Admin_UI {
 
 		add_submenu_page(
 			'wp-csp-dashboard',
-			__( 'Premium', 'wp-csp-automation' ),
-			__( 'Premium', 'wp-csp-automation' ),
+			__( 'Premium', 'vcns-csp-manager' ),
+			__( 'Premium', 'vcns-csp-manager' ),
 			'manage_options',
 			'wp-csp-entitlement',
 			array( $this, 'render_entitlement' )
@@ -143,9 +143,9 @@ class Admin_UI {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'wp_csp_admin_nonce' ),
 				'i18n'    => array(
-					'scanning'  => __( 'Scanning…', 'wp-csp-automation' ),
-					'scanDone'  => __( 'Scan complete.', 'wp-csp-automation' ),
-					'scanError' => __( 'Scan failed. Check error log.', 'wp-csp-automation' ),
+					'scanning'  => __( 'Scanning…', 'vcns-csp-manager' ),
+					'scanDone'  => __( 'Scan complete.', 'vcns-csp-manager' ),
+					'scanError' => __( 'Scan failed. Check error log.', 'vcns-csp-manager' ),
 				),
 			)
 		);
@@ -155,21 +155,21 @@ class Admin_UI {
 
 	public function render_dashboard(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'vcns-csp-manager' ) );
 		}
 		require WP_CSP_DIR . 'includes/admin/views/page-csp-dashboard.php';
 	}
 
 	public function render_settings(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'vcns-csp-manager' ) );
 		}
 		require WP_CSP_DIR . 'includes/admin/views/page-settings.php';
 	}
 
 	public function render_entitlement(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'vcns-csp-manager' ) );
 		}
 		require WP_CSP_DIR . 'includes/admin/views/page-entitlement.php';
 	}
@@ -191,7 +191,7 @@ class Admin_UI {
 			printf(
 				'<div class="notice notice-%1$s is-dismissible"><p><strong>%2$s</strong> [%3$s] %4$s</p></div>',
 				esc_attr( $type ),
-				esc_html__( 'WP CSP Automation:', 'wp-csp-automation' ),
+				esc_html__( 'VCNS CSP Manager:', 'vcns-csp-manager' ),
 				esc_html( $notice['component'] . '/' . $notice['event'] ),
 				esc_html( $notice['detail'] )
 			);
@@ -226,7 +226,7 @@ class Admin_UI {
 			wp_kses(
 				sprintf(
 					/* translators: %s: URL to WordPress core Trac ticket */
-					__( '<strong>WP CSP Automation:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved — some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'wp-csp-automation' ),
+					__( '<strong>VCNS CSP Manager:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved — some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'vcns-csp-manager' ),
 					'https://core.trac.wordpress.org/ticket/59446'
 				),
 				array(
@@ -246,13 +246,13 @@ class Admin_UI {
 	public function ajax_create_checkout(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'vcns-csp-manager' ) ), 403 );
 		}
 
-		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-automation' ) );
+		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'vcns-csp-manager' ) );
 		$result      = class_exists( 'WP_CSP\Modules\Checkout_Service' )
 			? ( new \WP_CSP\Modules\Checkout_Service( $this->plugin->audit ) )->create_session( $product_key )
-			: new \WP_Error( 'no_checkout', __( 'Checkout module not available.', 'wp-csp-automation' ) );
+			: new \WP_Error( 'no_checkout', __( 'Checkout module not available.', 'vcns-csp-manager' ) );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -266,7 +266,7 @@ class Admin_UI {
 	public function ajax_manual_scan(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'vcns-csp-manager' ) ), 403 );
 		}
 
 		$scheduler = new Scheduler( $this->plugin->audit );
@@ -284,18 +284,18 @@ class Admin_UI {
 	public function ajax_refresh_config(): void {
 		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'vcns-csp-manager' ) ), 403 );
 		}
 
 		if ( null === $this->plugin->config ) {
-			wp_send_json_error( array( 'message' => __( 'Remote config module not available on free tier.', 'wp-csp-automation' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Remote config module not available on free tier.', 'vcns-csp-manager' ) ) );
 			return;
 		}
 		$ok = $this->plugin->config->refresh();
 		if ( $ok ) {
 			wp_send_json_success( array( 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ) );
 		} else {
-			wp_send_json_error( array( 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Config refresh failed. Check audit log.', 'vcns-csp-manager' ) ) );
 		}
 	}
 
@@ -403,7 +403,7 @@ class Admin_UI {
 		);
 
 		if ( ( $src_count + $hash_count ) === 0 ) {
-			return __( 'Cannot promote to enforce: no approved sources or hashes found for this surface. Run a scan and approve at least one source first.', 'wp-csp-automation' );
+			return __( 'Cannot promote to enforce: no approved sources or hashes found for this surface. Run a scan and approve at least one source first.', 'vcns-csp-manager' );
 		}
 
 		// ── Gate 2: no violations within the configured time window ───────────
@@ -424,7 +424,7 @@ class Admin_UI {
 		if ( $recent_violations > 0 ) {
 			return sprintf(
 				/* translators: 1: violation count, 2: hours */
-				__( 'Cannot promote to enforce: %1$d violation(s) recorded for this surface in the last %2$d hour(s). Resolve violations in report-only mode first, or extend the violation window in Settings.', 'wp-csp-automation' ),
+				__( 'Cannot promote to enforce: %1$d violation(s) recorded for this surface in the last %2$d hour(s). Resolve violations in report-only mode first, or extend the violation window in Settings.', 'vcns-csp-manager' ),
 				$recent_violations,
 				$window_hours
 			);
@@ -449,7 +449,7 @@ class Admin_UI {
 				if ( false !== $expires_ts && $expires_ts > time() ) {
 					return sprintf(
 						/* translators: 1: override owner, 2: expiry datetime */
-						__( 'Cannot promote to enforce: a temporary override set by "%1$s" is active until %2$s. Wait for it to expire or remove it before enabling enforce mode.', 'wp-csp-automation' ),
+						__( 'Cannot promote to enforce: a temporary override set by "%1$s" is active until %2$s. Wait for it to expire or remove it before enabling enforce mode.', 'vcns-csp-manager' ),
 						esc_html( $owner ),
 						esc_html( $expires_at )
 					);

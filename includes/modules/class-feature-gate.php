@@ -39,7 +39,7 @@ class Feature_Gate {
 	);
 
 	// Product key the free tier links to in the entitlement store.
-	private const PRODUCT_KEY = 'wp-csp-automation';
+	private const PRODUCT_KEY = 'vcns-csp-manager';
 
 	/**
 	 * Entitlement_Store instance, or null when the offline module is absent.

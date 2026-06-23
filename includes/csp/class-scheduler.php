@@ -164,12 +164,12 @@ class Scheduler {
 		}
 		$subject = sprintf(
 			/* translators: %s: site name */
-			__( '[%s] CSP Automation: policy changed after scheduled scan', 'wp-csp-automation' ),
+			__( '[%s] VCNS CSP Manager: policy changed after scheduled scan', 'vcns-csp-manager' ),
 			get_bloginfo( 'name' )
 		);
 		$message = sprintf(
 			/* translators: 1: sources added, 2: hashes removed */
-			__( "The scheduled CSP rescan completed.\n\nSources added: %1\$d\nHashes retired: %2\$d\n\nReview the dashboard: %3\$s", 'wp-csp-automation' ),
+			__( "The scheduled CSP rescan completed.\n\nSources added: %1\$d\nHashes retired: %2\$d\n\nReview the dashboard: %3\$s", 'vcns-csp-manager' ),
 			$results['sources_added'],
 			$results['hashes_removed'],
 			admin_url( 'admin.php?page=wp-csp-automation-dashboard' )
