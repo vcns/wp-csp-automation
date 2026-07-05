@@ -19,6 +19,7 @@
         <p class="lede">This site is the public help surface for the plugin: installation, rollout strategy, Stripe setup, remote config signing, GitHub workflow automation, and WordPress.org release guidance.</p>
         <div class="hero-actions">
           <a class="button primary" href="https://github.com/vcns/wp-csp-automation">View Repository</a>
+          <a class="button secondary" href="updates/wp-csp-automation.json">Latest Version JSON</a>
           <a class="button secondary" href="#quick-start">Quick Start</a>
         </div>
       </div>
@@ -39,6 +40,7 @@
     <nav class="section-nav">
       <a href="#quick-start">Quick Start</a>
       <a href="#installation">Installation</a>
+      <a href="#updates">Updates</a>
       <a href="#premium-activation">Premium Activation</a>
       <a href="#stripe-and-privacy">Stripe and Privacy</a>
       <a href="#help-guides">Help Guides</a>
@@ -104,6 +106,29 @@
               <li>Review source inventory and violations.</li>
               <li>Keep each surface in report-only until ready.</li>
             </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="updates" class="section section-grid">
+        <div>
+          <p class="section-label">Updates</p>
+          <h2>Latest stable version endpoint and ZIP download.</h2>
+          <p>GitHub Pages publishes a machine-readable update manifest for WordPress installations and administrators. Stable release tags update the manifest with the latest version and a direct GitHub Release ZIP URL.</p>
+          <ul class="bullets">
+            <li>Manifest: <a href="updates/wp-csp-automation.json">updates/wp-csp-automation.json</a></li>
+            <li>Release assets: <a href="https://github.com/vcns/wp-csp-automation/releases">GitHub Releases</a></li>
+            <li>Endpoint guide: <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md">Self-hosted update endpoint</a></li>
+          </ul>
+        </div>
+        <div class="callout-stack">
+          <div class="callout">
+            <h3>WordPress update checks</h3>
+            <p>The plugin maps this manifest into WordPress' native update transient, including the no-update entry needed for externally hosted plugins.</p>
+          </div>
+          <div class="callout">
+            <h3>Stable channel</h3>
+            <p>Pre-release tags create release assets for testing but do not replace the latest stable Pages manifest.</p>
           </div>
         </div>
       </section>
@@ -202,6 +227,11 @@
             <p>Branching model, WordPress.org packaging, SVN deployment, rollback handling, and release discipline.</p>
             <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/release-and-publishing.md">Read release guide</a>
           </article>
+          <article class="card">
+            <h3>Update endpoint</h3>
+            <p>Latest-version manifest, GitHub Release ZIP asset, WordPress update transient integration, and stable-channel behaviour.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md">Read update endpoint guide</a>
+          </article>
         </div>
       </section>
 
@@ -292,7 +322,7 @@
           </div>
           <div class="workflow-card">
             <h3>Pages publish</h3>
-            <p>GitHub Pages serves the `main:/docs` root path for the public help site.</p>
+            <p>GitHub Pages serves the `main:/docs` root path and the latest stable update manifest.</p>
           </div>
           <div class="workflow-card">
             <h3>WordPress.org deploy</h3>
@@ -309,6 +339,7 @@
           <a href="https://github.com/vcns/wp-csp-automation/blob/main/readme.txt">Public plugin readme</a>
           <a href="https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md">Security reporting policy</a>
           <a href="https://github.com/vcns/wp-csp-automation/blob/main/CHANGELOG.md">Changelog</a>
+          <a href="updates/wp-csp-automation.json">Latest update manifest</a>
           <a href="https://github.com/vcns/wp-csp-automation/tree/main/docs">Documentation directory</a>
         </div>
       </section>
@@ -386,7 +417,7 @@
 
     <footer class="site-footer">
       <p>WP CSP Automation Manager documentation site</p>
-      <p><a href="https://github.com/vcns/wp-csp-automation">Repository</a> · <a href="https://sjackson0109.github.io/wp-csp-automation/">GitHub Pages</a></p>
+      <p><a href="https://github.com/vcns/wp-csp-automation">Repository</a> · <a href="https://vcns.github.io/wp-csp-automation/">GitHub Pages</a></p>
     </footer>
   </div>
 </body>

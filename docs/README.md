@@ -19,6 +19,7 @@ These documents are written for:
 - `stripe-operations.md` — Stripe product, checkout, webhook, and entitlement operations
 - `testing-and-quality.md` — expected validation workflow, CI scope, and manual verification checklist
 - `release-and-publishing.md` — versioning, branching, packaging, and WordPress.org publishing flow
+- `update-endpoint.md` — self-hosted update manifest, ZIP endpoint, and WordPress update integration
 - `wordpress-org-assets.md` — listing artwork, screenshot requirements, and WordPress.org asset handling
 
 ## Source of truth
