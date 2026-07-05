@@ -34,7 +34,7 @@ Responsibilities:
 
 Responsibilities:
 
-- create and seed eight custom tables
+- create and seed nine custom tables
 - register default settings (including violation retention policy) and default policy profiles
 - schedule daily cron jobs
 - remove cron jobs on deactivation
@@ -65,6 +65,8 @@ Responsibilities:
 - discover remote sources from crawled pages
 - record inline hashes
 - ingest violation reports (with Content-Type and origin validation)
+- risk-score discovered and report-learned source proposals before administrator approval
+- record administrator approve/reject/revert decisions and suppress rejected/reverted fingerprints
 - run scheduled and manual scans (including post-scan violation purge)
 - detect conflicting CSP headers
 
@@ -128,9 +130,10 @@ Responsibilities:
 3. `Discovery` crawls the target URL for each allowed surface.
 4. External origins are classified by directive type.
 5. New origins are upserted into the source inventory as `pending`.
-6. Hash retirement is run to mark previously seen inline hashes as stale when absent.
-7. `Audit_Log::finish_scan()` records scan summary and sets status to `completed` or `failed`.
-8. `Scheduler::purge_old_violations()` deletes `csp_violation_reports` rows older than `wp_csp_violation_retention_days` days (default 90); the count deleted is logged to `csp_audit_log`.
+6. `Policy_Change_Manager` assigns a risk level and skips any source whose latest administrator decision suppresses the same fingerprint.
+7. Hash retirement is run to mark previously seen inline hashes as stale when absent.
+8. `Audit_Log::finish_scan()` records scan summary and sets status to `completed` or `failed`.
+9. `Scheduler::purge_old_violations()` deletes `csp_violation_reports` rows older than `wp_csp_violation_retention_days` days (default 90); the count deleted is logged to `csp_audit_log`.
 
 ### 4. Violation ingestion flow
 
@@ -142,8 +145,18 @@ Responsibilities:
 6. A fingerprint is computed over `(profile_surface, blocked_uri, violated_directive)` to deduplicate repeat reports.
 7. The `sample` field (inline script/style snippet, populated only when `'report-sample'` is in the emitting directive) is captured and stored in `csp_violation_reports.sample`.
 8. A new or existing row in the violation table is upserted; duplicate fingerprints increment `occurrence_count`.
+9. While the learning window is open, host-based cross-origin blocked URLs become pending source proposals through `Policy_Change_Manager`; rejected or reverted fingerprints are not proposed again unless a later administrator approval clears suppression.
 
-### 5. Premium checkout flow
+### 5. Policy change-control flow
+
+1. Discovery and report-endpoint learning create pending source proposals, not approved policy.
+2. `Policy_Change_Manager` computes a stable fingerprint from `(surface, directive, source_host)`.
+3. High-risk proposals include script/style execution, connection, form, frame, worker, wildcard, cleartext HTTP, broad browser schemes, and unsafe keyword patterns.
+4. Administrators approve, reject, or revert proposals from the Source Inventory queue.
+5. Every decision is appended to `csp_policy_change_decisions` and mirrored to `csp_audit_log`.
+6. Rejected and reverted decisions set suppression on that fingerprint; future automation skips the same source until a later approval becomes the newest decision.
+
+### 6. Premium checkout flow
 
 1. Admin selects a product tier from the entitlement page.
 2. `Checkout_Service` resolves the Stripe price ID from signed remote config.
@@ -190,6 +203,7 @@ Each of these inputs is validated before use:
 - Stripe webhook bodies are HMAC-verified
 - browser reports are validated for `Content-Type`, `document-uri` origin, normalized, rate-limited, and deduplicated
 - discovered sources are not auto-approved
+- rejected and reverted source fingerprints are not reintroduced by automation unless the latest administrator decision approves them
 
 ## Security-critical decisions
 
@@ -205,6 +219,7 @@ These design choices should not be changed casually:
 - when `strict-dynamic` is active, host-based sources are suppressed from `script-src` at emit time; emitting them is harmless but creates misleading policy noise since browsers ignore them
 - cross-origin violation reports are silently discarded; only reports whose `document-uri` matches the site's own origin are stored
 - `csp_audit_log` is append-only — no `UPDATE` or `DELETE` may ever be issued against it; it is the permanent operational audit trail
+- `csp_policy_change_decisions` is append-only; suppression is represented by the latest decision for a fingerprint, not by rewriting old decisions
 - the violation retention purge uses `UTC_TIMESTAMP()` not `NOW()` to avoid timezone-offset errors in environments where MySQL and PHP have different local time configurations
 
 ## Failure handling

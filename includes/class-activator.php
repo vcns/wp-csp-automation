@@ -70,10 +70,20 @@ class Activator {
   approved_at datetime DEFAULT NULL,
   expires_at datetime DEFAULT NULL,
   notes text DEFAULT NULL,
+  risk_level varchar(16) NOT NULL DEFAULT 'low',
+  risk_reason text DEFAULT NULL,
+  decision_fingerprint varchar(64) DEFAULT NULL,
+  evidence_count int(11) NOT NULL DEFAULT 1,
+  last_decision varchar(16) DEFAULT NULL,
+  decision_reason text DEFAULT NULL,
+  decided_at datetime DEFAULT NULL,
+  decided_by bigint(20) UNSIGNED DEFAULT NULL,
   PRIMARY KEY  (id),
   KEY surface (surface),
   KEY directive (directive),
   KEY approval_state (approval_state),
+  KEY risk_level (risk_level),
+  KEY decision_fingerprint (decision_fingerprint),
   UNIQUE KEY surf_dir_host (surface, directive, source_host(191))
 ) {$cc};"
 		);
@@ -211,6 +221,33 @@ class Activator {
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   KEY severity (severity),
+  KEY created_at (created_at)
+) {$cc};"
+		);
+
+		// 9. Append-only policy change decision ledger.
+		// Rejected and reverted rows can suppress the same fingerprint from being proposed again.
+		dbDelta(
+			"CREATE TABLE {$p}csp_policy_change_decisions (
+  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  change_type varchar(32) NOT NULL DEFAULT 'source',
+  surface varchar(32) NOT NULL,
+  directive varchar(64) NOT NULL,
+  source_host varchar(255) DEFAULT NULL,
+  source_uri varchar(2048) DEFAULT NULL,
+  decision_fingerprint varchar(64) NOT NULL,
+  action varchar(16) NOT NULL,
+  risk_level varchar(16) NOT NULL DEFAULT 'low',
+  risk_reason text DEFAULT NULL,
+  reason text DEFAULT NULL,
+  user_id bigint(20) UNSIGNED DEFAULT NULL,
+  suppression_active tinyint(1) NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY decision_fingerprint (decision_fingerprint),
+  KEY action (action),
+  KEY risk_level (risk_level),
+  KEY suppression_active (suppression_active),
   KEY created_at (created_at)
 ) {$cc};"
 		);

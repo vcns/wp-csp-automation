@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace WP_CSP\Admin;
 
 use WP_CSP\Plugin;
+use WP_CSP\CSP\Policy_Change_Manager;
 use WP_CSP\CSP\Scheduler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,6 +45,7 @@ class Admin_UI {
 		add_action( 'wp_ajax_wp_csp_refresh_config', array( $this, 'ajax_refresh_config' ) );
 		add_action( 'wp_ajax_wp_csp_approve_source', array( $this, 'ajax_approve_source' ) );
 		add_action( 'wp_ajax_wp_csp_deny_source', array( $this, 'ajax_deny_source' ) );
+		add_action( 'wp_ajax_wp_csp_revert_source', array( $this, 'ajax_revert_source' ) );
 		add_action( 'wp_ajax_wp_csp_toggle_mode', array( $this, 'ajax_toggle_mode' ) );
 	}
 
@@ -307,7 +309,7 @@ class Admin_UI {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( null, 403 );
 		}
-		$this->set_source_state( (int) ( $_POST['source_id'] ?? 0 ), 'approved' );
+		$this->decide_source( (int) ( $_POST['source_id'] ?? 0 ), 'approved' );
 	}
 
 	public function ajax_deny_source(): void {
@@ -315,19 +317,35 @@ class Admin_UI {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( null, 403 );
 		}
-		$this->set_source_state( (int) ( $_POST['source_id'] ?? 0 ), 'denied' );
+		$this->decide_source( (int) ( $_POST['source_id'] ?? 0 ), 'rejected' );
 	}
 
-	private function set_source_state( int $id, string $state ): void {
+	public function ajax_revert_source(): void {
+		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+		$this->decide_source( (int) ( $_POST['source_id'] ?? 0 ), 'reverted' );
+	}
+
+	private function decide_source( int $id, string $action ): void {
 		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => 'Invalid ID.' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid source ID.', 'wp-csp-automation' ) ) );
 		}
-		global $wpdb;
-		$data = array( 'approval_state' => $state );
-		if ( 'approved' === $state ) {
-			$data['approved_at'] = current_time( 'mysql', true );
+
+		$reason  = sanitize_text_field( wp_unslash( $_POST['reason'] ?? '' ) );
+		$manager = new Policy_Change_Manager( $this->plugin->audit );
+		if ( 'approved' === $action ) {
+			$ok = $manager->approve_source( $id, $reason );
+		} elseif ( 'reverted' === $action ) {
+			$ok = $manager->revert_source( $id, $reason );
+		} else {
+			$ok = $manager->reject_source( $id, $reason );
 		}
-		$wpdb->update( $wpdb->prefix . 'csp_source_inventory', $data, array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+
+		if ( ! $ok ) {
+			wp_send_json_error( array( 'message' => __( 'Could not record policy decision.', 'wp-csp-automation' ) ) );
+		}
 		wp_send_json_success();
 	}
 

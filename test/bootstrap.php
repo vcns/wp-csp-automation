@@ -14,7 +14,7 @@ declare( strict_types=1 );
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
 define( 'WP_CSP_VERSION',        '0.2.0' );
-define( 'WP_CSP_DB_VERSION',     '4' );
+define( 'WP_CSP_DB_VERSION',     '5' );
 define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
 define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
@@ -311,10 +311,16 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 		}
 
 		public function get_var( string $query ): mixed {
+			if ( ! empty( $GLOBALS['_wpdb_get_var_queue'] ) && is_array( $GLOBALS['_wpdb_get_var_queue'] ) ) {
+				return array_shift( $GLOBALS['_wpdb_get_var_queue'] );
+			}
 			return $GLOBALS['_wpdb_get_var'] ?? null;
 		}
 
 		public function get_row( string $query, string $output = 'ARRAY_A' ): mixed {
+			if ( ! empty( $GLOBALS['_wpdb_get_row_queue'] ) && is_array( $GLOBALS['_wpdb_get_row_queue'] ) ) {
+				return array_shift( $GLOBALS['_wpdb_get_row_queue'] );
+			}
 			return $GLOBALS['_wpdb_get_row'] ?? null;
 		}
 
@@ -400,6 +406,8 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wp_current_user_can']     = [];
 	$GLOBALS['_wpdb_get_var']            = null;
 	$GLOBALS['_wpdb_get_row']            = null;
+	$GLOBALS['_wpdb_get_var_queue']      = [];
+	$GLOBALS['_wpdb_get_row_queue']      = [];
 	$GLOBALS['_wpdb_get_results']        = [];
 	$GLOBALS['_wpdb_insert_result']      = 1;
 	$GLOBALS['_wpdb_update_result']      = 0;

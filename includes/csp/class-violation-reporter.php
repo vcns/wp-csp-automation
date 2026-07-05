@@ -45,10 +45,12 @@ class Violation_Reporter {
 
 	private Audit_Log $audit;
 	private ?Learning_Window $learning_window;
+	private Policy_Change_Manager $policy_changes;
 
-	public function __construct( Audit_Log $audit, ?Learning_Window $learning_window = null ) {
+	public function __construct( Audit_Log $audit, ?Learning_Window $learning_window = null, ?Policy_Change_Manager $policy_changes = null ) {
 		$this->audit           = $audit;
 		$this->learning_window = $learning_window;
+		$this->policy_changes  = null !== $policy_changes ? $policy_changes : new Policy_Change_Manager( $audit );
 	}
 
 	// ── REST handler ──────────────────────────────────────────────────────────
@@ -246,53 +248,15 @@ class Violation_Reporter {
 			return;
 		}
 
-		global $wpdb;
-		$table = $wpdb->prefix . 'csp_source_inventory';
-
-		$existing = $wpdb->get_var(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT id FROM {$table} WHERE surface = %s AND directive = %s AND source_host = %s LIMIT 1",
-				$surface,
-				$candidate['directive'],
-				$candidate['host']
-			)
-		);
-
-		if ( $existing ) {
-			$wpdb->update(
-				$table,
-				array(
-					'source_uri'    => $candidate['uri'],
-					'source_scheme' => $candidate['scheme'],
-					'last_seen_at'  => $now,
-				),
-				array( 'id' => (int) $existing ),
-				array( '%s', '%s', '%s' ),
-				array( '%d' )
-			);
-			return;
-		}
-
 		$document_uri = sanitize_text_field( substr( isset( $r['document_uri'] ) ? $r['document_uri'] : '', 0, 512 ) );
 		$notes        = sprintf( 'Learned from CSP report endpoint. Document: %s', $document_uri );
 
-		$wpdb->insert(
-			$table,
-			array(
-				'surface'         => $surface,
-				'directive'       => $candidate['directive'],
-				'source_uri'      => $candidate['uri'],
-				'source_scheme'   => $candidate['scheme'],
-				'source_host'     => $candidate['host'],
-				'owner_component' => 'report-endpoint',
-				'owner_type'      => 'runtime-report',
-				'approval_state'  => 'pending',
-				'first_seen_at'   => $now,
-				'last_seen_at'    => $now,
-				'notes'           => sanitize_text_field( substr( $notes, 0, 512 ) ),
-			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+		$this->policy_changes->propose_source(
+			$surface,
+			$candidate,
+			'report-endpoint',
+			'runtime-report',
+			$notes
 		);
 	}
 
