@@ -10,6 +10,7 @@
 declare( strict_types=1 );
 
 use PHPUnit\Framework\TestCase;
+use WP_CSP\CSP\Learning_Window;
 use WP_CSP\CSP\Violation_Reporter;
 use WP_CSP\Modules\Audit_Log;
 
@@ -119,6 +120,58 @@ class ViolationReporterTest extends TestCase {
 		$this->reporter->handle( $request );
 
 		$this->assertSame( 'insert', $GLOBALS['_wpdb_last_operation'] );
+	}
+
+	public function test_report_endpoint_learning_creates_pending_source_candidate_when_window_open(): void {
+		update_option( Learning_Window::OPTION_LAST_CHANGE, gmdate( 'Y-m-d H:i:s' ) );
+		update_option( Learning_Window::OPTION_WINDOW_HOURS, 48 );
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+
+		$reporter = new Violation_Reporter( $this->audit, new Learning_Window() );
+		$request  = $this->make_request(
+			'{"csp-report":{"effective-directive":"connect-src","violated-directive":"connect-src","document-uri":"https://example.com/","blocked-uri":"https://api.vendor.example/v1/ping"}}'
+		);
+
+		$reporter->handle( $request );
+
+		$this->assertCount( 2, $GLOBALS['_wpdb_inserted_rows'] );
+		$source_insert = $GLOBALS['_wpdb_inserted_rows'][1]['data'];
+		$this->assertSame( 'frontend', $source_insert['surface'] );
+		$this->assertSame( 'connect-src', $source_insert['directive'] );
+		$this->assertSame( 'api.vendor.example', $source_insert['source_host'] );
+		$this->assertSame( 'pending', $source_insert['approval_state'] );
+		$this->assertSame( 'report-endpoint', $source_insert['owner_component'] );
+	}
+
+	public function test_report_endpoint_learning_is_locked_after_window_expires(): void {
+		update_option( Learning_Window::OPTION_LAST_CHANGE, gmdate( 'Y-m-d H:i:s', time() - ( 49 * HOUR_IN_SECONDS ) ) );
+		update_option( Learning_Window::OPTION_WINDOW_HOURS, 48 );
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+
+		$reporter = new Violation_Reporter( $this->audit, new Learning_Window() );
+		$request  = $this->make_request(
+			'{"csp-report":{"effective-directive":"connect-src","violated-directive":"connect-src","document-uri":"https://example.com/","blocked-uri":"https://api.vendor.example/v1/ping"}}'
+		);
+
+		$reporter->handle( $request );
+
+		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
+		$this->assertSame( 'wp_csp_violation_reports', $GLOBALS['_wpdb_inserted_rows'][0]['table'] );
+	}
+
+	public function test_report_endpoint_learning_skips_inline_reports(): void {
+		update_option( Learning_Window::OPTION_LAST_CHANGE, gmdate( 'Y-m-d H:i:s' ) );
+		update_option( Learning_Window::OPTION_WINDOW_HOURS, 48 );
+		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
+
+		$reporter = new Violation_Reporter( $this->audit, new Learning_Window() );
+		$request  = $this->make_request(
+			'{"csp-report":{"effective-directive":"script-src","violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"inline"}}'
+		);
+
+		$reporter->handle( $request );
+
+		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
 	}
 
 	// ── Payload normalisation ─────────────────────────────────────────────────

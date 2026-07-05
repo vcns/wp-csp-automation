@@ -238,6 +238,10 @@ class Activator {
 			// Data retention: violation reports older than this many days are purged
 			// by the daily cron scan. 0 = keep forever (not recommended for busy sites).
 			'wp_csp_violation_retention_days'      => 90,
+			// Report-endpoint learning closes after this many hours from the latest
+			// post, page, or plugin material change.
+			'wp_csp_learning_window_hours'         => 48,
+			'wp_csp_last_material_change_at'       => current_time( 'mysql', true ),
 		);
 
 		foreach ( $defaults as $key => $value ) {

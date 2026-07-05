@@ -329,10 +329,23 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 
 		public function insert( string $table, array $data, array $format = [] ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'insert';
+			$GLOBALS['_wpdb_inserted_rows'][] = array(
+				'table'  => $table,
+				'data'   => $data,
+				'format' => $format,
+			);
 			return $GLOBALS['_wpdb_insert_result'] ?? 1;
 		}
 
 		public function update( string $table, array $data, array $where, array $format = [], array $where_format = [] ): int|false {
+			$GLOBALS['_wpdb_last_operation'] = 'update';
+			$GLOBALS['_wpdb_updated_rows'][] = array(
+				'table'        => $table,
+				'data'         => $data,
+				'where'        => $where,
+				'format'       => $format,
+				'where_format' => $where_format,
+			);
 			return $GLOBALS['_wpdb_update_result'] ?? 0;
 		}
 
@@ -396,6 +409,8 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wp_rest_headers']         = [];
 	$GLOBALS['_wpdb_query_result']       = 1;
 	$GLOBALS['_wpdb_last_operation']     = null;
+	$GLOBALS['_wpdb_inserted_rows']      = [];
+	$GLOBALS['_wpdb_updated_rows']       = [];
 }
 
 // Initialise globals so classes loaded at parse time do not hit undefined array errors.
