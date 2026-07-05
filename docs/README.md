@@ -1,17 +1,21 @@
-# Internal Documentation
+# Documentation
 
-This directory contains the internal operating and engineering documentation for WP CSP Automation Manager.
+This directory contains the public help site and the internal operating documentation for WP CSP Automation Manager.
 
-## Audience
+## Public help site
 
-These documents are written for:
+The following files are published through GitHub Pages and are intended for WordPress administrators, site owners, and support staff:
 
-- maintainers of the plugin codebase
-- release managers
-- security reviewers
-- operators managing Stripe and remote config infrastructure
+- `index.html` — public landing page, product explanation, learning curve, rollout model, and help index
+- `user-guide.html` — end-user guide covering installation, configuration, scanning, approvals, enforcement, and troubleshooting
+- `faq.html` — practical FAQ covering rollout, approvals, violations, compatibility, premium activation, privacy, and incident recovery
+- `styles.css` — shared styles for the public help pages
+- `404.html` — GitHub Pages not-found page
+- `updates/wp-csp-automation.json` — public update manifest consumed by the self-hosted WordPress update checker
 
-## Document map
+## Internal documentation
+
+These documents are written for maintainers, release managers, security reviewers, and operators managing release infrastructure:
 
 - `architecture.md` — high-level system design, runtime flow, and responsibility boundaries
 - `database-schema.md` — custom table definitions, relationships, policy decision ledger, and operational notes
@@ -19,20 +23,20 @@ These documents are written for:
 - `stripe-operations.md` — Stripe product, checkout, webhook, and entitlement operations
 - `testing-and-quality.md` — expected validation workflow, CI scope, and manual verification checklist
 - `release-and-publishing.md` — versioning, branching, packaging, and WordPress.org publishing flow
+- `update-endpoint.md` — self-hosted update manifest, ZIP endpoint, and WordPress update integration
 - `wordpress-org-assets.md` — listing artwork, screenshot requirements, and WordPress.org asset handling
 
 ## Source of truth
 
 The following files remain authoritative alongside these docs:
 
-- `wp-csp-automation.php` for plugin metadata and version constants
+- `wp-csp-automation.php` for plugin metadata, constants, autoloading, remote endpoints, and version values
 - `requirements_spec.md` for the current functional requirements baseline
-- `readme.txt` for public-facing WordPress.org plugin directory content
+- `README.md` for repository-level installation and feature summary
 - `CHANGELOG.md` for release history
 - `SECURITY.md` for vulnerability reporting policy
-- `docs/index.html`, `docs/styles.css`, and `docs/404.html` for the public GitHub Pages help site content
-- `.github/workflows/*` for the enforced CI, PR policy, packaging, and deployment automation
+- `.github/workflows/*` for CI, PR policy, packaging, release, and deployment automation
 
 ## Maintenance rule
 
-Whenever the plugin changes in a way that affects runtime behaviour, infrastructure setup, release flow, or operational risk, update the corresponding document in this directory as part of the same change.
+Whenever the plugin changes in a way that affects runtime behaviour, user workflow, configuration, release flow, or operational risk, update the corresponding document in this directory as part of the same change.

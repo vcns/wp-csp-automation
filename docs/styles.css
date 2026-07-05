@@ -9,6 +9,7 @@
   --accent-strong: #064744;
   --accent-soft: #d6f0ed;
   --warm: #c46b35;
+  --warning: #7a3d16;
   --shadow: 0 18px 50px rgba(27, 29, 31, 0.08);
 }
 
@@ -22,7 +23,7 @@ html {
 
 body {
   margin: 0;
-  font-family: "Source Sans 3", sans-serif;
+  font-family: 'Source Sans 3', sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(196, 107, 53, 0.14), transparent 28%),
@@ -30,7 +31,7 @@ body {
 }
 
 body::before {
-  content: "";
+  content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -59,10 +60,14 @@ body::before {
 .hero-panel,
 .card,
 .callout,
+.warning-callout,
 .checklist,
 .workflow-card,
+.decision-card,
+.stage,
 .section-nav,
-.support-box {
+.support-box,
+.faq-item {
   background: rgba(255, 253, 248, 0.88);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -81,9 +86,13 @@ body::before {
   align-self: start;
 }
 
+.compact-hero .hero-copy h1 {
+  max-width: 16ch;
+}
+
 .eyebrow,
 .section-label {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.78rem;
@@ -94,18 +103,18 @@ body::before {
 h1,
 h2,
 h3 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   line-height: 1.05;
   margin: 0 0 0.9rem;
 }
 
 h1 {
-  font-size: clamp(2.6rem, 5vw, 4.8rem);
-  max-width: 12ch;
+  font-size: clamp(2.5rem, 5vw, 4.6rem);
+  max-width: 13ch;
 }
 
 h2 {
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-size: clamp(1.75rem, 3vw, 2.45rem);
 }
 
 h3 {
@@ -113,18 +122,34 @@ h3 {
 }
 
 p,
-li {
+li,
+th,
+td,
+dt,
+dd {
   font-size: 1.05rem;
-  line-height: 1.65;
+  line-height: 1.62;
   color: var(--text);
 }
 
+p {
+  margin-top: 0;
+}
+
+code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.35rem;
+  background: var(--surface-strong);
+  font-size: 0.95em;
+}
+
 .lede {
-  max-width: 62ch;
+  max-width: 66ch;
   color: var(--muted);
 }
 
-.hero-actions {
+.hero-actions,
+.section-action {
   display: flex;
   flex-wrap: wrap;
   gap: 0.8rem;
@@ -174,7 +199,10 @@ li {
 .section-nav a,
 .card a,
 .link-list a,
-.site-footer a {
+.site-footer a,
+.faq-item a,
+.section a,
+.button.tertiary {
   color: var(--accent-strong);
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.14em;
@@ -201,7 +229,9 @@ li {
 
 .card-grid,
 .checklist-grid,
-.workflow-list {
+.workflow-list,
+.decision-grid,
+.definition-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
@@ -210,14 +240,27 @@ li {
 .card,
 .checklist,
 .workflow-card,
-.callout {
+.callout,
+.warning-callout,
+.decision-card,
+.faq-item {
   border-radius: 22px;
   padding: 1.25rem;
 }
 
-.callout-stack {
+.callout-stack,
+.faq-list {
   display: grid;
   gap: 1rem;
+}
+
+.warning-callout {
+  border-left: 6px solid var(--warm);
+}
+
+.warning-callout h3,
+.warning-callout strong {
+  color: var(--warning);
 }
 
 .bullets,
@@ -225,6 +268,105 @@ li {
 .checklist ul {
   margin: 0;
   padding-left: 1.15rem;
+}
+
+.section-note {
+  color: var(--muted);
+  max-width: 78ch;
+}
+
+.timeline {
+  display: grid;
+  gap: 1rem;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  border-radius: 22px;
+  padding: 1.2rem;
+}
+
+.stage-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+}
+
+.stage h3,
+.stage p {
+  margin-bottom: 0.45rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  background: var(--surface-strong);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+.decision-card.allow {
+  border-left: 6px solid var(--accent);
+}
+
+.decision-card.caution {
+  border-left: 6px solid var(--warm);
+}
+
+.decision-card.deny {
+  border-left: 6px solid var(--muted);
+}
+
+.definition-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.definition-grid div {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.definition-grid dt {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.definition-grid dd {
+  margin: 0;
+  color: var(--muted);
 }
 
 .link-list {
@@ -255,6 +397,8 @@ li {
   .card-grid,
   .checklist-grid,
   .workflow-list,
+  .decision-grid,
+  .definition-grid,
   .site-footer {
     grid-template-columns: 1fr;
     display: grid;
@@ -278,6 +422,9 @@ li {
   .checklist,
   .workflow-card,
   .callout,
+  .warning-callout,
+  .decision-card,
+  .faq-item,
   .section-nav {
     border-radius: 20px;
   }
@@ -289,5 +436,9 @@ li {
 
   h1 {
     max-width: none;
+  }
+
+  .stage {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,0 +1,18 @@
+{
+    "slug": "wp-csp-automation",
+    "plugin": "wp-csp-automation/wp-csp-automation.php",
+    "name": "WP CSP Automation Manager",
+    "version": "0.2.0",
+    "download_url": "",
+    "homepage": "https://github.com/vcns/wp-csp-automation",
+    "release_url": "https://github.com/vcns/wp-csp-automation/releases",
+    "requires": "6.4",
+    "tested": "6.8",
+    "requires_php": "8.1",
+    "last_updated": "2026-07-05T00:00:00+00:00",
+    "author": "Simon Jackson",
+    "sections": {
+        "description": "Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress.",
+        "changelog": "Release notes are published with tagged GitHub Releases."
+    }
+}

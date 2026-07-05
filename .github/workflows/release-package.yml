@@ -29,6 +29,8 @@ on:
 
 permissions:
   contents: write    # required to create releases and upload release assets
+  pages: write
+  id-token: write
 
 # ── Job: build ────────────────────────────────────────────────────────────────
 jobs:
@@ -100,6 +102,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
       - name: Download ZIP artifact
         uses: actions/download-artifact@v4
         with:
@@ -122,8 +133,64 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          php tools/generate-update-manifest.php \
+            --tag "${TAG}" \
+            --download-url "${DOWNLOAD_URL}" \
+            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            --output "dist/wp-csp-automation.json"
+
           gh release create "${TAG}" \
             --title "WP CSP Automation ${TAG}" \
             --generate-notes \
             ${PRERELEASE_FLAG} \
-            "dist/${ZIP_FILENAME}"
+            "dist/${ZIP_FILENAME}" \
+            "dist/wp-csp-automation.json"
+
+  pages-update-manifest:
+    name: Publish Pages Update Manifest
+    needs:
+      - build
+      - release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    environment:
+      name: production
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Generate latest stable update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+
+          php tools/generate-update-manifest.php \
+            --tag "${TAG}" \
+            --download-url "${DOWNLOAD_URL}" \
+            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            --output "docs/updates/wp-csp-automation.json"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

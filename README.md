@@ -61,6 +61,16 @@ Every tagged release publishes a ready-to-install ZIP to the
 3. Upload that folder to `/wp-content/plugins/` on your server via SFTP or SCP.
 4. Activate the plugin from **Plugins → Installed Plugins** in the WordPress admin.
 
+### Self-hosted update checks
+
+The plugin includes a self-hosted update checker for GitHub-distributed builds. WordPress does not automatically poll arbitrary JSON endpoints for plugins outside WordPress.org, so WP CSP Automation Manager reads a public GitHub Pages manifest and maps it into the native WordPress plugin update UI.
+
+Default manifest endpoint:
+
+- https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json
+
+Tagged stable releases update that manifest with the latest version and the direct GitHub Release ZIP download URL. Pre-release tags still publish release assets, but they do not replace the stable update endpoint.
+
 ### From the WordPress plugin directory
 
 Once published to WordPress.org:
@@ -143,13 +153,14 @@ No telemetry or background tracking is intended as part of the normal plugin run
 - Stripe operations: [docs/stripe-operations.md](docs/stripe-operations.md)
 - Testing and quality: [docs/testing-and-quality.md](docs/testing-and-quality.md)
 - Release and publishing: [docs/release-and-publishing.md](docs/release-and-publishing.md)
+- Self-hosted update endpoint: [docs/update-endpoint.md](docs/update-endpoint.md)
 - Security policy: [SECURITY.md](SECURITY.md)
 
 ## GitHub Pages help site
 
 The repository also publishes a public help site from the `docs/` directory:
 
-- https://sjackson0109.github.io/wp-csp-automation/
+- https://vcns.github.io/wp-csp-automation/
 
 ## Development and release flow
 

@@ -130,8 +130,26 @@ Repository workflow files now provide the baseline automation:
 - `.github/workflows/codeql.yml` for GitHub-native static analysis
 - `.github/workflows/dast.yml` for disposable-environment baseline DAST
 - `.github/workflows/pages.yml` for publishing the public GitHub Pages help site from `docs/`
-- `.github/workflows/release-package.yml` for release-candidate zip validation
+- `.github/workflows/release-package.yml` for release-candidate zip validation, GitHub Release ZIP publishing, and stable update manifest deployment
 - `.github/workflows/wporg-deploy.yml` for tag-driven deployment to WordPress.org SVN
+
+## Self-hosted update endpoint
+
+The repository publishes a static update manifest for GitHub-distributed builds:
+
+- `https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json`
+
+WordPress does not automatically consume arbitrary update JSON for plugins outside the WordPress.org directory. The plugin registers an update checker that reads this manifest and maps it into the native plugin update transient.
+
+Stable tag releases generate:
+
+- `wp-csp-automation-vX.Y.Z.zip`
+- `wp-csp-automation.json`
+- a Pages deployment containing `docs/updates/wp-csp-automation.json`
+
+Pre-release tags attach ZIP and manifest assets to the GitHub Release, but they do not update the Pages "latest stable" manifest.
+
+The normal Pages workflow also regenerates the manifest from the latest stable GitHub Release before deploying docs. This prevents a later docs-only publish from overwriting the update endpoint with stale committed JSON.
 
 ## Public docs site
 
@@ -151,7 +169,7 @@ The Pages workflow publishes `docs/` when documentation-related changes reach `m
 
 Published URL:
 
-- `https://sjackson0109.github.io/wp-csp-automation/`
+- `https://vcns.github.io/wp-csp-automation/`
 
 Required GitHub repository secrets for WordPress.org deployment:
 
@@ -202,6 +220,7 @@ Before publishing each version:
 - confirm repository secrets `SVN_USERNAME` and `SVN_PASSWORD` exist before tagging
 - package from a clean checkout or CI workspace
 - test installation from the packaged zip
+- confirm the Pages update manifest points at the intended stable ZIP after the tag workflow completes
 
 ## Rollback planning
 

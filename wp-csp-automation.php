@@ -70,6 +70,15 @@ defined( 'WP_CSP_CONFIG_DNS_RECORD' ) || define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp
  */
 defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://wp-csp-config.jacksonfamily.me' );
 
+/**
+ * Public update manifest used by the self-hosted WordPress update checker.
+ *
+ * Overridable by defining WP_CSP_UPDATE_MANIFEST_URL in wp-config.php before
+ * this plugin loads. Do not make this filterable; keeping it as an early PHP
+ * constant prevents another plugin from redirecting update checks at runtime.
+ */
+defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json' );
+
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register(
 	static function ( string $class_name ): void {

@@ -23,6 +23,7 @@ use WP_CSP\CSP\Scheduler;
 use WP_CSP\CSP\Violation_Reporter;
 use WP_CSP\Modules\Audit_Log;
 use WP_CSP\Modules\Feature_Gate;
+use WP_CSP\Modules\Update_Checker;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -87,6 +88,7 @@ final class Plugin {
 	private function bootstrap(): void {
 		// Always-available core services.
 		$this->audit = new Audit_Log();
+		( new Update_Checker() )->register();
 
 		// Premium modules — present only when offline/ directory is deployed.
 		if ( class_exists( 'WP_CSP\Modules\Config_Resolver' ) ) {
