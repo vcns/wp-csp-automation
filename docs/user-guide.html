@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang='en-GB'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>User Guide | WP CSP Automation Manager</title>
+  <meta name='description' content='End-user guide for installing, configuring, learning, enforcing, and troubleshooting WP CSP Automation Manager.'>
+  <link rel='preconnect' href='https://fonts.googleapis.com'>
+  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+  <link href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap' rel='stylesheet'>
+  <link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+  <div class='page-shell'>
+    <header class='hero compact-hero'>
+      <div class='hero-copy'>
+        <p class='eyebrow'>User guide</p>
+        <h1>Run CSP as a controlled WordPress workflow.</h1>
+        <p class='lede'>This guide is for WordPress administrators who need to deploy WP CSP Automation Manager without breaking a production site.</p>
+        <div class='hero-actions'>
+          <a class='button primary' href='index.html'>Back to help home</a>
+          <a class='button secondary' href='faq.html'>Open the FAQ</a>
+        </div>
+      </div>
+      <aside class='hero-panel'>
+        <h2>Read this first</h2>
+        <ul>
+          <li>Use staging where practical.</li>
+          <li>Start every surface in report-only mode.</li>
+          <li>Browse real user journeys before enforcing.</li>
+          <li>Approve only sources with a clear purpose.</li>
+          <li>Move one surface at a time to enforce mode.</li>
+        </ul>
+      </aside>
+    </header>
+
+    <nav class='section-nav' aria-label='Guide sections'>
+      <a href='#first-30-minutes'>First 30 minutes</a>
+      <a href='#concepts'>Concepts</a>
+      <a href='#installation'>Installation</a>
+      <a href='#configuration'>Configuration</a>
+      <a href='#scan-and-learn'>Scan and learn</a>
+      <a href='#approval-workflow'>Approvals</a>
+      <a href='#enforcement'>Enforcement</a>
+      <a href='#after-changes'>After changes</a>
+      <a href='#troubleshooting'>Troubleshooting</a>
+      <a href='#glossary'>Glossary</a>
+    </nav>
+
+    <main>
+      <section id='first-30-minutes' class='section section-grid'>
+        <div>
+          <p class='section-label'>First 30 minutes</p>
+          <h2>The shortest safe path.</h2>
+          <ol class='steps'>
+            <li>Install and activate the plugin.</li>
+            <li>Open <strong>CSP Manager</strong> in the WordPress admin.</li>
+            <li>Confirm all profiles are in <strong>report-only</strong> mode.</li>
+            <li>Run a manual scan.</li>
+            <li>Open the Source Inventory tab and review pending sources.</li>
+            <li>Browse important site journeys while report-only remains active.</li>
+            <li>Review the Violations tab and approve only required sources.</li>
+            <li>Wait for the configured violation-free window before enforcing a surface.</li>
+          </ol>
+        </div>
+        <div class='callout-stack'>
+          <div class='callout'>
+            <h3>What success looks like</h3>
+            <p>The site works as before, the dashboard shows known sources, and the policy decisions are explainable.</p>
+          </div>
+          <div class='warning-callout'>
+            <h3>What not to do</h3>
+            <p>Do not approve every host just to clear the table. That turns CSP into a long allowlist with little value.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id='concepts' class='section'>
+        <p class='section-label'>Core concepts</p>
+        <h2>The terms you need to understand.</h2>
+        <div class='definition-grid'>
+          <div><h3>Surface</h3><p>A part of the site with its own policy. The plugin uses frontend, admin, login, and API.</p></div>
+          <div><h3>Report-only mode</h3><p>The browser reports what would have been blocked. It does not block the resource.</p></div>
+          <div><h3>Enforce mode</h3><p>The browser blocks resources that are not allowed by the policy.</p></div>
+          <div><h3>Directive</h3><p>A CSP rule area, such as <code>script-src</code>, <code>img-src</code>, <code>connect-src</code>, or <code>form-action</code>.</p></div>
+          <div><h3>Source</h3><p>A host, scheme, or keyword that a directive allows.</p></div>
+          <div><h3>Nonce</h3><p>A random per-request value used to authorise WordPress-managed inline scripts or styles without using <code>'unsafe-inline'</code>.</p></div>
+          <div><h3>Violation</h3><p>A browser report showing that a resource did not match the current policy.</p></div>
+          <div><h3>Promotion gate</h3><p>A safety check that must pass before a surface can move from report-only to enforce mode.</p></div>
+          <div><h3>Suppression</h3><p>A decision that stops the same rejected or reverted source fingerprint being proposed again automatically.</p></div>
+        </div>
+      </section>
+
+      <section id='installation' class='section'>
+        <p class='section-label'>Installation</p>
+        <h2>Install the plugin.</h2>
+        <div class='card-grid'>
+          <article class='card'>
+            <h3>Requirements</h3>
+            <ul>
+              <li>WordPress 6.4 or later.</li>
+              <li>PHP 8.1 or later.</li>
+              <li>PHP sodium extension for Ed25519 remote config verification.</li>
+              <li>Administrator access to the WordPress admin.</li>
+            </ul>
+          </article>
+          <article class='card'>
+            <h3>Install from a release ZIP</h3>
+            <ol class='steps'>
+              <li>Download the release ZIP from GitHub Releases.</li>
+              <li>Go to <strong>Plugins → Add New Plugin → Upload Plugin</strong>.</li>
+              <li>Select the ZIP file, install, and activate.</li>
+            </ol>
+          </article>
+          <article class='card'>
+            <h3>Manual upload</h3>
+            <ol class='steps'>
+              <li>Extract the release ZIP locally.</li>
+              <li>Upload the <code>wp-csp-automation</code> folder to <code>/wp-content/plugins/</code>.</li>
+              <li>Activate it from <strong>Plugins → Installed Plugins</strong>.</li>
+            </ol>
+          </article>
+        </div>
+      </section>
+
+      <section id='configuration' class='section'>
+        <p class='section-label'>Configuration</p>
+        <h2>Configure only what you need.</h2>
+        <div class='table-wrap'>
+          <table>
+            <thead>
+              <tr><th>Setting area</th><th>What it controls</th><th>Recommended starting point</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Remote Product Configuration</td><td>DNS record, fallback HTTPS URL, cache TTL, and stale-config grace period for signed product metadata.</td><td>Leave defaults unless self-hosting the remote configuration.</td></tr>
+              <tr><td>Promotion Gates</td><td>The number of violation-free hours required before enforce mode is allowed.</td><td>Use at least 24 hours for production. Increase it for complex sites.</td></tr>
+              <tr><td>Report Endpoint Learning</td><td>The time window after content or plugin changes where reports can create pending source candidates.</td><td>Use the default 48 hours, then review proposals.</td></tr>
+              <tr><td>Scan Schedule</td><td>Daily scan hour and notification email.</td><td>Use a quiet UTC hour and a monitored mailbox.</td></tr>
+              <tr><td>Entitlement</td><td>Grace behaviour for premium entitlement validation.</td><td>No Stripe secret keys are entered into WordPress. Leave this alone unless using premium activation.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class='section-note'>Settings are available under <strong>CSP Manager → Settings</strong>. Most end-users should not need to alter remote configuration unless they are operating their own licensing or config infrastructure.</p>
+      </section>
+
+      <section id='scan-and-learn' class='section section-grid'>
+        <div>
+          <p class='section-label'>Scan and learn</p>
+          <h2>Build evidence before enforcement.</h2>
+          <p>The manual scan crawls representative URLs and extracts external sources from static HTML and linked CSS. It can find scripts, styles, images, fonts, frames, forms, media, and manifests. It cannot fully infer runtime behaviour such as XHR, fetch, WebSocket, EventSource, and workers. Those are learned from browser violation reports while report-only mode is active.</p>
+          <p>After a scan, open Source Inventory. Pending sources must be approved before they affect emitted CSP headers.</p>
+        </div>
+        <div class='callout-stack'>
+          <div class='callout'>
+            <h3>Journeys to test</h3>
+            <p>Test login, checkout, search, contact forms, consent banners, embedded maps, embedded video, page-builder content, analytics, and any API-driven UI.</p>
+          </div>
+          <div class='callout'>
+            <h3>After material changes</h3>
+            <p>Plugin activation, plugin deactivation, plugin upgrade, page changes, and post changes reopen the learning window. Use that window to collect new runtime evidence.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id='approval-workflow' class='section'>
+        <p class='section-label'>Approval workflow</p>
+        <h2>Use the approval workflow deliberately.</h2>
+        <div class='decision-grid'>
+          <article class='decision-card allow'>
+            <h3>Approve when all are true</h3>
+            <ul>
+              <li>The host is expected.</li>
+              <li>The directive matches the use case.</li>
+              <li>The source is narrow enough.</li>
+              <li>The business or functional purpose is clear.</li>
+              <li>The risk is acceptable for the site.</li>
+            </ul>
+          </article>
+          <article class='decision-card caution'>
+            <h3>Investigate when any are true</h3>
+            <ul>
+              <li>The source is linked to script, connection, form, frame, or worker execution.</li>
+              <li>The host is unfamiliar.</li>
+              <li>The same source appears after a recent plugin change.</li>
+              <li>The site owner has not approved the third-party service.</li>
+            </ul>
+          </article>
+          <article class='decision-card deny'>
+            <h3>Reject or revert when any are true</h3>
+            <ul>
+              <li>The source is no longer needed.</li>
+              <li>The host looks like unwanted tracking.</li>
+              <li>The source was learned from a temporary test.</li>
+              <li>The proposal would broaden the policy without clear value.</li>
+            </ul>
+          </article>
+        </div>
+        <div class='warning-callout'>
+          <h3>Decision reasons</h3>
+          <p>Use short reasons such as required for checkout, theme font CDN, unknown host, or legacy tag removed. Reasons make the policy change ledger useful during later reviews.</p>
+        </div>
+      </section>
+
+      <section id='enforcement' class='section'>
+        <p class='section-label'>Enforcement</p>
+        <h2>Move to enforce mode only when the evidence supports it.</h2>
+        <p>Each surface can be report-only, enforce, or disabled. Enforcement should be staged. In most cases, start with the frontend surface, then consider login, API, and admin later.</p>
+        <div class='table-wrap'>
+          <table>
+            <thead>
+              <tr><th>Surface</th><th>Typical risk</th><th>Guidance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Frontend</td><td>Medium</td><td>Best first candidate. Test public pages, forms, checkout, embeds, and consent tools.</td></tr>
+              <tr><td>Login</td><td>Medium</td><td>Test normal login, password reset, MFA, SSO, and security plugins.</td></tr>
+              <tr><td>API</td><td>Variable</td><td>Relevant where browser-driven REST calls occur. Many static resources do not apply to API responses.</td></tr>
+              <tr><td>Admin</td><td>High</td><td>Use caution. Some WordPress admin screens and third-party plugins may emit inline code outside the normal script API.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class='checklist-grid'>
+          <div class='checklist'>
+            <h3>Before enforcing</h3>
+            <ul>
+              <li>Recent violations have been resolved.</li>
+              <li>At least one source or hash is approved for the surface.</li>
+              <li>No active temporary override is present.</li>
+              <li>Rollback access is available.</li>
+            </ul>
+          </div>
+          <div class='checklist'>
+            <h3>After enforcing</h3>
+            <ul>
+              <li>Open key pages in a clean browser session.</li>
+              <li>Submit forms and test checkout or login.</li>
+              <li>Watch the Violations tab.</li>
+              <li>Return to report-only if required resources are blocked.</li>
+            </ul>
+          </div>
+          <div class='checklist'>
+            <h3>Rollback</h3>
+            <ul>
+              <li>Change the affected profile back to report-only.</li>
+              <li>Review blocked URIs and directives.</li>
+              <li>Approve only the sources that are actually required.</li>
+              <li>Test again before re-enforcing.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id='after-changes' class='section section-grid'>
+        <div>
+          <p class='section-label'>Ongoing use</p>
+          <h2>Use the plugin after normal site changes.</h2>
+          <p>CSP is not a one-off task. WordPress sites change when plugins update, themes change, tracking tags are added, forms are altered, payment integrations change, or content editors embed third-party resources.</p>
+          <p>After meaningful changes, run a manual scan and use report-only evidence before adding new approvals. Keep the policy narrow and documented.</p>
+        </div>
+        <div class='callout-stack'>
+          <div class='callout'>
+            <h3>Good operating habit</h3>
+            <p>Review Source Inventory and Violations after each release or plugin update. Treat new high-risk proposals as a change-control item.</p>
+          </div>
+          <div class='callout'>
+            <h3>Avoid broad exceptions</h3>
+            <p>A quick broad allowlist may fix a symptom but can weaken the policy. Prefer narrow hosts and clear decision reasons.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id='troubleshooting' class='section'>
+        <p class='section-label'>Troubleshooting</p>
+        <h2>Common faults and what to check.</h2>
+        <div class='table-wrap'>
+          <table>
+            <thead>
+              <tr><th>Problem</th><th>Likely cause</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Site breaks after enforce mode.</td><td>A required resource is not approved.</td><td>Return the affected surface to report-only. Review Violations, approve required narrow sources, then retest.</td></tr>
+              <tr><td>Enforce button is blocked.</td><td>The promotion gate has not passed.</td><td>Check for approved inventory, recent violations, and temporary overrides.</td></tr>
+              <tr><td>Manual scan finds little or nothing.</td><td>The activity is runtime behaviour rather than static HTML.</td><td>Browse the site in report-only mode and rely on violation reports for fetch, XHR, WebSocket, EventSource, and workers.</td></tr>
+              <tr><td>Repeated unknown host appears.</td><td>A plugin, theme, injected tag, or external script is generating it.</td><td>Trace the source owner before approval. Reject if not required.</td></tr>
+              <tr><td>Premium checkout is unavailable.</td><td>Remote licensing or premium module availability needs attention.</td><td>Check the Premium page and remote config status. Free features should continue to work.</td></tr>
+              <tr><td>Remote config refresh fails.</td><td>DNS, fallback URL, TLS, signature, or sodium availability may be involved.</td><td>Check Settings, audit warnings, DNS TXT configuration, and the HTTPS config endpoint.</td></tr>
+              <tr><td>WordPress update does not appear.</td><td>Manifest fetch failed, manifest is cached, or current version is already latest.</td><td>Check the update manifest, WordPress update screen, and transient cache timing.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id='glossary' class='section'>
+        <p class='section-label'>Glossary</p>
+        <h2>Quick reference.</h2>
+        <div class='card-grid'>
+          <div class='card'><h3><code>default-src</code></h3><p>Fallback directive used by browsers when a more specific directive is absent.</p></div>
+          <div class='card'><h3><code>script-src</code></h3><p>Controls script execution and script source loading.</p></div>
+          <div class='card'><h3><code>style-src</code></h3><p>Controls style loading and inline style behaviour.</p></div>
+          <div class='card'><h3><code>img-src</code></h3><p>Controls image sources.</p></div>
+          <div class='card'><h3><code>font-src</code></h3><p>Controls web font sources.</p></div>
+          <div class='card'><h3><code>connect-src</code></h3><p>Controls fetch, XHR, WebSocket, EventSource, and similar runtime connections.</p></div>
+          <div class='card'><h3><code>frame-src</code></h3><p>Controls what can be embedded in frames.</p></div>
+          <div class='card'><h3><code>form-action</code></h3><p>Controls where forms may submit.</p></div>
+          <div class='card'><h3><code>report-to</code></h3><p>Reporting API group name used with the Reporting-Endpoints header.</p></div>
+          <div class='card'><h3>Fingerprint</h3><p>A stable identifier for a surface, directive, and host decision.</p></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class='site-footer'>
+      <p>WP CSP Automation Manager user guide</p>
+      <p><a href='index.html'>Help home</a> · <a href='faq.html'>FAQ</a> · <a href='https://github.com/vcns/wp-csp-automation'>Repository</a></p>
+    </footer>
+  </div>
+</body>
+</html>
