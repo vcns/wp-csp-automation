@@ -5,6 +5,7 @@ on:
     branches:
       - development
       - main
+      - 'codex/**'
       - 'feature/**'
       - 'fix/**'
       - 'release/**'
@@ -19,7 +20,7 @@ permissions:
 
 jobs:
   php-lint-and-standards:
-    name: PHP Lint and PHPCS
+    name: PHP Lint, PHPCS, and PHPUnit
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +43,7 @@ jobs:
           path: |
             ~/.composer/cache/files
             vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
 
@@ -54,6 +55,9 @@ jobs:
 
       - name: PHPCS
         run: composer run lint:phpcs -- --report=full
+
+      - name: PHPUnit
+        run: composer run test:no-coverage
 
   secret-scan:
     name: Secret Scan

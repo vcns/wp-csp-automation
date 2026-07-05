@@ -23,8 +23,8 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          if [[ ! "$HEAD_REF" =~ ^feature/ && ! "$HEAD_REF" =~ ^fix/ && ! "$HEAD_REF" =~ ^hotfix/ && ! "$HEAD_REF" =~ ^release/ ]]; then
-            echo "Pull requests into development must come from feature/*, fix/*, hotfix/*, or release/* branches. Got: $HEAD_REF"
+          if [[ ! "$HEAD_REF" =~ ^codex/ && ! "$HEAD_REF" =~ ^feature/ && ! "$HEAD_REF" =~ ^fix/ && ! "$HEAD_REF" =~ ^hotfix/ && ! "$HEAD_REF" =~ ^release/ ]]; then
+            echo "Pull requests into development must come from codex/*, feature/*, fix/*, hotfix/*, or release/* branches. Got: $HEAD_REF"
             exit 1
           fi
 

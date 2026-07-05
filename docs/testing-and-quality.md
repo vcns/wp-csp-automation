@@ -27,6 +27,14 @@ Before opening a pull request, maintainers should aim to validate:
 
 The repository should enforce these checks on pull requests:
 
+Current baseline:
+
+- PHP syntax lint via `composer run lint:php`
+- PHPCS via `composer run lint:phpcs`
+- PHPUnit via `composer run test:no-coverage`
+- release ZIP smoke build for development pull requests
+- source branch policy allowing `codex/*`, `feature/*`, `fix/*`, `hotfix/*`, and `release/*` branches into `development`
+
 ### Fast checks
 
 - PHP syntax lint
