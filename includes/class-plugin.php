@@ -16,6 +16,7 @@ namespace WP_CSP;
 use WP_CSP\Admin\Admin_UI;
 use WP_CSP\CSP\Conflict_Detector;
 use WP_CSP\CSP\Hash_Manager;
+use WP_CSP\CSP\Learning_Window;
 use WP_CSP\CSP\Nonce_Manager;
 use WP_CSP\CSP\Policy_Builder;
 use WP_CSP\CSP\Scheduler;
@@ -39,6 +40,7 @@ final class Plugin {
 	public Audit_Log $audit;
 	public Nonce_Manager $nonce_manager;
 	public Policy_Builder $policy_builder;
+	private Learning_Window $learning_window;
 
 	/**
 	 * Hash manager exposed publicly so Scheduler can retrieve captured hashes
@@ -95,9 +97,10 @@ final class Plugin {
 		}
 
 		// Feature gate degrades to free tier when premium modules are absent.
-		$this->gate           = new Feature_Gate( $this->entitlements, $this->config );
-		$this->nonce_manager  = new Nonce_Manager( $this->gate );
-		$this->policy_builder = new Policy_Builder( $this->gate );
+		$this->gate            = new Feature_Gate( $this->entitlements, $this->config );
+		$this->nonce_manager   = new Nonce_Manager( $this->gate );
+		$this->policy_builder  = new Policy_Builder( $this->gate );
+		$this->learning_window = new Learning_Window();
 
 		// Hash manager: instantiated here so Scheduler can read captured_hashes
 		// after the request-time buffer pass, and so the public property is
@@ -112,6 +115,7 @@ final class Plugin {
 		// Must be registered after nonce_manager so nonce tags are already
 		// stamped before the buffer captures them (and can be skipped).
 		$this->hash_manager->register();
+		$this->learning_window->register();
 
 		// REST API: webhook + violation reporting endpoint.
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
@@ -144,7 +148,7 @@ final class Plugin {
 			'/report',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( new Violation_Reporter( $this->audit ), 'handle' ),
+				'callback'            => array( new Violation_Reporter( $this->audit, $this->learning_window ), 'handle' ),
 				'permission_callback' => '__return_true',
 			)
 		);

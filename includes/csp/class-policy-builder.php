@@ -235,7 +235,7 @@ class Policy_Builder {
 
 	// ── DB reads ──────────────────────────────────────────────────────────────
 
-	private function load_profile( string $surface ): ?array {
+	protected function load_profile( string $surface ): ?array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'csp_policy_profiles';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -243,7 +243,7 @@ class Policy_Builder {
 		return ! empty( $row ) ? $row : null;
 	}
 
-	private function load_approved_hashes( string $surface ): array {
+	protected function load_approved_hashes( string $surface ): array {
 		if ( null !== $this->hash_loader ) {
 			return ( $this->hash_loader )( $surface );
 		}
@@ -260,7 +260,7 @@ class Policy_Builder {
 		return ! empty( $rows ) ? $rows : array();
 	}
 
-	private function load_approved_sources( string $surface ): array {
+	protected function load_approved_sources( string $surface ): array {
 		if ( null !== $this->source_loader ) {
 			return ( $this->source_loader )( $surface );
 		}

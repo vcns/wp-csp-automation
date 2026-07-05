@@ -43,6 +43,14 @@ class WebhookControllerTest extends TestCase {
 		wp_test_reset_globals();
 		update_option( 'wp_csp_webhook_secret', $this->webhook_secret );
 
+		if (
+			! class_exists( Entitlement_Store::class )
+			|| ! class_exists( Checkout_Service::class )
+			|| ! class_exists( Webhook_Controller::class )
+		) {
+			$this->markTestSkipped( 'Webhook offline modules are not available.' );
+		}
+
 		$this->audit        = $this->createMock( Audit_Log::class );
 		$this->entitlements = $this->createMock( Entitlement_Store::class );
 		$this->checkout     = $this->createMock( Checkout_Service::class );

@@ -61,6 +61,30 @@
 	color: #86181d;
 }
 
+/* Risk badges */
+.wp-csp-risk-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-weight: 600;
+}
+.risk-high {
+	background: #ffeef0;
+	color: #86181d;
+	border: 1px solid #f1aeb5;
+}
+.risk-medium {
+	background: #fff8c5;
+	color: #735c0f;
+	border: 1px solid #e0c04c;
+}
+.risk-low {
+	background: #eef7ff;
+	color: #0a4b78;
+	border: 1px solid #b8d9f3;
+}
+
 /* ── Product cards ───────────────────────────────────────────────────────── */
 .wp-csp-product-cards {
 	display: flex;

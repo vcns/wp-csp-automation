@@ -27,6 +27,14 @@ Before opening a pull request, maintainers should aim to validate:
 
 The repository should enforce these checks on pull requests:
 
+Current baseline:
+
+- PHP syntax lint via `composer run lint:php`
+- PHPCS via `composer run lint:phpcs`
+- PHPUnit via `composer run test:no-coverage`
+- release ZIP smoke build for development pull requests
+- source branch policy allowing `codex/*`, `feature/*`, `fix/*`, `hotfix/*`, and `release/*` branches into `development`
+
 ### Fast checks
 
 - PHP syntax lint
@@ -39,7 +47,7 @@ The repository should enforce these checks on pull requests:
 
 - boot WordPress in a disposable environment
 - activate the plugin
-- verify all eight custom tables are created (including `csp_audit_log`)
+- verify all nine custom tables are created (including `csp_audit_log` and `csp_policy_change_decisions`)
 - verify admin pages load
 - verify REST routes register and respond with expected status codes
 
@@ -53,7 +61,7 @@ The repository should enforce these checks on pull requests:
 
 ### Activation and upgrade
 
-- activate plugin on a clean site; confirm all eight tables exist (`csp_policy_profiles`, `csp_source_inventory`, `csp_hash_inventory`, `csp_violation_reports`, `csp_scan_logs`, `csp_entitlements`, `csp_processed_events`, `csp_audit_log`)
+- activate plugin on a clean site; confirm all nine tables exist (`csp_policy_profiles`, `csp_source_inventory`, `csp_hash_inventory`, `csp_violation_reports`, `csp_scan_logs`, `csp_entitlements`, `csp_processed_events`, `csp_audit_log`, `csp_policy_change_decisions`)
 - confirm default options are seeded including `wp_csp_violation_retention_days` (should be `90`)
 - simulate DB upgrade path: set `wp_csp_db_version` to a lower version, reload; confirm `maybe_upgrade_db()` fires and new schema is applied without data loss
 - deactivate and confirm cron event is removed
@@ -99,8 +107,13 @@ The repository should enforce these checks on pull requests:
 
 - run manual scan
 - verify discovered sources are classified into expected directives
+- verify high-risk directives such as `script-src`, `style-src`, `connect-src`, `form-action`, `frame-src`, and `worker-src` are flagged as high-risk proposals
 - verify same-origin assets are excluded
 - verify approval and deny actions persist correctly
+- reject a pending proposal and confirm a suppressing row is appended to `csp_policy_change_decisions`
+- rescan the same source and confirm it is not reintroduced while the latest decision for its fingerprint is suppressing
+- approve the source again and confirm the latest decision clears suppression
+- revert an approved source and confirm it moves to denied, is removed from emitted CSP, and suppresses future automatic proposals
 
 ### Violation reporting
 
@@ -139,6 +152,7 @@ The repository should enforce these checks on pull requests:
 
 - perform a policy change, a scan run, and a forbidden-directive injection; confirm `csp_audit_log` has corresponding rows with correct `component`, `event`, `severity`, and `user_id` values
 - confirm no `UPDATE` or `DELETE` is ever issued against `csp_audit_log` (grep test: no `$wpdb->update` or `$wpdb->delete` call references `csp_audit_log` in any source file)
+- confirm `csp_policy_change_decisions` is append-only and receives rows for approve, reject, and revert actions
 
 ### Premium flow
 

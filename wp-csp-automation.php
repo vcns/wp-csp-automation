@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:       WP CSP Automation Manager
- * Plugin URI:        https://github.com/sjackson0109/wp-csp-automation
+ * Plugin URI:        https://github.com/vcns/wp-csp-automation
  * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress. Premium features unlocked via one-time Stripe payment.
  * Version:           0.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Simon Jackson
- * Author URI:        https://github.com/sjackson0109
+ * Author URI:        https://github.com/vcns
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-csp-automation
@@ -32,8 +32,9 @@ define( 'WP_CSP_VERSION', '0.2.0' );
  * v2 -- adds override_expires_at and override_owner to csp_policy_profiles
  * v3 -- adds sample column to csp_violation_reports (R7: report-sample support)
  * v4 -- adds csp_audit_log append-only table (R10: immutable audit log)
+ * v5 -- adds policy change proposal metadata and decision/suppression ledger
  */
-define( 'WP_CSP_DB_VERSION', '4' );
+define( 'WP_CSP_DB_VERSION', '5' );
 
 define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );

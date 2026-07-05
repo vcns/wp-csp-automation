@@ -5,9 +5,6 @@
   "license": "GPL-2.0-or-later",
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-    "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "phpcompatibility/php-compatibility": "^9.3",
-    "phpcsstandards/phpcsextra": "^1.2",
     "phpcsstandards/phpcsutils": "^1.1",
     "sirbrillig/phpcs-variable-analysis": "^2.12",
     "wp-coding-standards/wpcs": "^3.1",
@@ -20,11 +17,17 @@
     "sort-packages": true
   },
   "scripts": {
-    "lint:php": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools/lint-php.ps1",
+    "lint:php": "php tools/lint-php.php",
     "lint:phpcs": "php vendor/squizlabs/php_codesniffer/bin/phpcs",
+    "test:no-coverage": "php vendor/phpunit/phpunit/phpunit --no-coverage",
+    "test": "@test:no-coverage",
     "lint": [
       "@lint:php",
       "@lint:phpcs"
+    ],
+    "ci": [
+      "@lint",
+      "@test:no-coverage"
     ]
   }
 }

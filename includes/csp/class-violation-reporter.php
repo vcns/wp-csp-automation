@@ -27,11 +27,30 @@ class Violation_Reporter {
 
 	private const MAX_PER_HOUR_PER_SURFACE = 500;
 	private const RATE_LIMIT_WINDOW        = HOUR_IN_SECONDS;
+	private const LEARNABLE_DIRECTIVES     = array(
+		'script-src',
+		'script-src-elem',
+		'style-src',
+		'style-src-elem',
+		'img-src',
+		'font-src',
+		'connect-src',
+		'frame-src',
+		'media-src',
+		'manifest-src',
+		'worker-src',
+		'child-src',
+		'form-action',
+	);
 
 	private Audit_Log $audit;
+	private ?Learning_Window $learning_window;
+	private Policy_Change_Manager $policy_changes;
 
-	public function __construct( Audit_Log $audit ) {
-		$this->audit = $audit;
+	public function __construct( Audit_Log $audit, ?Learning_Window $learning_window = null, ?Policy_Change_Manager $policy_changes = null ) {
+		$this->audit           = $audit;
+		$this->learning_window = $learning_window;
+		$this->policy_changes  = null !== $policy_changes ? $policy_changes : new Policy_Change_Manager( $audit );
 	}
 
 	// ── REST handler ──────────────────────────────────────────────────────────
@@ -215,6 +234,95 @@ class Violation_Reporter {
 				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 			);
 		}
+
+		$this->learn_source_from_report( $r, $surface, $blocked_uri, $now );
+	}
+
+	private function learn_source_from_report( array $r, string $surface, string $blocked_uri, string $now ): void {
+		if ( null === $this->learning_window || ! $this->learning_window->is_open() ) {
+			return;
+		}
+
+		$candidate = $this->source_candidate_from_report( $r, $blocked_uri );
+		if ( null === $candidate ) {
+			return;
+		}
+
+		$document_uri = sanitize_text_field( substr( isset( $r['document_uri'] ) ? $r['document_uri'] : '', 0, 512 ) );
+		$notes        = sprintf( 'Learned from CSP report endpoint. Document: %s', $document_uri );
+
+		$this->policy_changes->propose_source(
+			$surface,
+			$candidate,
+			'report-endpoint',
+			'runtime-report',
+			$notes
+		);
+	}
+
+	private function source_candidate_from_report( array $r, string $blocked_uri ): ?array {
+		$directive = $this->normalise_directive(
+			isset( $r['effective_directive'] ) && '' !== $r['effective_directive']
+				? $r['effective_directive']
+				: ( $r['violated_directive'] ?? '' )
+		);
+
+		if ( ! in_array( $directive, self::LEARNABLE_DIRECTIVES, true ) ) {
+			return null;
+		}
+
+		$blocked_uri = trim( $blocked_uri );
+		if ( '' === $blocked_uri || $this->is_non_host_blocked_uri( $blocked_uri ) ) {
+			return null;
+		}
+
+		if ( str_starts_with( $blocked_uri, '//' ) ) {
+			$blocked_uri = 'https:' . $blocked_uri;
+		}
+
+		$parsed = wp_parse_url( $blocked_uri );
+		if ( empty( $parsed['host'] ) ) {
+			return null;
+		}
+
+		$scheme = strtolower( isset( $parsed['scheme'] ) ? $parsed['scheme'] : 'https' );
+		if ( ! in_array( $scheme, array( 'http', 'https', 'ws', 'wss' ), true ) ) {
+			return null;
+		}
+
+		$host      = strtolower( $parsed['host'] );
+		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
+		if ( ! empty( $site_host ) && strtolower( (string) $site_host ) === $host ) {
+			return null;
+		}
+
+		return array(
+			'directive' => $directive,
+			'uri'       => esc_url_raw( $blocked_uri ),
+			'scheme'    => $scheme,
+			'host'      => sanitize_text_field( substr( $host, 0, 255 ) ),
+		);
+	}
+
+	private function normalise_directive( string $directive ): string {
+		$directive = strtolower( trim( $directive ) );
+		if ( str_contains( $directive, ' ' ) ) {
+			$directive = strtok( $directive, ' ' );
+		}
+
+		$normalised = preg_replace( '/[^a-z0-9-]/', '', (string) $directive );
+		return is_string( $normalised ) ? $normalised : '';
+	}
+
+	private function is_non_host_blocked_uri( string $blocked_uri ): bool {
+		$value = strtolower( $blocked_uri );
+		if ( in_array( $value, array( 'inline', 'eval', 'wasm-eval', 'data', 'blob', 'about' ), true ) ) {
+			return true;
+		}
+
+		return str_starts_with( $value, 'data:' )
+			|| str_starts_with( $value, 'blob:' )
+			|| str_starts_with( $value, 'about:' );
 	}
 
 	private function surface_from_document_uri( string $uri ): string {

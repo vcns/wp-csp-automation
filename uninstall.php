@@ -20,6 +20,7 @@ $tables = array(
 	'csp_entitlements',
 	'csp_processed_events',
 	'csp_audit_log',
+	'csp_policy_change_decisions',
 );
 
 foreach ( $tables as $table ) {

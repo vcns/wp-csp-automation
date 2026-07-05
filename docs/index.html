@@ -18,7 +18,7 @@
         <h1>Operational docs, setup guides, and release help in one place.</h1>
         <p class="lede">This site is the public help surface for the plugin: installation, rollout strategy, Stripe setup, remote config signing, GitHub workflow automation, and WordPress.org release guidance.</p>
         <div class="hero-actions">
-          <a class="button primary" href="https://github.com/sjackson0109/wp-csp-automation">View Repository</a>
+          <a class="button primary" href="https://github.com/vcns/wp-csp-automation">View Repository</a>
           <a class="button secondary" href="#quick-start">Quick Start</a>
         </div>
       </div>
@@ -29,6 +29,7 @@
           <li>PHP 8.1+</li>
           <li>Per-surface CSP policies</li>
           <li>Nonce injection and report-only rollout</li>
+          <li>Risk-ranked policy change approvals</li>
           <li>Stripe one-time purchase support</li>
           <li>Signed remote config via Ed25519</li>
         </ul>
@@ -58,6 +59,7 @@
           <li>Install and activate the plugin on WordPress 6.4+ running PHP 8.1+.</li>
           <li>Open CSP Manager settings and verify the site can run a manual scan.</li>
           <li>Run the first scan and review the source inventory for external origins.</li>
+          <li>Approve required sources, reject risky proposals, and revert anything that should be suppressed from future automation.</li>
           <li>Stay in report-only mode while monitoring violations and approving only required sources.</li>
           <li>Promote one surface at a time to enforce mode after the inventory is stable.</li>
         </ol>
@@ -159,6 +161,10 @@
             <h3>Verification model</h3>
             <p>Remote config is signature-verified with Ed25519 when `sodium` is available. Stripe webhook events are verified before any entitlement change is made.</p>
           </article>
+          <article class="card">
+            <h3>Change control</h3>
+            <p>Discovered and report-learned sources are risk-scored as proposals. Administrators approve, reject, or revert them; rejected and reverted fingerprints are suppressed from future automatic proposals.</p>
+          </article>
         </div>
       </section>
 
@@ -169,32 +175,32 @@
           <article class="card">
             <h3>Installation and rollout</h3>
             <p>Plugin requirements, first scan, source approval, report-only rollout, and when to move into enforce mode.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/readme.txt">Read the installation guide</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/readme.txt">Read the installation guide</a>
           </article>
           <article class="card">
             <h3>Architecture</h3>
             <p>Component boundaries, request flow, trust boundaries, failure handling, and extension guidance.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/docs/architecture.md">Read architecture notes</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/architecture.md">Read architecture notes</a>
           </article>
           <article class="card">
             <h3>Remote config and signing</h3>
             <p>DNS TXT record format, signed JSON payload contract, Ed25519 key handling, caching, and rotation planning.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/docs/remote-config-and-signing.md">Read remote config guide</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/remote-config-and-signing.md">Read remote config guide</a>
           </article>
           <article class="card">
             <h3>Stripe operations</h3>
             <p>Checkout, webhook setup, entitlement grant flow, production launch checks, and failure diagnosis.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/docs/stripe-operations.md">Read Stripe operations guide</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/stripe-operations.md">Read Stripe operations guide</a>
           </article>
           <article class="card">
             <h3>Testing and quality</h3>
             <p>CI expectations, local validation baseline, manual test matrix, and release validation checklist.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/docs/testing-and-quality.md">Read testing guide</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/testing-and-quality.md">Read testing guide</a>
           </article>
           <article class="card">
             <h3>Release and publishing</h3>
             <p>Branching model, WordPress.org packaging, SVN deployment, rollback handling, and release discipline.</p>
-            <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/docs/release-and-publishing.md">Read release guide</a>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/release-and-publishing.md">Read release guide</a>
           </article>
         </div>
       </section>
@@ -208,6 +214,8 @@
             <li>Inject nonces into WordPress-managed scripts without depending on unsafe inline policy shortcuts.</li>
             <li>Discover third-party origins, store them as pending inventory, and require explicit operator approval.</li>
             <li>Accept browser violation reports locally and use them to tighten allowlists over time.</li>
+            <li>Raise higher-risk source proposals for administrator review before they can affect emitted headers.</li>
+            <li>Keep an append-only decision ledger so approvals, rejections, reversions, and suppressions remain auditable.</li>
             <li>Handle premium feature entitlement locally after verified Stripe webhook delivery.</li>
             <li>Distribute public product metadata through signed remote config instead of hardcoding it in releases.</li>
           </ul>
@@ -219,7 +227,7 @@
           </div>
           <div class="callout">
             <h3>Security principle</h3>
-            <p>Entitlement grant decisions come from verified webhooks, not browser redirects. Remote config contains no secrets. Source discovery does not auto-approve anything.</p>
+            <p>Entitlement grant decisions come from verified webhooks, not browser redirects. Remote config contains no secrets. Source discovery does not auto-approve anything, and reverted sources are not automatically proposed again.</p>
           </div>
         </div>
       </section>
@@ -297,11 +305,11 @@
         <p class="section-label">Frequently Needed Links</p>
         <h2>Quick access to the repository surfaces that matter.</h2>
         <div class="link-list">
-          <a href="https://github.com/sjackson0109/wp-csp-automation">GitHub repository</a>
-          <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/readme.txt">Public plugin readme</a>
-          <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/SECURITY.md">Security reporting policy</a>
-          <a href="https://github.com/sjackson0109/wp-csp-automation/blob/main/CHANGELOG.md">Changelog</a>
-          <a href="https://github.com/sjackson0109/wp-csp-automation/tree/main/docs">Documentation directory</a>
+          <a href="https://github.com/vcns/wp-csp-automation">GitHub repository</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/readme.txt">Public plugin readme</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md">Security reporting policy</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/CHANGELOG.md">Changelog</a>
+          <a href="https://github.com/vcns/wp-csp-automation/tree/main/docs">Documentation directory</a>
         </div>
       </section>
 
@@ -371,14 +379,14 @@
         <div class="callout support-box">
           <h3>Security reporting</h3>
           <p>Do not file public vulnerabilities in issues or discussion threads. Follow the repository security policy and use the private reporting channel described there.</p>
-          <a class="button tertiary" href="https://github.com/sjackson0109/wp-csp-automation/blob/main/SECURITY.md">Read security policy</a>
+          <a class="button tertiary" href="https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md">Read security policy</a>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
       <p>WP CSP Automation Manager documentation site</p>
-      <p><a href="https://github.com/sjackson0109/wp-csp-automation">Repository</a> · <a href="https://sjackson0109.github.io/wp-csp-automation/">GitHub Pages</a></p>
+      <p><a href="https://github.com/vcns/wp-csp-automation">Repository</a> · <a href="https://sjackson0109.github.io/wp-csp-automation/">GitHub Pages</a></p>
     </footer>
   </div>
 </body>
