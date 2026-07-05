@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang='en-GB'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>FAQ | WP CSP Automation Manager</title>
+  <meta name='description' content='Frequently asked questions for WP CSP Automation Manager users and administrators.'>
+  <link rel='preconnect' href='https://fonts.googleapis.com'>
+  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+  <link href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap' rel='stylesheet'>
+  <link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+  <div class='page-shell'>
+    <header class='hero compact-hero'>
+      <div class='hero-copy'>
+        <p class='eyebrow'>FAQ</p>
+        <h1>Questions before using CSP on a live WordPress site.</h1>
+        <p class='lede'>These answers are written for administrators who need practical guidance, not CSP theory alone.</p>
+        <div class='hero-actions'>
+          <a class='button primary' href='index.html'>Back to help home</a>
+          <a class='button secondary' href='user-guide.html'>Read the user guide</a>
+        </div>
+      </div>
+      <aside class='hero-panel'>
+        <h2>Core advice</h2>
+        <ul>
+          <li>Start in report-only mode.</li>
+          <li>Use real browser journeys for evidence.</li>
+          <li>Approve narrow, known sources only.</li>
+          <li>Use rejection and revert decisions deliberately.</li>
+          <li>Rollback to report-only if enforcement causes breakage.</li>
+        </ul>
+      </aside>
+    </header>
+
+    <nav class='section-nav' aria-label='FAQ sections'>
+      <a href='#general'>General</a>
+      <a href='#rollout'>Rollout</a>
+      <a href='#approvals'>Approvals</a>
+      <a href='#violations'>Violations</a>
+      <a href='#compatibility'>Compatibility</a>
+      <a href='#premium'>Premium</a>
+      <a href='#privacy'>Privacy</a>
+      <a href='#troubleshooting'>Troubleshooting</a>
+    </nav>
+
+    <main>
+      <section id='general' class='section'>
+        <p class='section-label'>General</p>
+        <h2>Product basics.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>What does WP CSP Automation Manager do?</h3>
+            <p>It helps WordPress administrators build, test, and enforce Content Security Policy headers. It emits per-surface policies, injects nonces, collects browser reports, discovers sources, and requires administrator approval before new sources affect the policy.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Who is it for?</h3>
+            <p>It is for site owners, agencies, managed service providers, and WordPress administrators who need a safer path from no CSP or weak CSP to a stricter policy.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Does it require deep CSP knowledge?</h3>
+            <p>No, but users still need to understand the basic workflow: report-only first, collect evidence, approve required sources, reject unknown sources, then enforce one surface at a time.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What are surfaces?</h3>
+            <p>Surfaces are separate parts of the site. The plugin uses frontend, admin, login, and API. Each surface can have its own mode and policy inventory.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why not use one policy for the whole site?</h3>
+            <p>Different parts of WordPress need different resources. A frontend page, login page, REST response, and admin screen do not have the same risk profile or resource requirements.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What are the minimum requirements?</h3>
+            <p>WordPress 6.4 or later, PHP 8.1 or later, and the PHP sodium extension for Ed25519 remote config verification.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='rollout' class='section'>
+        <p class='section-label'>Rollout</p>
+        <h2>Safe deployment questions.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Will report-only mode block anything?</h3>
+            <p>No. Report-only mode asks the browser to report what would have been blocked. It does not block the resource.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Can enforce mode break a site?</h3>
+            <p>Yes. Enforce mode can block required scripts, styles, fonts, frames, media, form posts, and runtime API calls. Use enforce mode only after reviewing evidence.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Which surface should I enforce first?</h3>
+            <p>Usually the frontend surface, after testing key public journeys. Login, API, and admin surfaces should follow only when there is enough evidence.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Should I enforce wp-admin?</h3>
+            <p>Use caution. WordPress admin screens and plugins may emit inline code outside the normal script API. Keep a rollback path and monitor violations carefully.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What is the promotion gate?</h3>
+            <p>It is a safety check before enforce mode. The surface must have approved source or hash inventory, must not have recent violations inside the configured window, and must not have an active temporary override.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why is the enforce button blocked?</h3>
+            <p>The promotion gate has failed. Check approved inventory, recent violations, and temporary override status for the surface.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>How long should I stay in report-only mode?</h3>
+            <p>Long enough to test real journeys and pass the configured violation-free window. For production sites, start with at least 24 hours. Complex sites may need longer.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='approvals' class='section'>
+        <p class='section-label'>Approvals</p>
+        <h2>Source inventory and policy decisions.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Should I approve every discovered source?</h3>
+            <p>No. Approve only sources that are necessary, expected, and narrow. Reject or investigate anything unknown.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What does high risk mean?</h3>
+            <p>High-risk proposals usually affect script, style, connection, form, frame, or worker behaviour, or use broad patterns such as wildcards, cleartext HTTP, broad schemes, or unsafe CSP keywords.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Is a high-risk source always bad?</h3>
+            <p>No. A payment provider, consent manager, or known application endpoint may be legitimate. High risk means the proposal deserves deliberate review.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What is evidence count?</h3>
+            <p>It is the number of times the same source has been observed or refreshed. It can help distinguish recurring site behaviour from one-off noise.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What happens when I reject a source?</h3>
+            <p>The decision is recorded and the matching surface, directive, and host fingerprint is suppressed from future automatic proposals unless a later approval becomes the newest decision.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What is the difference between reject and revert?</h3>
+            <p>Reject is for a pending or denied source that should not be approved. Revert is for a previously approved source that should be withdrawn.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why did a rejected source appear again?</h3>
+            <p>Check whether the directive, host, or surface changed. Suppression is based on the source fingerprint, not every possible variant of a service.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='violations' class='section'>
+        <p class='section-label'>Violations</p>
+        <h2>Browser reports and learning behaviour.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Where are violation reports stored?</h3>
+            <p>They are stored locally in the WordPress database in the plugin violation reports table. Old reports are purged by the daily scan according to the configured retention period. The default is 90 days; zero keeps reports indefinitely.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Are reports sent to a third-party reporting service?</h3>
+            <p>No third-party reporting service is used by default. Browsers post reports to the site REST endpoint registered by the plugin.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why do violations appear in report-only mode?</h3>
+            <p>That is expected. Report-only mode exists to show what would be blocked if the policy were enforced.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why do I see <code>connect-src</code> violations after static scanning?</h3>
+            <p>Static scans cannot reliably see runtime fetch, XHR, WebSocket, or EventSource calls. These are learned from real browser reports.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Why are some blocked URIs ignored as source candidates?</h3>
+            <p>The plugin ignores non-host values such as inline, eval, data, blob, and about. Those are not normal host-source approvals.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Can violation reports be spoofed?</h3>
+            <p>Browser reports are client-generated and should not be treated as trusted user input. The plugin validates content type, silently discards cross-origin document URIs, deduplicates reports, and rate-limits storage.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What does occurrence count mean?</h3>
+            <p>It shows how often the same violation fingerprint has been seen. A high count often means a real repeated site behaviour rather than a single test.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='compatibility' class='section'>
+        <p class='section-label'>Compatibility</p>
+        <h2>WordPress, plugins, themes, and caching.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Is it compatible with caching plugins?</h3>
+            <p>Usually, but nonce-based pages should not be served from a full-page cache unless the cache is nonce-aware or appropriate exclusions are configured.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Can it work with tag managers?</h3>
+            <p>It can, but tag managers often load other scripts dynamically. Use report-only mode and approve only the hosts that are genuinely required.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Can it work with payment providers?</h3>
+            <p>Yes, where the required scripts, frames, connections, and form actions are approved. Test checkout in report-only before enforcing.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Can it work with page builders?</h3>
+            <p>Often, but page builders can introduce inline scripts, inline styles, external embeds, and runtime calls. Test representative pages before enforcing.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Does it add <code>'unsafe-inline'</code>?</h3>
+            <p>No. The nonce workflow is intended to avoid relying on <code>'unsafe-inline'</code>.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What about older browsers?</h3>
+            <p>Some reporting and CSP3 behaviour varies by browser. The plugin emits both modern Reporting-Endpoints and legacy Report-To headers for reporting compatibility.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='premium' class='section'>
+        <p class='section-label'>Premium</p>
+        <h2>Licensing and premium features.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Does the free tier work without payment?</h3>
+            <p>Yes. The free tier works without payment and without Stripe configuration.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Where are Stripe secret keys stored?</h3>
+            <p>They are not stored in the WordPress installation. Payment processing is handled by the remote licensing service, with Stripe secret material held server-side.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>How is premium access activated?</h3>
+            <p>The purchase flow goes through the remote licensing service. Premium access depends on verified payment processing and local entitlement state, not merely the browser redirect after checkout.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What happens if the premium modules are not present?</h3>
+            <p>The plugin degrades to the free tier. Premium checks return false and core free features continue to operate.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What premium features exist?</h3>
+            <p>Premium feature keys include Trusted Types, <code>strict-dynamic</code>, and multi-surface scan support. Additional analytics and export surfaces may also be provided.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Is the entitlement tied to the domain?</h3>
+            <p>The entitlement is tied to the current site identity. Domain changes can affect matching and may require entitlement review.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='privacy' class='section'>
+        <p class='section-label'>Privacy</p>
+        <h2>What data exists and where.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>What is stored locally?</h3>
+            <p>Policy profiles, source inventory, hash inventory, violation reports, scan logs, entitlement state, processed event records, audit log entries, and policy change decisions are stored in the WordPress database.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Does normal CSP operation require telemetry?</h3>
+            <p>No general telemetry is required for normal CSP operation. Browser reports are posted back to the site endpoint by default.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>What leaves the site?</h3>
+            <p>Free-tier operation mainly relies on local processing and update/config fetches. Premium purchase flows involve the remote licensing service and Stripe checkout.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Does remote config contain secrets?</h3>
+            <p>It should not. Remote config is for public product metadata such as tier definitions and price identifiers. Secret keys belong in the remote licensing infrastructure, not DNS, public JSON, or WordPress settings.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='troubleshooting' class='section'>
+        <p class='section-label'>Troubleshooting</p>
+        <h2>Fast answers during incidents.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>My site broke after I enabled enforce mode. What should I do?</h3>
+            <p>Return the affected surface to report-only. Review the Violations tab. Approve only the required sources or hashes. Retest before enabling enforce mode again.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>I cannot access wp-admin after changing CSP. What now?</h3>
+            <p>Use an alternative administrator route or database access to return the admin surface to report-only. Then review recent violations and policy changes.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>The manual scan finds no sources. Is that wrong?</h3>
+            <p>Not necessarily. Static scans see rendered HTML and linked CSS. Runtime-only activity may appear only through browser violation reports.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>The update does not appear in WordPress. What should I check?</h3>
+            <p>Check the public update manifest, the current installed version, WordPress update caching, outbound HTTPS access, and the plugin update transient timing.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>Remote config refresh fails. What should I check?</h3>
+            <p>Check DNS TXT discovery, fallback URL, TLS, JSON validity, signature verification, sodium availability, and audit log warnings.</p>
+          </article>
+          <article class='faq-item'>
+            <h3>How do I report a security vulnerability?</h3>
+            <p>Do not report suspected vulnerabilities in public issues. Use the repository security policy and the private reporting route described there.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class='site-footer'>
+      <p>WP CSP Automation Manager FAQ</p>
+      <p><a href='index.html'>Help home</a> · <a href='user-guide.html'>User guide</a> · <a href='https://github.com/vcns/wp-csp-automation'>Repository</a></p>
+    </footer>
+  </div>
+</body>
+</html>
