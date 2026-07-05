@@ -18,6 +18,11 @@ class EntitlementStoreTest extends TestCase {
 
 	protected function setUp(): void {
 		wp_test_reset_globals();
+
+		if ( ! class_exists( Entitlement_Store::class ) ) {
+			$this->markTestSkipped( 'Entitlement_Store offline module is not available.' );
+		}
+
 		$this->audit = $this->createMock( Audit_Log::class );
 	}
 

@@ -6,3 +6,5 @@
 offline/
 node_modules/
 code-review-findings.json
+.phpunit.cache/
+tests/coverage/

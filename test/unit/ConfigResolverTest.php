@@ -19,6 +19,11 @@ class ConfigResolverTest extends TestCase {
 
 	protected function setUp(): void {
 		wp_test_reset_globals();
+
+		if ( ! class_exists( Config_Resolver::class ) ) {
+			$this->markTestSkipped( 'Config_Resolver offline module is not available.' );
+		}
+
 		$this->audit = $this->createMock( Audit_Log::class );
 	}
 
