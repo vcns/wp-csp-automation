@@ -29,10 +29,12 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - **`wp_csp_violation_retention_days` option** — Seeded to `90` on activation. Registered and sanitised in admin settings.
 - **Audit log DB persistence** — `Audit_Log::log()` now calls `write_to_db()` (new private method) before `push_admin_notice()`. The DB record is the immutable audit trail; the wp_options queue is for transient admin display only.
 - **Feature gate documentation** — `Feature_Gate` class docblock now lists all premium feature keys: `trusted_types`, `strict_dynamic`, `multi_surface_scan`.
+- **CSP policy change control** — discovered and report-learned sources now pass through `Policy_Change_Manager`, which risk-scores proposals, records administrator approve/reject/revert decisions, and suppresses rejected or reverted fingerprints from being proposed again.
+- **`csp_policy_change_decisions` table** — append-only decision ledger for source approvals, rejections, reversions, risk metadata, decision reasons, and suppression state. DB version bumped from 4 -> 5.
 
 ### Changed
 
-- `WP_CSP_DB_VERSION` bumped from `'2'` to `'4'` (v3 = sample column; v4 = audit log table).
+- `WP_CSP_DB_VERSION` bumped from `'2'` to `'5'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata).
 - Policy builder emits `Reporting-Endpoints` and `Report-To` headers immediately before the CSP header — any code that expects the CSP to be the first header will need updating.
 
 ### Fixed

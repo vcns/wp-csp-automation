@@ -29,6 +29,7 @@
           <li>PHP 8.1+</li>
           <li>Per-surface CSP policies</li>
           <li>Nonce injection and report-only rollout</li>
+          <li>Risk-ranked policy change approvals</li>
           <li>Stripe one-time purchase support</li>
           <li>Signed remote config via Ed25519</li>
         </ul>
@@ -58,6 +59,7 @@
           <li>Install and activate the plugin on WordPress 6.4+ running PHP 8.1+.</li>
           <li>Open CSP Manager settings and verify the site can run a manual scan.</li>
           <li>Run the first scan and review the source inventory for external origins.</li>
+          <li>Approve required sources, reject risky proposals, and revert anything that should be suppressed from future automation.</li>
           <li>Stay in report-only mode while monitoring violations and approving only required sources.</li>
           <li>Promote one surface at a time to enforce mode after the inventory is stable.</li>
         </ol>
@@ -159,6 +161,10 @@
             <h3>Verification model</h3>
             <p>Remote config is signature-verified with Ed25519 when `sodium` is available. Stripe webhook events are verified before any entitlement change is made.</p>
           </article>
+          <article class="card">
+            <h3>Change control</h3>
+            <p>Discovered and report-learned sources are risk-scored as proposals. Administrators approve, reject, or revert them; rejected and reverted fingerprints are suppressed from future automatic proposals.</p>
+          </article>
         </div>
       </section>
 
@@ -208,6 +214,8 @@
             <li>Inject nonces into WordPress-managed scripts without depending on unsafe inline policy shortcuts.</li>
             <li>Discover third-party origins, store them as pending inventory, and require explicit operator approval.</li>
             <li>Accept browser violation reports locally and use them to tighten allowlists over time.</li>
+            <li>Raise higher-risk source proposals for administrator review before they can affect emitted headers.</li>
+            <li>Keep an append-only decision ledger so approvals, rejections, reversions, and suppressions remain auditable.</li>
             <li>Handle premium feature entitlement locally after verified Stripe webhook delivery.</li>
             <li>Distribute public product metadata through signed remote config instead of hardcoding it in releases.</li>
           </ul>
@@ -219,7 +227,7 @@
           </div>
           <div class="callout">
             <h3>Security principle</h3>
-            <p>Entitlement grant decisions come from verified webhooks, not browser redirects. Remote config contains no secrets. Source discovery does not auto-approve anything.</p>
+            <p>Entitlement grant decisions come from verified webhooks, not browser redirects. Remote config contains no secrets. Source discovery does not auto-approve anything, and reverted sources are not automatically proposed again.</p>
           </div>
         </div>
       </section>

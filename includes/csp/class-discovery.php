@@ -7,7 +7,7 @@
  *   - Parses HTML response for external script, style, img, font, connect,
  *     frame, media, and manifest sources.
  *   - Classifies each discovered URL into the correct CSP directive.
- *   - Writes new sources to csp_source_inventory with approval_state='pending'.
+ *   - Proposes new sources via Policy_Change_Manager with approval_state='pending'.
  *   - Marks sources not seen in current crawl as candidates for removal.
  *
  * Coverage notes:
@@ -38,10 +38,12 @@ class Discovery {
 
 	private Audit_Log $audit;
 	private Feature_Gate $gate;
+	private Policy_Change_Manager $policy_changes;
 
-	public function __construct( Audit_Log $audit, Feature_Gate $gate ) {
-		$this->audit = $audit;
-		$this->gate  = $gate;
+	public function __construct( Audit_Log $audit, Feature_Gate $gate, ?Policy_Change_Manager $policy_changes = null ) {
+		$this->audit          = $audit;
+		$this->gate           = $gate;
+		$this->policy_changes = null !== $policy_changes ? $policy_changes : new Policy_Change_Manager( $audit );
 	}
 
 	// ── Public API ────────────────────────────────────────────────────────────
@@ -296,54 +298,25 @@ class Discovery {
 	// ── DB upsert ─────────────────────────────────────────────────────────────
 
 	private function upsert_sources( array $sources, string $surface ): array {
-		global $wpdb;
-		$table   = $wpdb->prefix . 'csp_source_inventory';
 		$added   = 0;
 		$updated = 0;
-		$now     = current_time( 'mysql', true );
 
 		foreach ( $sources as $src ) {
 			if ( empty( $src['host'] ) ) {
 				continue;
 			}
 
-			$existing = $wpdb->get_var(
-				$wpdb->prepare(
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					"SELECT id FROM {$table} WHERE surface = %s AND directive = %s AND source_host = %s LIMIT 1",
-					$surface,
-					$src['directive'],
-					$src['host']
-				)
+			$result = $this->policy_changes->propose_source(
+				$surface,
+				$src,
+				'discovery',
+				'crawl',
+				sprintf( 'Learned from discovery crawl. URL: %s', $src['uri'] )
 			);
 
-			if ( $existing ) {
-				$wpdb->update(
-					$table,
-					array(
-						'last_seen_at' => $now,
-						'source_uri'   => $src['uri'],
-					),
-					array( 'id' => (int) $existing ),
-					array( '%s', '%s' ),
-					array( '%d' )
-				);
+			if ( 'updated' === $result['status'] ) {
 				++$updated;
-			} else {
-				$wpdb->insert(
-					$table,
-					array(
-						'surface'        => $surface,
-						'directive'      => $src['directive'],
-						'source_uri'     => $src['uri'],
-						'source_scheme'  => $src['scheme'],
-						'source_host'    => $src['host'],
-						'approval_state' => 'pending',
-						'first_seen_at'  => $now,
-						'last_seen_at'   => $now,
-					),
-					array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
-				);
+			} elseif ( 'added' === $result['status'] ) {
 				++$added;
 			}
 		}

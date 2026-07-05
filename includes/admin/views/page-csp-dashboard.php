@@ -13,7 +13,7 @@ global $wpdb;
 
 // Current tab.
 $tab          = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'profiles';
-$allowed_tabs = array( 'profiles', 'sources', 'violations', 'scan-log' );
+$allowed_tabs = array( 'profiles', 'sources', 'policy-changes', 'violations', 'scan-log' );
 if ( ! in_array( $tab, $allowed_tabs, true ) ) {
 	$tab = 'profiles';
 }
@@ -26,38 +26,10 @@ $profiles_raw = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_policy_pro
 $profiles     = ! empty( $profiles_raw ) ? $profiles_raw : array();
 $surfaces     = array( 'frontend', 'admin', 'login', 'api' );
 
-// Source inventory – paginated.
-$per_page    = 20;
-$page_num    = max( 1, (int) ( isset( $_GET['paged'] ) ? $_GET['paged'] : 1 ) );
-$offset      = ( $page_num - 1 ) * $per_page;
-$src_surface = isset( $_GET['src_surface'] ) ? sanitize_text_field( wp_unslash( $_GET['src_surface'] ) ) : '';
-$src_state   = isset( $_GET['src_state'] ) ? sanitize_text_field( wp_unslash( $_GET['src_state'] ) ) : '';
-
-$src_where = '1=1';
-$src_args  = array();
-if ( $src_surface ) {
-	$src_where .= ' AND surface = %s';
-	$src_args[] = $src_surface;
-}
-if ( $src_state ) {
-	$src_where .= ' AND approval_state = %s';
-	$src_args[] = $src_state;
-}
-
-if ( $src_surface && $src_state ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s AND approval_state = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_surface, $src_state, $per_page, $offset ), ARRAY_A );
-} elseif ( $src_surface ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_surface, $per_page, $offset ), ARRAY_A );
-} elseif ( $src_state ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE approval_state = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_state, $per_page, $offset ), ARRAY_A );
-} else {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $per_page, $offset ), ARRAY_A );
-}
-$sources = ! empty( $sources_raw ) ? $sources_raw : array();
+// Shared pagination defaults.
+$per_page = 20;
+$page_num = max( 1, (int) ( isset( $_GET['paged'] ) ? $_GET['paged'] : 1 ) );
+$offset   = ( $page_num - 1 ) * $per_page;
 
 // Violations – last 50.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -89,6 +61,10 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 		<a class="nav-tab<?php echo 'sources' === $tab ? ' nav-tab-active' : ''; ?>"
 			href="<?php echo esc_url( add_query_arg( 'tab', 'sources', $base_url ) ); ?>">
 			<?php esc_html_e( 'Source Inventory', 'wp-csp-automation' ); ?>
+		</a>
+		<a class="nav-tab<?php echo 'policy-changes' === $tab ? ' nav-tab-active' : ''; ?>"
+			href="<?php echo esc_url( add_query_arg( 'tab', 'policy-changes', $base_url ) ); ?>">
+			<?php esc_html_e( 'Policy Changes', 'wp-csp-automation' ); ?>
 		</a>
 		<a class="nav-tab<?php echo 'violations' === $tab ? ' nav-tab-active' : ''; ?>"
 			href="<?php echo esc_url( add_query_arg( 'tab', 'violations', $base_url ) ); ?>">
@@ -155,40 +131,43 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 		<?php
 		$src_surface = isset( $_GET['src_surface'] ) ? sanitize_text_field( wp_unslash( $_GET['src_surface'] ) ) : '';
 		$src_state   = isset( $_GET['src_state'] ) ? sanitize_text_field( wp_unslash( $_GET['src_state'] ) ) : '';
+		$src_risk    = isset( $_GET['src_risk'] ) ? sanitize_text_field( wp_unslash( $_GET['src_risk'] ) ) : '';
 
-		// Count matching rows (same filters as data query) for pagination.
-		if ( $src_surface && $src_state ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$src_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s AND approval_state = %s", $src_surface, $src_state ) );
-		} elseif ( $src_surface ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$src_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s", $src_surface ) );
-		} elseif ( $src_state ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$src_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}csp_source_inventory WHERE approval_state = %s", $src_state ) );
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- No user input; only $wpdb->prefix used in query.
-			$src_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}csp_source_inventory" );
+		$src_where = array( '1=1' );
+		$src_args  = array();
+		if ( $src_surface ) {
+			$src_where[] = 'surface = %s';
+			$src_args[]  = $src_surface;
 		}
+		if ( $src_state ) {
+			$src_where[] = 'approval_state = %s';
+			$src_args[]  = $src_state;
+		}
+		if ( $src_risk ) {
+			$src_where[] = 'risk_level = %s';
+			$src_args[]  = $src_risk;
+		}
+
+		$src_where_sql = implode( ' AND ', $src_where );
+		$count_sql     = "SELECT COUNT(*) FROM {$wpdb->prefix}csp_source_inventory WHERE {$src_where_sql}";
+		if ( ! empty( $src_args ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$count_sql = $wpdb->prepare( $count_sql, ...$src_args );
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.NotPrepared
+		$src_total = (int) $wpdb->get_var( $count_sql );
+
 		$src_pages = max( 1, (int) ceil( $src_total / $per_page ) );
 		$page_num  = min( max( 1, (int) ( isset( $_GET['paged'] ) ? $_GET['paged'] : 1 ) ), $src_pages );
 		$offset    = ( $page_num - 1 ) * $per_page;
 
-		// Data query.
-		if ( $src_surface && $src_state ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s AND approval_state = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_surface, $src_state, $per_page, $offset ), ARRAY_A );
-		} elseif ( $src_surface ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE surface = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_surface, $per_page, $offset ), ARRAY_A );
-		} elseif ( $src_state ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE approval_state = %s ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $src_state, $per_page, $offset ), ARRAY_A );
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$sources_raw = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}csp_source_inventory ORDER BY last_seen_at DESC LIMIT %d OFFSET %d", $per_page, $offset ), ARRAY_A );
-		}
-		$sources = ! empty( $sources_raw ) ? $sources_raw : array();
+		$query_args = array_merge( $src_args, array( $per_page, $offset ) );
+		$data_sql   = "SELECT * FROM {$wpdb->prefix}csp_source_inventory WHERE {$src_where_sql} ORDER BY CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, last_seen_at DESC LIMIT %d OFFSET %d";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$data_sql = $wpdb->prepare( $data_sql, ...$query_args );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared
+		$sources_raw = $wpdb->get_results( $data_sql, ARRAY_A );
+		$sources     = ! empty( $sources_raw ) ? $sources_raw : array();
 		?>
 	<form method="get" action="">
 		<input type="hidden" name="page" value="wp-csp-automation-dashboard" />
@@ -205,6 +184,12 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 			<option value="<?php echo esc_attr( $st ); ?>" <?php selected( $src_state, $st ); ?>><?php echo esc_html( ucfirst( $st ) ); ?></option>
 			<?php endforeach; ?>
 		</select>
+		<select name="src_risk">
+			<option value=""><?php esc_html_e( 'All risk levels', 'wp-csp-automation' ); ?></option>
+			<?php foreach ( array( 'high', 'medium', 'low' ) as $risk ) : ?>
+			<option value="<?php echo esc_attr( $risk ); ?>" <?php selected( $src_risk, $risk ); ?>><?php echo esc_html( ucfirst( $risk ) ); ?></option>
+			<?php endforeach; ?>
+		</select>
 		<?php submit_button( __( 'Filter', 'wp-csp-automation' ), 'secondary', 'filter_sources', false ); ?>
 	</form>
 
@@ -215,7 +200,9 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
 				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
 				<th><?php esc_html_e( 'Host', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Risk', 'wp-csp-automation' ); ?></th>
 				<th><?php esc_html_e( 'State', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Evidence', 'wp-csp-automation' ); ?></th>
 				<th><?php esc_html_e( 'Last Seen', 'wp-csp-automation' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'wp-csp-automation' ); ?></th>
 			</tr>
@@ -228,10 +215,16 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 			<td><code><?php echo esc_html( $src['directive'] ); ?></code></td>
 			<td><code><?php echo esc_html( $src['source_host'] ); ?></code></td>
 			<td>
+				<span class="wp-csp-risk-badge risk-<?php echo esc_attr( $src['risk_level'] ?? 'low' ); ?>" title="<?php echo esc_attr( $src['risk_reason'] ?? '' ); ?>">
+					<?php echo esc_html( ucfirst( $src['risk_level'] ?? 'low' ) ); ?>
+				</span>
+			</td>
+			<td>
 				<span class="wp-csp-state-badge state-<?php echo esc_attr( $src['approval_state'] ); ?>">
 					<?php echo esc_html( ucfirst( $src['approval_state'] ) ); ?>
 				</span>
 			</td>
+			<td><?php echo esc_html( number_format( (int) ( $src['evidence_count'] ?? 1 ) ) ); ?></td>
 			<td><?php echo esc_html( $src['last_seen_at'] ); ?></td>
 			<td>
 				<?php if ( 'pending' === $src['approval_state'] || 'denied' === $src['approval_state'] ) : ?>
@@ -241,14 +234,19 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 				<?php endif; ?>
 				<?php if ( 'pending' === $src['approval_state'] || 'approved' === $src['approval_state'] ) : ?>
 				<button type="button" class="button button-small wp-csp-deny-source" data-id="<?php echo esc_attr( $src['id'] ); ?>">
-					<?php esc_html_e( 'Deny', 'wp-csp-automation' ); ?>
+					<?php esc_html_e( 'Reject', 'wp-csp-automation' ); ?>
+				</button>
+				<?php endif; ?>
+				<?php if ( 'approved' === $src['approval_state'] ) : ?>
+				<button type="button" class="button button-small wp-csp-revert-source" data-id="<?php echo esc_attr( $src['id'] ); ?>">
+					<?php esc_html_e( 'Revert', 'wp-csp-automation' ); ?>
 				</button>
 				<?php endif; ?>
 			</td>
 		</tr>
 		<?php endforeach; ?>
 		<?php if ( empty( $sources ) ) : ?>
-		<tr><td colspan="7"><?php esc_html_e( 'No sources discovered yet. Run a scan to populate this table.', 'wp-csp-automation' ); ?></td></tr>
+		<tr><td colspan="9"><?php esc_html_e( 'No sources discovered yet. Run a scan to populate this table.', 'wp-csp-automation' ); ?></td></tr>
 		<?php endif; ?>
 		</tbody>
 	</table>
@@ -262,6 +260,7 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 						'tab'         => 'sources',
 						'src_surface' => $src_surface,
 						'src_state'   => $src_state,
+						'src_risk'    => $src_risk,
 					)
 				);
 			?>
@@ -288,6 +287,54 @@ $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 		</div>
 	</div>
 	<?php endif; ?>
+
+	<?php elseif ( 'policy-changes' === $tab ) : ?>
+	<!-- Policy Changes tab -->
+		<?php
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- No user input; only $wpdb->prefix used in query.
+		$policy_decisions_raw = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_policy_change_decisions ORDER BY created_at DESC LIMIT 100", ARRAY_A );
+		$policy_decisions     = ! empty( $policy_decisions_raw ) ? $policy_decisions_raw : array();
+		?>
+	<p class="description">
+		<?php esc_html_e( 'Every approval, rejection, and revert is recorded here. Rejected and reverted changes suppress the same source fingerprint until a later approval becomes the newest decision.', 'wp-csp-automation' ); ?>
+	</p>
+	<table class="widefat fixed striped">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'When', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Action', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Host', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Risk', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Suppression', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Reason', 'wp-csp-automation' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php foreach ( $policy_decisions as $decision ) : ?>
+		<tr>
+			<td><?php echo esc_html( $decision['created_at'] ); ?></td>
+			<td><?php echo esc_html( ucfirst( $decision['action'] ) ); ?></td>
+			<td><?php echo esc_html( $decision['surface'] ); ?></td>
+			<td><code><?php echo esc_html( $decision['directive'] ); ?></code></td>
+			<td><code><?php echo esc_html( $decision['source_host'] ); ?></code></td>
+			<td>
+				<span class="wp-csp-risk-badge risk-<?php echo esc_attr( $decision['risk_level'] ); ?>" title="<?php echo esc_attr( $decision['risk_reason'] ); ?>">
+					<?php echo esc_html( ucfirst( $decision['risk_level'] ) ); ?>
+				</span>
+			</td>
+			<td>
+				<?php echo ! empty( $decision['suppression_active'] ) ? esc_html__( 'Active', 'wp-csp-automation' ) : '&mdash;'; ?>
+			</td>
+			<td><?php echo esc_html( $decision['reason'] ); ?></td>
+		</tr>
+		<?php endforeach; ?>
+		<?php if ( empty( $policy_decisions ) ) : ?>
+		<tr><td colspan="8"><?php esc_html_e( 'No policy decisions have been recorded yet.', 'wp-csp-automation' ); ?></td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
 
 	<?php elseif ( 'violations' === $tab ) : ?>
 	<!-- ── Violations tab ─────────────────────────────────────────────────── -->

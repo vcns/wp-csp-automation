@@ -2,7 +2,7 @@
 
 ## Overview
 
-The plugin creates eight custom tables on activation. All table names are prefixed with the site's configured WordPress table prefix (default `wp_`). Tables are created and migrated via `dbDelta()` in `includes/class-activator.php`; the current schema version is tracked in the `wp_csp_db_version` option and compared against the `WP_CSP_DB_VERSION` constant on every boot.
+The plugin creates nine custom tables on activation. All table names are prefixed with the site's configured WordPress table prefix (default `wp_`). Tables are created and migrated via `dbDelta()` in `includes/class-activator.php`; the current schema version is tracked in the `wp_csp_db_version` option and compared against the `WP_CSP_DB_VERSION` constant on every boot.
 
 | Version | Change |
 |---------|--------|
@@ -10,6 +10,7 @@ The plugin creates eight custom tables on activation. All table names are prefix
 | v2 | `csp_policy_profiles` gains `override_expires_at`, `override_owner` |
 | v3 | `csp_violation_reports` gains `sample` column |
 | v4 | `csp_audit_log` append-only table added |
+| v5 | source proposal risk/decision metadata and `csp_policy_change_decisions` append-only ledger added |
 
 ## Table list
 
@@ -59,11 +60,17 @@ Key columns:
 - `approved_at` — set when an admin approves the row
 - `expires_at` — optional expiry; stale approved sources should be flagged for review
 - `notes` — free-text admin annotation
+- `risk_level` — `high`, `medium`, or `low`; computed from directive/source impact
+- `risk_reason` — human-readable risk rationale
+- `decision_fingerprint` — SHA-256 of `(surface, directive, source_host)` used for suppression
+- `evidence_count` — number of observations of the same candidate
+- `last_decision`, `decision_reason`, `decided_at`, `decided_by` — latest administrator decision metadata
 
 Operational notes:
 
 - discovery upserts rows by `(surface, directive, source_host)` rather than inserting duplicates
 - approval state is operator-controlled only; sources are never auto-approved
+- rejected and reverted fingerprints are suppressed by the latest matching row in `csp_policy_change_decisions`
 - same-origin resources must not be stored as inventory rows
 - only `approved` rows are included in emitted CSP headers
 
@@ -223,6 +230,34 @@ Operational notes:
 - `warning` and `error` events are additionally written to the PHP `error_log` and pushed to the admin notices FIFO queue (max 20 entries) for transient display
 - events are written before the associated action completes where possible, so that failures are always recorded
 
+### `csp_policy_change_decisions`
+
+Purpose:
+
+- records administrator decisions for CSP source proposals and determines whether future automation should suppress the same source fingerprint
+
+Key columns:
+
+- `id`
+- `change_type` — currently `source`
+- `surface`
+- `directive`
+- `source_host`, `source_uri`
+- `decision_fingerprint` — SHA-256 of `(surface, directive, source_host)`
+- `action` — `approved`, `rejected`, or `reverted`
+- `risk_level`, `risk_reason`
+- `reason` — administrator-provided decision note
+- `user_id`
+- `suppression_active` — `1` when this decision suppresses future proposals for the fingerprint
+- `created_at`
+
+Operational notes:
+
+- this table is append-only; do not update or delete prior decisions
+- the latest row for a `decision_fingerprint` controls suppression state
+- approving a previously rejected source appends a new non-suppressing decision, making that approval the latest decision
+- rejecting or reverting a source marks the source row denied and appends a suppressing decision
+
 ## Relationships
 
 The schema is intentionally loose and operational rather than deeply relational.
@@ -233,6 +268,7 @@ Primary runtime relationships:
 - `csp_entitlements.site_identity` represents the active licence state for the local install
 - `csp_processed_events.stripe_event_id` gates whether a Stripe event can mutate entitlements
 - `csp_audit_log` is not joined to other tables; it records events by component name
+- `csp_policy_change_decisions.decision_fingerprint` controls whether discovery or report learning may propose the same source again
 
 ## Index guidance
 
@@ -245,6 +281,7 @@ The following fields are indexed or uniquely constrained in the activation SQL:
 - `csp_entitlements`: `site_identity`, `product_key`, `status`; UNIQUE on `stripe_session_id`
 - `csp_processed_events`: UNIQUE on `stripe_event_id`; index on `stripe_session_id`
 - `csp_audit_log`: `severity`, `created_at`
+- `csp_policy_change_decisions`: `decision_fingerprint`, `action`, `risk_level`, `suppression_active`, `created_at`
 
 If performance issues appear under high violation volume, first review:
 
@@ -268,7 +305,7 @@ Whenever schema changes are introduced:
 
 ### Created on activation
 
-- all eight tables are created if absent
+- all nine tables are created if absent
 - default settings and default per-surface policy profiles are seeded
 - the `wp_csp_db_version` option is set to `WP_CSP_DB_VERSION`
 
@@ -280,6 +317,7 @@ Whenever schema changes are introduced:
 - entitlements mutate through verified Stripe webhooks
 - processed events are appended per webhook receipt
 - `csp_audit_log` is appended to by all significant plugin operations; never mutated in place
+- `csp_policy_change_decisions` is appended to whenever an administrator approves, rejects, or reverts a source proposal
 
 ### Removed on uninstall
 

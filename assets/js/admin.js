@@ -91,12 +91,14 @@
 	$( document ).on( 'click', '.wp-csp-approve-source', function () {
 		const $btn = $( this );
 		const id   = $btn.data( 'id' );
+		const reason = window.prompt( 'Optional approval reason:', '' ) || '';
 		$btn.prop( 'disabled', true );
 
 		$.post( wpCspAdmin.ajaxUrl, {
 			action:    'wp_csp_approve_source',
 			nonce:     wpCspAdmin.nonce,
 			source_id: id,
+			reason:    reason,
 		} )
 		.done( function ( res ) {
 			if ( res.success ) {
@@ -114,12 +116,14 @@
 	$( document ).on( 'click', '.wp-csp-deny-source', function () {
 		const $btn = $( this );
 		const id   = $btn.data( 'id' );
+		const reason = window.prompt( 'Why should this source be rejected and suppressed?', '' ) || '';
 		$btn.prop( 'disabled', true );
 
 		$.post( wpCspAdmin.ajaxUrl, {
 			action:    'wp_csp_deny_source',
 			nonce:     wpCspAdmin.nonce,
 			source_id: id,
+			reason:    reason,
 		} )
 		.done( function ( res ) {
 			if ( res.success ) {
@@ -134,6 +138,30 @@
 	} );
 
 	// ── Buy Now (checkout redirect) ───────────────────────────────────────────
+	$( document ).on( 'click', '.wp-csp-revert-source', function () {
+		const $btn = $( this );
+		const id   = $btn.data( 'id' );
+		const reason = window.prompt( 'Why should this approved source be reverted and suppressed?', '' ) || '';
+		$btn.prop( 'disabled', true );
+
+		$.post( wpCspAdmin.ajaxUrl, {
+			action:    'wp_csp_revert_source',
+			nonce:     wpCspAdmin.nonce,
+			source_id: id,
+			reason:    reason,
+		} )
+		.done( function ( res ) {
+			if ( res.success ) {
+				$btn.closest( 'tr' ).find( '.wp-csp-state-badge' )
+					.removeClass( 'state-pending state-approved' )
+					.addClass( 'state-denied' )
+					.text( 'Denied' );
+				$btn.remove();
+			}
+		} )
+		.always( function () { $btn.prop( 'disabled', false ); } );
+	} );
+
 	$( document ).on( 'click', '.wp-csp-buy-btn', function () {
 		const $btn       = $( this );
 		const productKey = $btn.data( 'product-key' );

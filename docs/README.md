@@ -14,7 +14,7 @@ These documents are written for:
 ## Document map
 
 - `architecture.md` — high-level system design, runtime flow, and responsibility boundaries
-- `database-schema.md` — custom table definitions, relationships, and operational notes
+- `database-schema.md` — custom table definitions, relationships, policy decision ledger, and operational notes
 - `remote-config-and-signing.md` — DNS-discovered remote config contract, signing process, and key handling
 - `stripe-operations.md` — Stripe product, checkout, webhook, and entitlement operations
 - `testing-and-quality.md` — expected validation workflow, CI scope, and manual verification checklist

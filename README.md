@@ -18,6 +18,8 @@ It provides per-surface CSP profiles, nonce injection, source discovery, violati
 - Automatic purge of violation reports older than a configurable number of days (default 90), run after every daily scan
 - Append-only audit log (`csp_audit_log`) for all significant plugin events
 - Source discovery and approval workflow
+- Risk-ranked CSP change proposals with administrator approve/reject decisions
+- Revert-and-suppress workflow so a reversed source is not proposed again automatically
 - Promotion gate before switching a surface into enforce mode
 - Conflict detection for competing CSP headers
 - Scheduled rescans with audit logging
@@ -80,8 +82,9 @@ Once published to WordPress.org:
 1. Install and activate the plugin.
 2. Run an initial scan from the CSP Manager dashboard.
 3. Review and approve only the external sources your site actually requires.
-4. Stay in report-only mode until violations are understood.
-5. Promote one surface at a time into enforce mode.
+4. Reject or revert unwanted sources so the same fingerprint is suppressed from future automation.
+5. Stay in report-only mode until violations are understood.
+6. Promote one surface at a time into enforce mode.
 
 ## Premium activation
 
