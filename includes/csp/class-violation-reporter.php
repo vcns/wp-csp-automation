@@ -27,11 +27,28 @@ class Violation_Reporter {
 
 	private const MAX_PER_HOUR_PER_SURFACE = 500;
 	private const RATE_LIMIT_WINDOW        = HOUR_IN_SECONDS;
+	private const LEARNABLE_DIRECTIVES     = array(
+		'script-src',
+		'script-src-elem',
+		'style-src',
+		'style-src-elem',
+		'img-src',
+		'font-src',
+		'connect-src',
+		'frame-src',
+		'media-src',
+		'manifest-src',
+		'worker-src',
+		'child-src',
+		'form-action',
+	);
 
 	private Audit_Log $audit;
+	private ?Learning_Window $learning_window;
 
-	public function __construct( Audit_Log $audit ) {
-		$this->audit = $audit;
+	public function __construct( Audit_Log $audit, ?Learning_Window $learning_window = null ) {
+		$this->audit           = $audit;
+		$this->learning_window = $learning_window;
 	}
 
 	// ── REST handler ──────────────────────────────────────────────────────────
@@ -215,6 +232,133 @@ class Violation_Reporter {
 				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 			);
 		}
+
+		$this->learn_source_from_report( $r, $surface, $blocked_uri, $now );
+	}
+
+	private function learn_source_from_report( array $r, string $surface, string $blocked_uri, string $now ): void {
+		if ( null === $this->learning_window || ! $this->learning_window->is_open() ) {
+			return;
+		}
+
+		$candidate = $this->source_candidate_from_report( $r, $blocked_uri );
+		if ( null === $candidate ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'csp_source_inventory';
+
+		$existing = $wpdb->get_var(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id FROM {$table} WHERE surface = %s AND directive = %s AND source_host = %s LIMIT 1",
+				$surface,
+				$candidate['directive'],
+				$candidate['host']
+			)
+		);
+
+		if ( $existing ) {
+			$wpdb->update(
+				$table,
+				array(
+					'source_uri'    => $candidate['uri'],
+					'source_scheme' => $candidate['scheme'],
+					'last_seen_at'  => $now,
+				),
+				array( 'id' => (int) $existing ),
+				array( '%s', '%s', '%s' ),
+				array( '%d' )
+			);
+			return;
+		}
+
+		$document_uri = sanitize_text_field( substr( isset( $r['document_uri'] ) ? $r['document_uri'] : '', 0, 512 ) );
+		$notes        = sprintf( 'Learned from CSP report endpoint. Document: %s', $document_uri );
+
+		$wpdb->insert(
+			$table,
+			array(
+				'surface'         => $surface,
+				'directive'       => $candidate['directive'],
+				'source_uri'      => $candidate['uri'],
+				'source_scheme'   => $candidate['scheme'],
+				'source_host'     => $candidate['host'],
+				'owner_component' => 'report-endpoint',
+				'owner_type'      => 'runtime-report',
+				'approval_state'  => 'pending',
+				'first_seen_at'   => $now,
+				'last_seen_at'    => $now,
+				'notes'           => sanitize_text_field( substr( $notes, 0, 512 ) ),
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	private function source_candidate_from_report( array $r, string $blocked_uri ): ?array {
+		$directive = $this->normalise_directive(
+			isset( $r['effective_directive'] ) && '' !== $r['effective_directive']
+				? $r['effective_directive']
+				: ( $r['violated_directive'] ?? '' )
+		);
+
+		if ( ! in_array( $directive, self::LEARNABLE_DIRECTIVES, true ) ) {
+			return null;
+		}
+
+		$blocked_uri = trim( $blocked_uri );
+		if ( '' === $blocked_uri || $this->is_non_host_blocked_uri( $blocked_uri ) ) {
+			return null;
+		}
+
+		if ( str_starts_with( $blocked_uri, '//' ) ) {
+			$blocked_uri = 'https:' . $blocked_uri;
+		}
+
+		$parsed = wp_parse_url( $blocked_uri );
+		if ( empty( $parsed['host'] ) ) {
+			return null;
+		}
+
+		$scheme = strtolower( isset( $parsed['scheme'] ) ? $parsed['scheme'] : 'https' );
+		if ( ! in_array( $scheme, array( 'http', 'https', 'ws', 'wss' ), true ) ) {
+			return null;
+		}
+
+		$host      = strtolower( $parsed['host'] );
+		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
+		if ( ! empty( $site_host ) && strtolower( (string) $site_host ) === $host ) {
+			return null;
+		}
+
+		return array(
+			'directive' => $directive,
+			'uri'       => esc_url_raw( $blocked_uri ),
+			'scheme'    => $scheme,
+			'host'      => sanitize_text_field( substr( $host, 0, 255 ) ),
+		);
+	}
+
+	private function normalise_directive( string $directive ): string {
+		$directive = strtolower( trim( $directive ) );
+		if ( str_contains( $directive, ' ' ) ) {
+			$directive = strtok( $directive, ' ' );
+		}
+
+		$normalised = preg_replace( '/[^a-z0-9-]/', '', (string) $directive );
+		return is_string( $normalised ) ? $normalised : '';
+	}
+
+	private function is_non_host_blocked_uri( string $blocked_uri ): bool {
+		$value = strtolower( $blocked_uri );
+		if ( in_array( $value, array( 'inline', 'eval', 'wasm-eval', 'data', 'blob', 'about' ), true ) ) {
+			return true;
+		}
+
+		return str_starts_with( $value, 'data:' )
+			|| str_starts_with( $value, 'blob:' )
+			|| str_starts_with( $value, 'about:' );
 	}
 
 	private function surface_from_document_uri( string $uri ): string {

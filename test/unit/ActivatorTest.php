@@ -42,6 +42,13 @@ class ActivatorTest extends TestCase {
 		$this->assertSame( 90, get_option( 'wp_csp_violation_retention_days' ) );
 	}
 
+	public function test_activate_seeds_learning_window_option(): void {
+		Activator::activate();
+
+		$this->assertSame( 48, get_option( 'wp_csp_learning_window_hours' ) );
+		$this->assertNotEmpty( get_option( 'wp_csp_last_material_change_at' ) );
+	}
+
 	public function test_activate_seeds_enforce_gate_violation_window_option(): void {
 		Activator::activate();
 

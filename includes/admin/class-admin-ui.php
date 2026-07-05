@@ -100,6 +100,7 @@ class Admin_UI {
 			'wp_csp_cron_hour'                     => 'absint',
 			'wp_csp_notify_email'                  => 'sanitize_email',
 			'wp_csp_enforce_gate_violation_window' => 'absint',
+			'wp_csp_learning_window_hours'         => 'absint',
 			// Data retention: days to keep violation reports (0 = keep forever).
 			'wp_csp_violation_retention_days'      => 'absint',
 		);

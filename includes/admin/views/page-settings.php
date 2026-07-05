@@ -9,10 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$config_domain  = get_option( 'wp_csp_config_dns_domain', '' );
-$config_version = get_option( 'wp_csp_config_version', __( 'Not yet fetched', 'wp-csp-automation' ) );
-$config_fetched = get_option( 'wp_csp_config_last_fetched', '' );
-$webhook_url    = rest_url( 'csp-manager/v1/stripe-webhook' );
+$config_domain   = get_option( 'wp_csp_config_dns_domain', '' );
+$config_version  = get_option( 'wp_csp_config_version', __( 'Not yet fetched', 'wp-csp-automation' ) );
+$config_fetched  = get_option( 'wp_csp_config_last_fetched', '' );
+$webhook_url     = rest_url( 'csp-manager/v1/stripe-webhook' );
+$learning_window = new \WP_CSP\CSP\Learning_Window();
+$learning_status = $learning_window->is_open() ? __( 'Open', 'wp-csp-automation' ) : __( 'Locked', 'wp-csp-automation' );
 ?>
 <div class="wrap wp-csp-wrap">
 	<h1><?php esc_html_e( 'WP CSP Automation – Settings', 'wp-csp-automation' ); ?></h1>
@@ -108,6 +110,40 @@ $webhook_url    = rest_url( 'csp-manager/v1/stripe-webhook' );
 						min="1" max="720" class="small-text" />
 					<p class="description">
 						<?php esc_html_e( 'Number of hours without any CSP violations required before a surface can be promoted to enforce mode. Default: 24. Increase this for production sites to ensure stability.', 'wp-csp-automation' ); ?>
+					</p>
+				</td>
+			</tr>
+		</table>
+
+		<h2 class="title"><?php esc_html_e( 'Report Endpoint Learning', 'wp-csp-automation' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Validated CSP reports can add pending source candidates while the site is inside the material-change learning window.', 'wp-csp-automation' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="wp_csp_learning_window_hours"><?php esc_html_e( 'Learning window (hours)', 'wp-csp-automation' ); ?></label></th>
+				<td>
+					<input type="number" id="wp_csp_learning_window_hours" name="wp_csp_learning_window_hours"
+						value="<?php echo esc_attr( get_option( 'wp_csp_learning_window_hours', 48 ) ); ?>"
+						min="1" max="720" class="small-text" />
+					<p class="description">
+						<?php esc_html_e( 'Default: 48. The report endpoint stops creating or updating source candidates after this many hours from the latest page, post, or plugin change.', 'wp-csp-automation' ); ?>
+					</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Learning status', 'wp-csp-automation' ); ?></th>
+				<td>
+					<p>
+						<?php
+						printf(
+							/* translators: 1: status, 2: last material change time, 3: lock time */
+							esc_html__( '%1$s. Last material change: %2$s. Locks at: %3$s UTC.', 'wp-csp-automation' ),
+							'<strong>' . esc_html( $learning_status ) . '</strong>',
+							esc_html( $learning_window->last_material_change_at() ),
+							esc_html( $learning_window->locks_at() )
+						);
+						?>
 					</p>
 				</td>
 			</tr>
