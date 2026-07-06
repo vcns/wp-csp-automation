@@ -2,7 +2,8 @@ name: Release Package
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 # Push a semver tag  (e.g. git tag v0.2.0 && git push origin v0.2.0)
-#   → builds ZIP, creates GitHub Release, attaches ZIP as a downloadable asset.
+#   → builds ZIP, creates GitHub Release, attaches ZIP, and publishes the latest
+#     stable ZIP plus update manifest through GitHub Pages.
 #
 # Open a PR against development
 #   → smoke-check only: builds ZIP and uploads it as a workflow artifact.
@@ -133,7 +134,8 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
-          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
             --download-url "${DOWNLOAD_URL}" \
@@ -148,7 +150,7 @@ jobs:
             "dist/wp-csp-automation.json"
 
   pages-update-manifest:
-    name: Publish Pages Update Manifest
+    name: Publish Pages Update Manifest and ZIP
     needs:
       - build
       - release
@@ -168,14 +170,24 @@ jobs:
           php-version: '8.1'
           coverage: none
 
-      - name: Generate latest stable update manifest
+      - name: Download ZIP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wp-csp-automation-zip
+          path: dist/
+
+      - name: Generate latest stable update manifest and Pages ZIP
         shell: bash
         run: |
           set -euo pipefail
 
           TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
-          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+
+          mkdir -p docs/downloads docs/updates
+          cp "dist/${ZIP_FILENAME}" "docs/downloads/${ZIP_FILENAME}"
 
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
