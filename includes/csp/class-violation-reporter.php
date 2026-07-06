@@ -189,7 +189,8 @@ class Violation_Reporter {
 		set_transient( $rate_key, $count + 1, self::RATE_LIMIT_WINDOW );
 
 		$fingerprint = hash( 'sha256', $surface . '|' . $blocked_uri . '|' . $violated_directive );
-		$now         = current_time( 'mysql', true );
+
+		$now = current_time( 'mysql', true );
 
 		$document_uri_sanitized       = sanitize_text_field( substr( $document_uri, 0, 2048 ) );
 		$effective_directive_sanitized = sanitize_text_field( substr( isset( $r['effective_directive'] ) ? $r['effective_directive'] : '', 0, 128 ) );
