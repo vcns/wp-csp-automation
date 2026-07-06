@@ -303,6 +303,8 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 	class wpdb_stub {
 		public string  $prefix     = 'wp_';
 		public ?string $last_error = null;
+		public int     $rows_affected = 0;
+		public int     $insert_id      = 0;
 
 		public function prepare( string $query, mixed ...$args ): string {
 			$i = 0;
@@ -341,11 +343,16 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 
 		public function query( string $sql ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'query';
-			return $GLOBALS['_wpdb_query_result'] ?? 1;
+			$GLOBALS['_wpdb_last_query']     = $sql;
+			$result                          = $GLOBALS['_wpdb_query_result'] ?? 1;
+			$this->rows_affected             = false === $result ? 0 : (int) $result;
+			return $result;
 		}
 
 		public function insert( string $table, array $data, array $format = [] ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'insert';
+			$this->rows_affected            = 1;
+			++$this->insert_id;
 			$GLOBALS['_wpdb_inserted_rows'][] = array(
 				'table'  => $table,
 				'data'   => $data,
@@ -356,6 +363,8 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 
 		public function update( string $table, array $data, array $where, array $format = [], array $where_format = [] ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'update';
+			$result                         = $GLOBALS['_wpdb_update_result'] ?? 0;
+			$this->rows_affected            = false === $result ? 0 : (int) $result;
 			$GLOBALS['_wpdb_updated_rows'][] = array(
 				'table'        => $table,
 				'data'         => $data,
@@ -363,7 +372,7 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 				'format'       => $format,
 				'where_format' => $where_format,
 			);
-			return $GLOBALS['_wpdb_update_result'] ?? 0;
+			return $result;
 		}
 
 		public function get_charset_collate(): string {
@@ -429,6 +438,7 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wp_rest_headers']         = [];
 	$GLOBALS['_wpdb_query_result']       = 1;
 	$GLOBALS['_wpdb_last_operation']     = null;
+	$GLOBALS['_wpdb_last_query']         = null;
 	$GLOBALS['_wpdb_inserted_rows']      = [];
 	$GLOBALS['_wpdb_updated_rows']       = [];
 }

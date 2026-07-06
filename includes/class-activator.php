@@ -113,8 +113,7 @@ class Activator {
 
 		// 4. Ingested CSP violation reports
 		// v3: adds sample column — populated only when 'report-sample' is in the policy.
-		// sample contains the first 40 chars of the offending inline block (browser-truncated).
-		// legacy field: script-sample; Reporting API field: sample (research.md R7).
+		// v6: adds first/last roll-up timestamps and unique fingerprint support.
 		dbDelta(
 			"CREATE TABLE {$p}csp_violation_reports (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -133,15 +132,20 @@ class Activator {
   user_agent varchar(512) DEFAULT NULL,
   sample varchar(256) DEFAULT NULL,
   reported_at datetime NOT NULL,
+  first_reported_at datetime DEFAULT NULL,
+  last_reported_at datetime DEFAULT NULL,
   fingerprint varchar(64) NOT NULL,
   occurrence_count int(11) NOT NULL DEFAULT 1,
   PRIMARY KEY  (id),
   KEY profile_surface (profile_surface),
   KEY violated_directive (violated_directive),
-  KEY fingerprint (fingerprint),
-  KEY reported_at (reported_at)
+  KEY reported_at (reported_at),
+  KEY last_reported_at (last_reported_at),
+  UNIQUE KEY fingerprint (fingerprint)
 ) {$cc};"
 		);
+
+		self::migrate_violation_report_rollups();
 
 		// 5. Scan / rescan run history
 		dbDelta(
@@ -253,6 +257,73 @@ class Activator {
 		);
 
 		update_option( 'wp_csp_db_version', WP_CSP_DB_VERSION );
+	}
+
+	private static function migrate_violation_report_rollups(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'csp_violation_reports';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		if ( $table_exists !== $table ) {
+			return;
+		}
+
+		// Backfill new roll-up timestamps from the legacy reported_at column.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "UPDATE {$table} SET first_reported_at = reported_at WHERE first_reported_at IS NULL" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "UPDATE {$table} SET last_reported_at = reported_at WHERE last_reported_at IS NULL" );
+
+		// Collapse any historic duplicate fingerprints before enforcing uniqueness.
+		// The current reporter has deduped for some time, but this keeps upgrades safe.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$duplicates = $wpdb->get_results(
+			"SELECT fingerprint, MIN(id) AS keep_id, SUM(occurrence_count) AS total_count, MIN(first_reported_at) AS first_seen, MAX(last_reported_at) AS last_seen
+			 FROM {$table}
+			 GROUP BY fingerprint
+			 HAVING COUNT(*) > 1",
+			ARRAY_A
+		);
+
+		foreach ( $duplicates as $duplicate ) {
+			$keep_id = (int) $duplicate['keep_id'];
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"UPDATE {$table}
+					 SET occurrence_count = %d, first_reported_at = %s, last_reported_at = %s, reported_at = %s
+					 WHERE id = %d",
+					(int) $duplicate['total_count'],
+					(string) $duplicate['first_seen'],
+					(string) $duplicate['last_seen'],
+					(string) $duplicate['last_seen'],
+					$keep_id
+				)
+			);
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"DELETE FROM {$table} WHERE fingerprint = %s AND id <> %d",
+					(string) $duplicate['fingerprint'],
+					$keep_id
+				)
+			);
+		}
+
+		// Convert the fingerprint index to a unique index if required.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$index = $wpdb->get_row( "SHOW INDEX FROM {$table} WHERE Key_name = 'fingerprint' AND Non_unique = 0" );
+		if ( null === $index ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "ALTER TABLE {$table} DROP INDEX fingerprint" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "ALTER TABLE {$table} ADD UNIQUE KEY fingerprint (fingerprint)" );
+		}
 	}
 
 	// ── Default options ───────────────────────────────────────────────────────

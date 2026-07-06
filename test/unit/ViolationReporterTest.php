@@ -108,18 +108,16 @@ class ViolationReporterTest extends TestCase {
 		$this->assertSame( 'query', $GLOBALS['_wpdb_last_operation'] );
 	}
 
-	public function test_new_report_triggers_insert(): void {
+	public function test_new_report_uses_upsert_query(): void {
 		$GLOBALS['_wp_rest_headers']['content-type'] = 'application/csp-report';
-		// get_var returns null → no existing row, INSERT path taken.
-		$GLOBALS['_wpdb_get_var'] = null;
-
 		$request = $this->make_request(
 			'{"csp-report":{"violated-directive":"script-src","document-uri":"https://example.com/","blocked-uri":"https://cdn.example.com"}}'
 		);
 
 		$this->reporter->handle( $request );
 
-		$this->assertSame( 'insert', $GLOBALS['_wpdb_last_operation'] );
+		$this->assertSame( 'query', $GLOBALS['_wpdb_last_operation'] );
+		$this->assertStringContainsString( 'ON DUPLICATE KEY UPDATE', $GLOBALS['_wpdb_last_query'] );
 	}
 
 	public function test_report_endpoint_learning_creates_pending_source_candidate_when_window_open(): void {
@@ -134,8 +132,8 @@ class ViolationReporterTest extends TestCase {
 
 		$reporter->handle( $request );
 
-		$this->assertCount( 2, $GLOBALS['_wpdb_inserted_rows'] );
-		$source_insert = $GLOBALS['_wpdb_inserted_rows'][1]['data'];
+		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
+		$source_insert = $GLOBALS['_wpdb_inserted_rows'][0]['data'];
 		$this->assertSame( 'frontend', $source_insert['surface'] );
 		$this->assertSame( 'connect-src', $source_insert['directive'] );
 		$this->assertSame( 'api.vendor.example', $source_insert['source_host'] );
@@ -155,8 +153,8 @@ class ViolationReporterTest extends TestCase {
 
 		$reporter->handle( $request );
 
-		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
-		$this->assertSame( 'wp_csp_violation_reports', $GLOBALS['_wpdb_inserted_rows'][0]['table'] );
+		$this->assertCount( 0, $GLOBALS['_wpdb_inserted_rows'] );
+		$this->assertSame( 'query', $GLOBALS['_wpdb_last_operation'] );
 	}
 
 	public function test_report_endpoint_learning_skips_inline_reports(): void {
@@ -171,7 +169,8 @@ class ViolationReporterTest extends TestCase {
 
 		$reporter->handle( $request );
 
-		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
+		$this->assertCount( 0, $GLOBALS['_wpdb_inserted_rows'] );
+		$this->assertSame( 'query', $GLOBALS['_wpdb_last_operation'] );
 	}
 
 	// ── Payload normalisation ─────────────────────────────────────────────────
