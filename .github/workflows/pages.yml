@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p docs/updates
+          mkdir -p docs/updates docs/downloads
 
           if ! RELEASE_JSON="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName,publishedAt,url,assets 2>/dev/null)"; then
             echo "No GitHub Release found; publishing the committed update manifest."
@@ -62,7 +62,10 @@ jobs:
             exit 0
           fi
 
-          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${ZIP_FILENAME}" --dir "docs/downloads"
+
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
 
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
