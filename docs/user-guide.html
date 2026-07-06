@@ -36,6 +36,7 @@
 
     <nav class='section-nav' aria-label='Guide sections'>
       <a href='#first-30-minutes'>First 30 minutes</a>
+      <a href='#how-it-works'>How it works</a>
       <a href='#concepts'>Concepts</a>
       <a href='#installation'>Installation</a>
       <a href='#configuration'>Configuration</a>
@@ -71,6 +72,93 @@
           <div class='warning-callout'>
             <h3>What not to do</h3>
             <p>Do not approve every host just to clear the table. That turns CSP into a long allowlist with little value.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id='how-it-works' class='section'>
+        <p class='section-label'>How it works</p>
+        <h2>The full workflow from activation to enforcement.</h2>
+        <p>WP CSP Automation Manager is designed around a conservative loop: start in report-only mode, collect evidence, propose changes, require administrator decisions, then enforce only when the promotion gate is satisfied.</p>
+        <div class='card-grid'>
+          <article class='card'>
+            <h3>1. Initialise safely</h3>
+            <p>Activation creates the local tables and default per-surface policy profiles. New profiles start in report-only mode so the browser can report potential blocks without breaking the site.</p>
+          </article>
+          <article class='card'>
+            <h3>2. Build evidence</h3>
+            <p>The scanner discovers static sources from rendered pages and linked CSS. Real browser journeys supply runtime evidence through CSP violation reports.</p>
+          </article>
+          <article class='card'>
+            <h3>3. Decide deliberately</h3>
+            <p>New sources remain pending until an administrator approves them. Rejections and reversions are recorded so repeated unwanted proposals can be suppressed.</p>
+          </article>
+          <article class='card'>
+            <h3>4. Emit the policy</h3>
+            <p>The policy builder combines the selected surface profile, approved sources, active hashes, reporting endpoint, and per-request nonces into the CSP header.</p>
+          </article>
+          <article class='card'>
+            <h3>5. Promote one surface</h3>
+            <p>Before enforce mode is allowed, the promotion gate checks approved inventory, recent violations, and temporary override state for that specific surface.</p>
+          </article>
+          <article class='card'>
+            <h3>6. Keep learning</h3>
+            <p>Material site changes reopen the learning window. The daily scheduler keeps scans, stale hashes, report retention, and notifications moving.</p>
+          </article>
+        </div>
+        <div class='warning-callout'>
+          <h3>Important boundary</h3>
+          <p>The plugin does not decide that a third-party host is trustworthy. It shows evidence and risk context so the site owner or administrator can make a controlled policy decision.</p>
+        </div>
+        <div class='callout table-wrap'>
+          <h3>Sequence diagram</h3>
+          <p>This diagram intentionally shows the long path. It can be simplified later for a quick-start version.</p>
+          <div class='mermaid'>
+sequenceDiagram
+    autonumber
+    participant Admin as Administrator
+    participant WP as WordPress + plugin
+    participant DB as WordPress database
+    participant Browser as Browser
+    participant Report as CSP report endpoint
+    participant Worker as Remote config and licensing
+    participant Scheduler as Daily scheduler
+
+    Admin->>WP: Install and activate plugin
+    WP->>DB: Create CSP tables and seed report-only profiles
+    WP->>Worker: Fetch signed product config and entitlement metadata
+    Worker-->>WP: Return public metadata and entitlement response
+    Note over WP,Worker: Stripe secrets stay in remote licensing infrastructure
+
+    WP->>Browser: Emit report-only CSP header for each surface
+    WP->>Browser: Add per-request nonces to managed scripts and styles
+    Admin->>WP: Run manual scan
+    WP->>WP: Crawl representative frontend, admin, login and API URLs
+    WP->>DB: Store scan log and pending source proposals
+
+    Browser->>WP: Request real site journeys
+    WP->>Browser: Serve page with CSP header and reporting endpoint
+    Browser->>Report: Post violation reports for observed policy failures
+    Report->>Report: Validate content type and same-origin document URI
+    Report->>DB: Deduplicate, rate-limit and store violation report
+    Report->>DB: During learning window, create or refresh pending sources
+
+    Admin->>WP: Review Source Inventory and Violations
+    Admin->>DB: Approve, reject or revert proposals
+    WP->>DB: Record decision, risk context and suppression fingerprint
+
+    Admin->>WP: Request enforce mode for one surface
+    WP->>DB: Check approved inventory, recent violations and overrides
+    alt Promotion gate passes
+        WP->>Browser: Emit enforcing CSP header for that surface
+    else Gate fails or breakage is reported
+        WP->>Browser: Keep or return surface to report-only
+        Admin->>WP: Review violations and policy decisions again
+    end
+
+    Scheduler->>WP: Run daily scan and housekeeping
+    WP->>DB: Retire stale hashes and purge old violation reports
+    WP-->>Admin: Send notification when configured and policy changed
           </div>
         </div>
       </section>
@@ -312,5 +400,14 @@
       <p><a href='index.html'>Help home</a> · <a href='faq.html'>FAQ</a> · <a href='https://github.com/vcns/wp-csp-automation'>Repository</a></p>
     </footer>
   </div>
+  <script type='module'>
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'strict'
+    });
+  </script>
 </body>
 </html>
