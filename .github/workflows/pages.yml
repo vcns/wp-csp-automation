@@ -62,7 +62,8 @@ jobs:
             exit 0
           fi
 
-          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
 
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
