@@ -156,8 +156,11 @@ jobs:
       - release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
-      name: production
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
