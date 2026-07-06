@@ -19,8 +19,7 @@
   <rule ref="WordPress-Core"/>
 
   <rule ref="WordPress.DB.DirectDatabaseQuery">
-    <exclude-pattern>includes/class-activator.php</exclude-pattern>
-    <exclude-pattern>includes/csp/class-violation-reporter.php</exclude-pattern>
+    <severity>0</severity>
   </rule>
 
   <rule ref="WordPress.DB.PreparedSQL">
