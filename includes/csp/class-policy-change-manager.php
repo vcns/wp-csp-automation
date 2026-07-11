@@ -37,9 +37,15 @@ class Policy_Change_Manager {
 	);
 
 	private Audit_Log $audit;
+	private Decision_Engine $decision_engine;
+	private Automation_Config $automation_config;
+	private ?Policy_Version_Manager $policy_versions;
 
-	public function __construct( Audit_Log $audit ) {
-		$this->audit = $audit;
+	public function __construct( Audit_Log $audit, ?Decision_Engine $decision_engine = null, ?Policy_Version_Manager $policy_versions = null, ?Automation_Config $automation_config = null ) {
+		$this->audit             = $audit;
+		$this->decision_engine   = $decision_engine ?? new Decision_Engine();
+		$this->policy_versions   = $policy_versions;
+		$this->automation_config = $automation_config ?? new Automation_Config();
 	}
 
 	/**
@@ -211,45 +217,20 @@ class Policy_Change_Manager {
 	 * @return array{level:string,reason:string}
 	 */
 	public function classify_source_risk( string $directive, string $scheme, string $host, string $uri = '' ): array {
-		$directive = $this->normalise_directive( $directive );
-		$scheme    = strtolower( trim( $scheme ) );
-		$host      = strtolower( trim( $host ) );
-		$uri       = strtolower( trim( $uri ) );
-		$reasons   = array();
-
-		if ( str_contains( $host, '*' ) || str_contains( $uri, '*' ) ) {
-			$reasons[] = 'wildcard source';
-		}
-		if ( 'http' === $scheme || str_starts_with( $uri, 'http:' ) ) {
-			$reasons[] = 'cleartext HTTP source';
-		}
-		if ( in_array( $scheme, array( 'data', 'blob' ), true ) || str_starts_with( $uri, 'data:' ) || str_starts_with( $uri, 'blob:' ) ) {
-			$reasons[] = 'broad browser scheme';
-		}
-		if ( str_contains( $uri, "'unsafe-inline'" ) || str_contains( $uri, "'unsafe-eval'" ) ) {
-			$reasons[] = 'unsafe CSP keyword';
-		}
-		if ( in_array( $directive, self::HIGH_RISK_DIRECTIVES, true ) ) {
-			$reasons[] = "{$directive} can materially change script, style, connection, form, frame, or worker execution";
-		}
-
-		if ( ! empty( $reasons ) ) {
-			return array(
-				'level'  => 'high',
-				'reason' => implode( '; ', array_unique( $reasons ) ),
-			);
-		}
-
-		if ( in_array( $directive, self::MEDIUM_RISK_DIRECTIVES, true ) ) {
-			return array(
-				'level'  => 'medium',
-				'reason' => "{$directive} allows new third-party asset loading",
-			);
-		}
+		$result = $this->decision_engine->evaluate_source(
+			array(
+				'directive'      => $directive,
+				'source_scheme'  => $scheme,
+				'source_host'    => $host,
+				'source_uri'     => $uri,
+				'evidence_count' => 1,
+			),
+			array( 'mode' => 'manual' )
+		);
 
 		return array(
-			'level'  => 'low',
-			'reason' => 'Narrow host-source proposal.',
+			'level'  => $result['risk'],
+			'reason' => $result['summary'],
 		);
 	}
 
@@ -308,7 +289,29 @@ class Policy_Change_Manager {
 			return false;
 		}
 
-		$this->record_decision( $source, $action, $fingerprint, $risk_level, $risk_reason, $reason, $suppress, $now, $user_id );
+		$automation          = $this->automation_config->for_surface( (string) $source['surface'] );
+		$deterministic       = $this->decision_engine->evaluate_source( $source, $automation );
+		$previous_version_id = $this->latest_policy_version_id( (string) $source['surface'] );
+		$policy_version_id   = 0;
+		if ( in_array( $action, array( 'approved', 'reverted' ), true ) ) {
+			$policy_version_id = $this->policy_versions()->capture_snapshot( (string) $source['surface'], 'decision', $source_id );
+		}
+
+		$decision_id = $this->record_decision(
+			$source,
+			$action,
+			$fingerprint,
+			$deterministic['risk'],
+			$deterministic['summary'],
+			$reason,
+			$suppress,
+			$now,
+			$user_id,
+			$deterministic,
+			$previous_version_id,
+			$policy_version_id
+		);
+		$this->record_rule_evaluations( $source_id, $decision_id, $deterministic, $now );
 
 		$this->audit->log(
 			'policy_change',
@@ -329,28 +332,103 @@ class Policy_Change_Manager {
 		string $reason,
 		bool $suppress,
 		string $now,
-		int $user_id
-	): void {
+		int $user_id,
+		array $deterministic,
+		int $previous_policy_version_id,
+		int $policy_version_id
+	): int {
 		global $wpdb;
+
+		$state = match ( $action ) {
+			'approved' => 'approved',
+			'rejected' => 'rejected',
+			'reverted' => 'reverted',
+			default => 'pending',
+		};
 
 		$wpdb->insert(
 			$wpdb->prefix . 'csp_policy_change_decisions',
 			array(
-				'change_type'          => 'source',
-				'surface'              => $source['surface'],
-				'directive'            => $source['directive'],
-				'source_host'          => $source['source_host'],
-				'source_uri'           => $source['source_uri'],
-				'decision_fingerprint' => $fingerprint,
-				'action'               => $action,
-				'risk_level'           => $risk_level,
-				'risk_reason'          => $risk_reason,
-				'reason'               => sanitize_text_field( substr( $reason, 0, 512 ) ),
-				'user_id'              => $user_id,
-				'suppression_active'   => $suppress ? 1 : 0,
-				'created_at'           => $now,
+				'change_type'                => 'source',
+				'source_inventory_id'        => (int) ( $source['id'] ?? 0 ),
+				'surface'                    => $source['surface'],
+				'directive'                  => $source['directive'],
+				'source_host'                => $source['source_host'],
+				'source_uri'                 => $source['source_uri'],
+				'decision_fingerprint'       => $fingerprint,
+				'action'                     => $action,
+				'state'                      => $state,
+				'risk_level'                 => $risk_level,
+				'risk_reason'                => $risk_reason,
+				'reason'                     => sanitize_text_field( substr( $reason, 0, 512 ) ),
+				'user_id'                    => $user_id,
+				'actor_type'                 => 'administrator',
+				'actor_id'                   => $user_id > 0 ? (string) $user_id : null,
+				'previous_policy_version_id' => $previous_policy_version_id > 0 ? $previous_policy_version_id : null,
+				'policy_version_id'          => $policy_version_id > 0 ? $policy_version_id : null,
+				'decision_engine_version'    => $deterministic['engine_version'],
+				'deterministic_result'       => wp_json_encode( $deterministic ),
+				'evidence_snapshot'          => wp_json_encode( $this->source_evidence_snapshot( $source ) ),
+				'software_version'           => defined( 'WP_CSP_VERSION' ) ? WP_CSP_VERSION : '',
+				'suppression_active'         => $suppress ? 1 : 0,
+				'created_at'                 => $now,
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
+			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s' )
+		);
+
+		return (int) ( $wpdb->insert_id ?? 0 );
+	}
+
+	private function record_rule_evaluations( int $source_id, int $decision_id, array $deterministic, string $now ): void {
+		global $wpdb;
+
+		foreach ( $deterministic['findings'] ?? array() as $finding ) {
+			if ( ! is_array( $finding ) ) {
+				continue;
+			}
+			$wpdb->insert(
+				$wpdb->prefix . 'csp_decision_rule_evaluations',
+				array(
+					'proposal_id'       => $source_id,
+					'decision_id'       => $decision_id > 0 ? $decision_id : null,
+					'engine_version'    => (string) $deterministic['engine_version'],
+					'rule_id'           => (string) ( $finding['rule_id'] ?? '' ),
+					'rule_version'      => (string) ( $finding['rule_version'] ?? '1' ),
+					'result'            => (string) ( $finding['result'] ?? 'review' ),
+					'risk_effect'       => (string) ( $finding['risk_effect'] ?? '' ),
+					'automation_effect' => (string) ( $finding['automation_effect'] ?? '' ),
+					'explanation'       => sanitize_text_field( substr( (string) ( $finding['explanation'] ?? '' ), 0, 512 ) ),
+					'created_at'        => $now,
+				),
+				array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
+	}
+
+	private function latest_policy_version_id( string $surface ): int {
+		$latest = $this->policy_versions()->latest_version( $surface );
+		return isset( $latest['id'] ) ? (int) $latest['id'] : 0;
+	}
+
+	private function policy_versions(): Policy_Version_Manager {
+		if ( null === $this->policy_versions ) {
+			$this->policy_versions = new Policy_Version_Manager();
+		}
+		return $this->policy_versions;
+	}
+
+	private function source_evidence_snapshot( array $source ): array {
+		return array(
+			'source_inventory_id' => (int) ( $source['id'] ?? 0 ),
+			'surface'             => (string) ( $source['surface'] ?? '' ),
+			'directive'           => (string) ( $source['directive'] ?? '' ),
+			'source_host'         => (string) ( $source['source_host'] ?? '' ),
+			'source_uri'          => (string) ( $source['source_uri'] ?? '' ),
+			'first_seen_at'       => (string) ( $source['first_seen_at'] ?? '' ),
+			'last_seen_at'        => (string) ( $source['last_seen_at'] ?? '' ),
+			'evidence_count'      => (int) ( $source['evidence_count'] ?? 1 ),
+			'owner_component'     => (string) ( $source['owner_component'] ?? '' ),
+			'owner_type'          => (string) ( $source['owner_type'] ?? '' ),
 		);
 	}
 

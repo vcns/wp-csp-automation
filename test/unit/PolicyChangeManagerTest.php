@@ -86,9 +86,19 @@ class PolicyChangeManagerTest extends TestCase {
 		$this->assertSame( 'denied', $GLOBALS['_wpdb_updated_rows'][0]['data']['approval_state'] );
 		$this->assertSame( 'reverted', $GLOBALS['_wpdb_updated_rows'][0]['data']['last_decision'] );
 
-		$this->assertCount( 1, $GLOBALS['_wpdb_inserted_rows'] );
-		$decision = $GLOBALS['_wpdb_inserted_rows'][0]['data'];
+		$decision_rows = array_values(
+			array_filter(
+				$GLOBALS['_wpdb_inserted_rows'],
+				static fn( array $row ): bool => 'wp_csp_policy_change_decisions' === $row['table']
+			)
+		);
+
+		$this->assertCount( 1, $decision_rows );
+		$decision = $decision_rows[0]['data'];
 		$this->assertSame( 'reverted', $decision['action'] );
+		$this->assertSame( 'reverted', $decision['state'] );
+		$this->assertSame( 'administrator', $decision['actor_type'] );
+		$this->assertSame( '1.0.0', $decision['decision_engine_version'] );
 		$this->assertSame( 1, $decision['suppression_active'] );
 		$this->assertSame( 'No longer required.', $decision['reason'] );
 	}

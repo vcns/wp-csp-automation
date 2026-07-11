@@ -24,6 +24,7 @@ use WP_CSP\CSP\Violation_Reporter;
 use WP_CSP\Modules\Audit_Log;
 use WP_CSP\Modules\Feature_Gate;
 use WP_CSP\Modules\Update_Checker;
+use WP_CSP\Rest\Admin_Controller;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -154,5 +155,7 @@ final class Plugin {
 				'permission_callback' => '__return_true',
 			)
 		);
+
+		( new Admin_Controller( $this->audit ) )->register_routes();
 	}
 }
