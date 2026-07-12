@@ -18,7 +18,7 @@ class VersionConsistencyTest extends TestCase {
 		$changelog        = $this->extract_latest_changelog_release( $root . '/CHANGELOG.md' );
 		$manifest_version = $this->extract_manifest_version( $root . '/docs/updates/wp-csp-automation.json' );
 
-		$this->assertSame( '0.3.0', $plugin_version );
+		$this->assertMatchesRegularExpression( '/^\d+\.\d+\.\d+$/', $plugin_version, 'Plugin version must be a valid semver string.' );
 		$this->assertSame( $plugin_version, $constant_version );
 		$this->assertSame( $plugin_version, $stable_tag );
 		$this->assertSame( $plugin_version, $changelog );

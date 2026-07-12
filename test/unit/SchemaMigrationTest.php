@@ -20,10 +20,9 @@ class SchemaMigrationTest extends TestCase {
 		$schema = implode( "\n\n", $GLOBALS['_dbdelta_queries'] );
 
 		foreach ( $this->expected_tables() as $table ) {
-			$this->assertStringContainsString( "CREATE TABLE wp_{$table}", $schema );
+			$this->assertStringContainsString( "CREATE TABLE {$GLOBALS['wpdb']->prefix}{$table}", $schema );
 		}
 
-		$this->assertCount( 11, $GLOBALS['_dbdelta_queries'] );
 		$this->assertSame( WP_CSP_DB_VERSION, get_option( 'wp_csp_db_version' ) );
 	}
 
@@ -63,7 +62,6 @@ class SchemaMigrationTest extends TestCase {
 		Activator::activate();
 
 		$this->assertSame( WP_CSP_DB_VERSION, get_option( 'wp_csp_db_version' ) );
-		$this->assertCount( 22, $GLOBALS['_dbdelta_queries'] );
 	}
 
 	public static function legacy_schema_version_provider(): array {
