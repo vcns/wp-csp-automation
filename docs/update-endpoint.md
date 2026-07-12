@@ -16,11 +16,7 @@ The manifest describes the latest stable release and points WordPress at a publi
 
 Expected download URL shape:
 
-<<<<<<< HEAD
 - `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip`
-=======
-- `https://vcns.github.io/wp-csp-automation/downloads/wp-csp-automation-vX.Y.Z.zip`
->>>>>>> origin/main
 
 Key fields:
 
@@ -53,16 +49,9 @@ Tagged stable releases generate:
 
 - `wp-csp-automation-vX.Y.Z.zip` attached to the GitHub Release
 - `wp-csp-automation.json` attached to the GitHub Release
-<<<<<<< HEAD
 - `wp-csp-automation-latest.zip` deployed to `vcns/wp-updates` on the `gh-pages` branch
 - `wp-csp-automation.json` deployed to `vcns/wp-updates` on the `gh-pages` branch
 
 Pre-release tags still create GitHub Release assets, but they do not update the Pages latest stable manifest or public Pages ZIP.
 
 The source repository must define `WP_UPDATES_TOKEN` as a repository or organization secret with write access to `vcns/wp-updates`.
-=======
-- `docs/downloads/wp-csp-automation-vX.Y.Z.zip` deployed through GitHub Pages
-- `docs/updates/wp-csp-automation.json` deployed through GitHub Pages
-
-Pre-release tags still create GitHub Release assets, but they do not update the Pages latest stable manifest or public Pages ZIP.
->>>>>>> origin/main
