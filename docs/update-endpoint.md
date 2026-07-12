@@ -12,16 +12,28 @@ Current manifest URL:
 
 - `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json`
 
+<<<<<<< HEAD
+The manifest describes the latest stable release and points WordPress at the immutable GitHub Release ZIP asset.
+=======
 The manifest describes the latest stable release and points WordPress at a public GitHub Pages ZIP asset.
 
 Expected download URL shape:
 
+<<<<<<< HEAD
 - `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip`
+=======
+- `https://vcns.github.io/wp-csp-automation/downloads/wp-csp-automation-vX.Y.Z.zip`
+>>>>>>> origin/development
+>>>>>>> origin/development
 
 Key fields:
 
 - `version` - latest stable plugin version without the leading `v`
+<<<<<<< HEAD
+- `download_url` - direct HTTPS URL for the release ZIP
+=======
 - `download_url` - direct HTTPS URL for the public Pages-hosted release ZIP
+>>>>>>> origin/development
 - `requires` - minimum supported WordPress version
 - `tested` - latest WordPress version tested for the release
 - `requires_php` - minimum PHP version
@@ -49,9 +61,22 @@ Tagged stable releases generate:
 
 - `wp-csp-automation-vX.Y.Z.zip` attached to the GitHub Release
 - `wp-csp-automation.json` attached to the GitHub Release
+<<<<<<< HEAD
 - `wp-csp-automation-latest.zip` deployed to `vcns/wp-updates` on the `gh-pages` branch
 - `wp-csp-automation.json` deployed to `vcns/wp-updates` on the `gh-pages` branch
 
 Pre-release tags still create GitHub Release assets, but they do not update the Pages latest stable manifest or public Pages ZIP.
 
 The source repository must define `WP_UPDATES_TOKEN` as a repository or organization secret with write access to `vcns/wp-updates`.
+=======
+<<<<<<< HEAD
+- `docs/updates/wp-csp-automation.json` deployed through GitHub Pages
+
+Pre-release tags still create GitHub Release assets, but they do not update the Pages "latest stable" manifest.
+=======
+- `docs/downloads/wp-csp-automation-vX.Y.Z.zip` deployed through GitHub Pages
+- `docs/updates/wp-csp-automation.json` deployed through GitHub Pages
+
+Pre-release tags still create GitHub Release assets, but they do not update the Pages latest stable manifest or public Pages ZIP.
+>>>>>>> origin/development
+>>>>>>> origin/development

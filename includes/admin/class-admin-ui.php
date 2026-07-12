@@ -17,6 +17,7 @@ namespace WP_CSP\Admin;
 
 use WP_CSP\Plugin;
 use WP_CSP\CSP\Policy_Change_Manager;
+use WP_CSP\CSP\Policy_Version_Manager;
 use WP_CSP\CSP\Scheduler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -82,6 +83,15 @@ class Admin_UI {
 
 		add_submenu_page(
 			'wp-csp-dashboard',
+			__( 'Policy Audit', 'wp-csp-automation' ),
+			__( 'Policy Audit', 'wp-csp-automation' ),
+			'manage_options',
+			'wp-csp-policy-audit',
+			array( $this, 'render_policy_audit' )
+		);
+
+		add_submenu_page(
+			'wp-csp-dashboard',
 			__( 'Premium', 'wp-csp-automation' ),
 			__( 'Premium', 'wp-csp-automation' ),
 			'manage_options',
@@ -118,6 +128,7 @@ class Admin_UI {
 		$csp_pages = array(
 			'toplevel_page_wp-csp-dashboard',
 			'csp-manager_page_wp-csp-settings',
+			'csp-manager_page_wp-csp-policy-audit',
 			'csp-manager_page_wp-csp-entitlement',
 		);
 		if ( ! in_array( $hook_suffix, $csp_pages, true ) ) {
@@ -143,9 +154,11 @@ class Admin_UI {
 			'wp-csp-admin',
 			'wpCspAdmin',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'wp_csp_admin_nonce' ),
-				'i18n'    => array(
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'restUrl'   => esc_url_raw( rest_url( 'csp-manager/v1/admin/' ) ),
+				'nonce'     => wp_create_nonce( 'wp_csp_admin_nonce' ),
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				'i18n'      => array(
 					'scanning'  => __( 'Scanning…', 'wp-csp-automation' ),
 					'scanDone'  => __( 'Scan complete.', 'wp-csp-automation' ),
 					'scanError' => __( 'Scan failed. Check error log.', 'wp-csp-automation' ),
@@ -168,6 +181,13 @@ class Admin_UI {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
 		}
 		require WP_CSP_DIR . 'includes/admin/views/page-settings.php';
+	}
+
+	public function render_policy_audit(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
+		}
+		require WP_CSP_DIR . 'includes/admin/views/page-policy-audit.php';
 	}
 
 	public function render_entitlement(): void {
@@ -334,7 +354,7 @@ class Admin_UI {
 		}
 
 		$reason  = sanitize_text_field( wp_unslash( $_POST['reason'] ?? '' ) );
-		$manager = new Policy_Change_Manager( $this->plugin->audit );
+		$manager = new Policy_Change_Manager( $this->plugin->audit, null, new Policy_Version_Manager( $this->plugin->policy_builder ) );
 		if ( 'approved' === $action ) {
 			$ok = $manager->approve_source( $id, $reason );
 		} elseif ( 'reverted' === $action ) {

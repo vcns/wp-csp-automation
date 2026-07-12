@@ -47,7 +47,7 @@ Current baseline:
 
 - boot WordPress in a disposable environment
 - activate the plugin
-- verify all nine custom tables are created (including `csp_audit_log` and `csp_policy_change_decisions`)
+- verify all custom tables are created (including `csp_audit_log`, `csp_policy_change_decisions`, `csp_policy_versions`, and `csp_decision_rule_evaluations`)
 - verify admin pages load
 - verify REST routes register and respond with expected status codes
 
@@ -61,8 +61,9 @@ Current baseline:
 
 ### Activation and upgrade
 
-- activate plugin on a clean site; confirm all nine tables exist (`csp_policy_profiles`, `csp_source_inventory`, `csp_hash_inventory`, `csp_violation_reports`, `csp_scan_logs`, `csp_entitlements`, `csp_processed_events`, `csp_audit_log`, `csp_policy_change_decisions`)
+- activate plugin on a clean site; confirm all custom tables exist (`csp_policy_profiles`, `csp_source_inventory`, `csp_hash_inventory`, `csp_violation_reports`, `csp_scan_logs`, `csp_entitlements`, `csp_processed_events`, `csp_audit_log`, `csp_policy_change_decisions`, `csp_policy_versions`, `csp_decision_rule_evaluations`)
 - confirm default options are seeded including `wp_csp_violation_retention_days` (should be `90`)
+- confirm `wp_csp_automation_config` is seeded to `manual` for every surface and `emergency_disabled` remains true
 - simulate DB upgrade path: set `wp_csp_db_version` to a lower version, reload; confirm `maybe_upgrade_db()` fires and new schema is applied without data loss
 - deactivate and confirm cron event is removed
 - uninstall and confirm tables and options are removed
@@ -114,6 +115,18 @@ Current baseline:
 - rescan the same source and confirm it is not reintroduced while the latest decision for its fingerprint is suppressing
 - approve the source again and confirm the latest decision clears suppression
 - revert an approved source and confirm it moves to denied, is removed from emitted CSP, and suppresses future automatic proposals
+- approve or revert a source and confirm a `csp_policy_versions` row is appended for the affected surface
+- confirm decision rows include `decision_engine_version`, deterministic result JSON, evidence snapshot JSON, actor metadata, and policy version references where applicable
+- confirm `csp_decision_rule_evaluations` rows are appended for the decision
+
+### Policy audit and admin REST
+
+- load **CSP Manager -> Policy Audit** and confirm current policy, pending review, and recent decision tables render without warnings
+- `GET /wp-json/csp-manager/v1/admin/policies` as an unauthorised user must fail
+- `GET /wp-json/csp-manager/v1/admin/policies` as an administrator must return surface summaries
+- `GET /wp-json/csp-manager/v1/admin/reviews/pending` must list pending source proposals
+- `GET /wp-json/csp-manager/v1/admin/decisions` must support filters such as `surface`, `directive`, `state`, and `risk_level`
+- `GET /wp-json/csp-manager/v1/admin/policy-versions/{id}/diff` must return added/removed directives, added/removed values, and mode-change status
 
 ### Violation reporting
 
@@ -153,6 +166,7 @@ Current baseline:
 - perform a policy change, a scan run, and a forbidden-directive injection; confirm `csp_audit_log` has corresponding rows with correct `component`, `event`, `severity`, and `user_id` values
 - confirm no `UPDATE` or `DELETE` is ever issued against `csp_audit_log` (grep test: no `$wpdb->update` or `$wpdb->delete` call references `csp_audit_log` in any source file)
 - confirm `csp_policy_change_decisions` is append-only and receives rows for approve, reject, and revert actions
+- confirm `csp_policy_versions` is append-oriented and receives new rows instead of rewriting older policy snapshots
 
 ### Premium flow
 

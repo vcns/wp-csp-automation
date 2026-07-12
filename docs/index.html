@@ -11,6 +11,18 @@
   <link rel='stylesheet' href='styles.css'>
 </head>
 <body>
+<<<<<<< HEAD
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">WP CSP Automation Manager</p>
+        <h1>Operational docs, setup guides, and release help in one place.</h1>
+        <p class="lede">This site is the public help surface for the plugin: installation, rollout strategy, Stripe setup, remote config signing, GitHub workflow automation, and WordPress.org release guidance.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/vcns/wp-csp-automation">View Repository</a>
+          <a class="button secondary" href="updates/wp-csp-automation.json">Latest Version JSON</a>
+          <a class="button secondary" href="#quick-start">Quick Start</a>
+=======
   <div class='page-shell'>
     <header class='hero'>
       <div class='hero-copy'>
@@ -21,6 +33,7 @@
           <a class='button primary' href='user-guide.html'>Read the user guide</a>
           <a class='button secondary' href='faq.html'>Open the FAQ</a>
           <a class='button secondary' href='https://github.com/vcns/wp-csp-automation/releases'>Download releases</a>
+>>>>>>> origin/development
         </div>
       </div>
       <aside class='hero-panel'>
@@ -37,6 +50,19 @@
       </aside>
     </header>
 
+<<<<<<< HEAD
+    <nav class="section-nav">
+      <a href="#quick-start">Quick Start</a>
+      <a href="#installation">Installation</a>
+      <a href="#updates">Updates</a>
+      <a href="#premium-activation">Premium Activation</a>
+      <a href="#stripe-and-privacy">Stripe and Privacy</a>
+      <a href="#help-guides">Help Guides</a>
+      <a href="#operating-model">Operating Model</a>
+      <a href="#release-flow">Release Flow</a>
+      <a href="#faq">FAQ</a>
+      <a href="#support">Support</a>
+=======
     <nav class='section-nav' aria-label='Documentation sections'>
       <a href='#start-here'>Start here</a>
       <a href='#how-it-works'>How it works</a>
@@ -47,6 +73,7 @@
       <a href='#premium'>Premium</a>
       <a href='#help-library'>Help library</a>
       <a href='#faq-preview'>FAQ</a>
+>>>>>>> origin/development
     </nav>
 
     <main>
@@ -146,6 +173,32 @@
         </div>
       </section>
 
+<<<<<<< HEAD
+      <section id="updates" class="section section-grid">
+        <div>
+          <p class="section-label">Updates</p>
+          <h2>Latest stable version endpoint and ZIP download.</h2>
+          <p>GitHub Pages publishes a machine-readable update manifest for WordPress installations and administrators. Stable release tags update the manifest with the latest version and a direct GitHub Release ZIP URL.</p>
+          <ul class="bullets">
+            <li>Manifest: <a href="updates/wp-csp-automation.json">updates/wp-csp-automation.json</a></li>
+            <li>Release assets: <a href="https://github.com/vcns/wp-csp-automation/releases">GitHub Releases</a></li>
+            <li>Endpoint guide: <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md">Self-hosted update endpoint</a></li>
+          </ul>
+        </div>
+        <div class="callout-stack">
+          <div class="callout">
+            <h3>WordPress update checks</h3>
+            <p>The plugin maps this manifest into WordPress' native update transient, including the no-update entry needed for externally hosted plugins.</p>
+          </div>
+          <div class="callout">
+            <h3>Stable channel</h3>
+            <p>Pre-release tags create release assets for testing but do not replace the latest stable Pages manifest.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="premium-activation" class="section section-grid">
+=======
       <section id='rollout-plan' class='section'>
         <p class='section-label'>Rollout plan</p>
         <h2>A practical deployment sequence.</h2>
@@ -167,6 +220,7 @@
       </section>
 
       <section id='dashboard' class='section section-grid'>
+>>>>>>> origin/development
         <div>
           <p class='section-label'>Dashboard</p>
           <h2>Where to look in the WordPress admin.</h2>
@@ -272,7 +326,160 @@
             <h3>Can enforce mode break a site?</h3>
             <p>Yes. Enforce mode can block required resources. Use it only after reviewing violations and approving required sources.</p>
           </article>
+<<<<<<< HEAD
+          <article class="card">
+            <h3>Remote config and signing</h3>
+            <p>DNS TXT record format, signed JSON payload contract, Ed25519 key handling, caching, and rotation planning.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/remote-config-and-signing.md">Read remote config guide</a>
+          </article>
+          <article class="card">
+            <h3>Stripe operations</h3>
+            <p>Checkout, webhook setup, entitlement grant flow, production launch checks, and failure diagnosis.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/stripe-operations.md">Read Stripe operations guide</a>
+          </article>
+          <article class="card">
+            <h3>Testing and quality</h3>
+            <p>CI expectations, local validation baseline, manual test matrix, and release validation checklist.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/testing-and-quality.md">Read testing guide</a>
+          </article>
+          <article class="card">
+            <h3>Release and publishing</h3>
+            <p>Branching model, WordPress.org packaging, SVN deployment, rollback handling, and release discipline.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/release-and-publishing.md">Read release guide</a>
+          </article>
+          <article class="card">
+            <h3>Update endpoint</h3>
+            <p>Latest-version manifest, GitHub Release ZIP asset, WordPress update transient integration, and stable-channel behaviour.</p>
+            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md">Read update endpoint guide</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="operating-model" class="section section-grid">
+        <div>
+          <p class="section-label">Operating Model</p>
+          <h2>What this plugin is designed to do.</h2>
+          <ul class="bullets">
+            <li>Generate and emit per-surface CSP headers for frontend, admin, login, and API requests.</li>
+            <li>Inject nonces into WordPress-managed scripts without depending on unsafe inline policy shortcuts.</li>
+            <li>Discover third-party origins, store them as pending inventory, and require explicit operator approval.</li>
+            <li>Accept browser violation reports locally and use them to tighten allowlists over time.</li>
+            <li>Raise higher-risk source proposals for administrator review before they can affect emitted headers.</li>
+            <li>Keep an append-only decision ledger so approvals, rejections, reversions, and suppressions remain auditable.</li>
+            <li>Handle premium feature entitlement locally after verified Stripe webhook delivery.</li>
+            <li>Distribute public product metadata through signed remote config instead of hardcoding it in releases.</li>
+          </ul>
+        </div>
+        <div class="callout-stack">
+          <div class="callout">
+            <h3>Safe rollout principle</h3>
+            <p>Every surface begins in report-only mode. You should promote to enforce mode only after reviewing violations and approving the required sources or hashes.</p>
+          </div>
+          <div class="callout">
+            <h3>Security principle</h3>
+            <p>Entitlement grant decisions come from verified webhooks, not browser redirects. Remote config contains no secrets. Source discovery does not auto-approve anything, and reverted sources are not automatically proposed again.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-label">Setup Guides</p>
+        <h2>Admin and operator checklists.</h2>
+        <div class="checklist-grid">
+          <div class="checklist">
+            <h3>Site admin checklist</h3>
+            <ul>
+              <li>Confirm WordPress and PHP version compatibility.</li>
+              <li>Install and activate the plugin.</li>
+              <li>Run a manual scan.</li>
+              <li>Review and approve only legitimate sources.</li>
+              <li>Monitor the violations table before enforcing.</li>
+            </ul>
+          </div>
+          <div class="checklist">
+            <h3>Stripe operator checklist</h3>
+            <ul>
+              <li>Create products and one-time prices.</li>
+              <li>Configure webhook events for checkout session outcomes.</li>
+              <li>Set test and live credentials correctly in plugin settings.</li>
+              <li>Validate duplicate webhook idempotency.</li>
+              <li>Keep secrets out of docs, code, and client-side output.</li>
+            </ul>
+          </div>
+          <div class="checklist">
+            <h3>Remote config checklist</h3>
+            <ul>
+              <li>Publish the DNS TXT record in the documented format.</li>
+              <li>Host signed JSON over HTTPS.</li>
+              <li>Store the Ed25519 private key outside WordPress.</li>
+              <li>Replace the placeholder public key in the plugin before release.</li>
+              <li>Test config refresh and stale-cache fallback behaviour.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="release-flow" class="section section-grid">
+        <div>
+          <p class="section-label">Release Flow</p>
+          <h2>How the repository is expected to ship.</h2>
+          <p>The repository uses protected `development` and `main` branches with short-lived `feature/*`, `fix/*`, and `release/*` branches. GitHub Actions handles linting, branch policy enforcement, packaging, security scanning, and WordPress.org deployment.</p>
+          <ul class="bullets">
+            <li>Feature and fix branches merge into `development` by PR only.</li>
+            <li>Release branches are cut from `development` for final stabilization.</li>
+            <li>`main` is the source of tagged releases and WordPress.org deployment.</li>
+            <li>Documentation changes under `docs/` are now the public GitHub Pages source.</li>
+          </ul>
+        </div>
+        <div class="workflow-list">
+          <div class="workflow-card">
+            <h3>CI</h3>
+            <p>PHP lint, PHPCS, Semgrep, secret scanning, and build artifact generation.</p>
+          </div>
+          <div class="workflow-card">
+            <h3>PR policy</h3>
+            <p>Source-branch enforcement for pull requests into `development` and `main`.</p>
+          </div>
+          <div class="workflow-card">
+            <h3>Pages publish</h3>
+            <p>GitHub Pages serves the `main:/docs` root path and the latest stable update manifest.</p>
+          </div>
+          <div class="workflow-card">
+            <h3>WordPress.org deploy</h3>
+            <p>Tag-driven deploy using environment-scoped SVN credentials.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-label">Frequently Needed Links</p>
+        <h2>Quick access to the repository surfaces that matter.</h2>
+        <div class="link-list">
+          <a href="https://github.com/vcns/wp-csp-automation">GitHub repository</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/readme.txt">Public plugin readme</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md">Security reporting policy</a>
+          <a href="https://github.com/vcns/wp-csp-automation/blob/main/CHANGELOG.md">Changelog</a>
+          <a href="updates/wp-csp-automation.json">Latest update manifest</a>
+          <a href="https://github.com/vcns/wp-csp-automation/tree/main/docs">Documentation directory</a>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <p class="section-label">FAQ</p>
+        <h2>Questions people will ask before trusting this on a live site.</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Will this break my site?</h3>
+            <p>No. Every surface starts in report-only mode. The browser reports violations but does not block any resources. You can review violations and approve sources before ever enabling enforce mode.</p>
+          </article>
+          <article class="card">
+            <h3>What is the promotion gate?</h3>
+            <p>The plugin blocks switching to enforce mode unless at least one source or hash has been approved for that surface, and no recent unresolved violation has been reported. This two-condition check reduces the risk of locking users out with an over-strict policy.</p>
+          </article>
+          <article class="card">
+=======
           <article class='faq-item'>
+>>>>>>> origin/development
             <h3>Should I approve every discovered source?</h3>
             <p>No. Approve only sources that are necessary, known, and narrow. Reject or investigate anything unknown.</p>
           </article>
@@ -285,7 +492,11 @@
 
     <footer class='site-footer'>
       <p>WP CSP Automation Manager documentation site</p>
+<<<<<<< HEAD
+      <p><a href="https://github.com/vcns/wp-csp-automation">Repository</a> · <a href="https://vcns.github.io/wp-csp-automation/">GitHub Pages</a></p>
+=======
       <p><a href='https://github.com/vcns/wp-csp-automation'>Repository</a> · <a href='https://vcns.github.io/wp-csp-automation/'>GitHub Pages</a></p>
+>>>>>>> origin/development
     </footer>
   </div>
 </body>

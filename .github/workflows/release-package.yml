@@ -195,6 +195,7 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
+<<<<<<< HEAD
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/wp-csp-automation.json" --clobber
           else
@@ -208,11 +209,52 @@ jobs:
 
   update-feed:
     name: Publish shared update feed
+=======
+<<<<<<< HEAD
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+=======
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+>>>>>>> origin/development
+          php tools/generate-update-manifest.php \
+            --tag "${TAG}" \
+            --download-url "${DOWNLOAD_URL}" \
+            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            --output "dist/wp-csp-automation.json"
+
+          gh release create "${TAG}" \
+            --title "WP CSP Automation ${TAG}" \
+            --generate-notes \
+            ${PRERELEASE_FLAG} \
+            "dist/${ZIP_FILENAME}" \
+            "dist/wp-csp-automation.json"
+
+  pages-update-manifest:
+<<<<<<< HEAD
+    name: Publish Pages Update Manifest
+=======
+    name: Publish Pages Update Manifest and ZIP
+>>>>>>> origin/development
+>>>>>>> origin/development
     needs:
       - build
       - release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    environment:
+      name: production
+=======
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+>>>>>>> origin/development
+      url: ${{ steps.deployment.outputs.page_url }}
+>>>>>>> origin/development
 
     steps:
       - name: Checkout repository
@@ -224,22 +266,42 @@ jobs:
           php-version: '8.1'
           coverage: none
 
+<<<<<<< HEAD
+      - name: Generate latest stable update manifest
+=======
       - name: Download ZIP artifact
         uses: actions/download-artifact@v4
         with:
           name: wp-csp-automation-zip
           path: dist/
 
+<<<<<<< HEAD
       - name: Generate update feed files
+=======
+      - name: Generate latest stable update manifest and Pages ZIP
+>>>>>>> origin/development
+>>>>>>> origin/development
         shell: bash
         run: |
           set -euo pipefail
 
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
+<<<<<<< HEAD
           FEED_DIR="/tmp/pages"
 
           mkdir -p "${FEED_DIR}"
           cp "dist/${ZIP_FILENAME}" "${FEED_DIR}/wp-csp-automation-latest.zip"
+=======
+<<<<<<< HEAD
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+=======
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+
+          mkdir -p docs/downloads docs/updates
+          cp "dist/${ZIP_FILENAME}" "docs/downloads/${ZIP_FILENAME}"
+>>>>>>> origin/development
+>>>>>>> origin/development
 
           php tools/generate-update-manifest.php \
             --tag "${GITHUB_REF_NAME}" \
