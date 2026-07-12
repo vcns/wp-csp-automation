@@ -2,7 +2,7 @@
 
 ## Purpose
 
-WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with an optional premium entitlement model powered by one-time Stripe checkout.
+WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with optional entitlement-gated premium capabilities. Billing and account management are expected to move through VCNS licensing services rather than being owned by the CSP runtime.
 
 ## Primary design principles
 
@@ -70,14 +70,14 @@ Responsibilities:
 - run scheduled and manual scans (including post-scan violation purge)
 - detect conflicting CSP headers
 
-### Premium and payment runtime
+### Entitlement and payment runtime
 
 `includes/modules/*`
 
 Responsibilities:
 
 - fetch remote premium-product configuration
-- create Stripe Checkout sessions
+- initiate account-management or checkout flows when configured
 - verify Stripe webhook signatures
 - store local entitlements
 - gate premium features (`strict_dynamic`, `trusted_types`, `multi_surface_scan`)
@@ -156,16 +156,14 @@ Responsibilities:
 5. Every decision is appended to `csp_policy_change_decisions` and mirrored to `csp_audit_log`.
 6. Rejected and reverted decisions set suppression on that fingerprint; future automation skips the same source until a later approval becomes the newest decision.
 
-### 6. Premium checkout flow
+### 6. Premium entitlement flow
 
-1. Admin selects a product tier from the entitlement page.
-2. `Checkout_Service` resolves the Stripe price ID from signed remote config.
-3. The plugin creates a Stripe Checkout Session through the Stripe API.
-4. Admin is redirected to Stripe-hosted checkout.
-5. Stripe sends a webhook after payment completion.
-6. `Webhook_Controller` verifies the signature and replay window.
-7. `Entitlement_Store` grants or updates the local entitlement.
-8. `Feature_Gate` exposes premium features based on local tier state.
+1. Admin opens the entitlement page and starts the configured VCNS account-management flow.
+2. Legacy installations may still initiate a compatibility checkout flow from signed remote config.
+3. Billing events are handled by VCNS infrastructure, with Stripe acting as an external event source where applicable.
+4. Verified entitlement data is cached locally by `Entitlement_Store`.
+5. `Feature_Gate` exposes premium features from local entitlement state.
+6. Normal CSP generation never performs a remote billing or entitlement lookup.
 
 ## Surface model
 

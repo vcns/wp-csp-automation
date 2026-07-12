@@ -13,8 +13,8 @@ declare( strict_types=1 );
 
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
-define( 'WP_CSP_VERSION',        '0.2.0' );
-define( 'WP_CSP_DB_VERSION',     '5' );
+define( 'WP_CSP_VERSION',        '0.3.0' );
+define( 'WP_CSP_DB_VERSION',     '6' );
 define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
 define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
@@ -405,6 +405,7 @@ if ( ! function_exists( 'wp_unschedule_hook' ) ) {
 
 if ( ! function_exists( 'dbDelta' ) ) {
 	function dbDelta( string $queries = '' ): array {
+		$GLOBALS['_dbdelta_queries'][] = $queries;
 		return [];
 	}
 }
@@ -441,6 +442,7 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wpdb_last_query']         = null;
 	$GLOBALS['_wpdb_inserted_rows']      = [];
 	$GLOBALS['_wpdb_updated_rows']       = [];
+	$GLOBALS['_dbdelta_queries']         = [];
 }
 
 // Initialise globals so classes loaded at parse time do not hit undefined array errors.
