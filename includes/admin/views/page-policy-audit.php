@@ -145,7 +145,7 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 					<td><code><?php echo esc_html( $decision['source_host'] ); ?></code></td>
 					<td><span class="wp-csp-risk-badge risk-<?php echo esc_attr( $decision['risk_level'] ); ?>"><?php echo esc_html( ucfirst( $decision['risk_level'] ) ); ?></span></td>
 					<td><?php echo esc_html( $decision['decision_engine_version'] ?? '' ); ?></td>
-					<td><?php echo ! empty( $decision['policy_version_id'] ) ? esc_html( (string) $decision['policy_version_id'] ) : '&mdash;'; ?></td>
+					<td><?php echo ! empty( $decision['policy_version_id'] ) ? esc_html( (string) $decision['policy_version_id'] ) : esc_html( '—' ); ?></td>
 				</tr>
 			<?php endforeach; ?>
 			<?php if ( empty( $decisions ) ) : ?>

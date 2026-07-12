@@ -487,7 +487,7 @@ class Activator {
 
 		global $wpdb;
 		$table   = $wpdb->prefix . 'csp_policy_versions';
-		$manager = new CSP\Policy_Version_Manager();
+		$manager = new \WP_CSP\CSP\Policy_Version_Manager();
 
 		foreach ( array( 'frontend', 'admin', 'login', 'api' ) as $surface ) {
 			$exists = $wpdb->get_var(

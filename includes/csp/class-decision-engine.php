@@ -93,7 +93,7 @@ class Decision_Engine {
 			$this->add_finding( $findings, 'CSP-DIR-002', 'review', 'medium', 'review', "{$directive} allows new third-party asset loading." );
 		}
 
-		if ( isset( $source['evidence_count'] ) && (int) $source['evidence_count'] < 1 ) {
+		if ( isset( $source['evidence_count'] ) && (int) $source['evidence_count'] <= 0 ) {
 			$risk         = $this->max_risk( $risk, 'unknown' );
 			$exclusions[] = 'insufficient_evidence';
 			$this->add_finding( $findings, 'CSP-EVID-001', 'fail', 'unknown', 'blocked', 'At least one validated observation is required.' );

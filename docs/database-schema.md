@@ -11,7 +11,7 @@ The plugin creates custom tables on activation. All table names are prefixed wit
 | v3 | `csp_violation_reports` gains `sample` column |
 | v4 | `csp_audit_log` append-only table added |
 | v5 | source proposal risk/decision metadata and `csp_policy_change_decisions` append-only ledger added |
-| v6 | violation report first/last roll-up timestamps and unique fingerprint upsert support |
+| v6 | `csp_violation_reports` gains first/last reported roll-up timestamps and unique fingerprint upsert support |
 | v7 | decision provenance columns, policy version snapshots, deterministic rule evaluations, and manual automation defaults |
 
 ## Table list
@@ -135,6 +135,10 @@ Operational notes:
 - the endpoint validates that `document-uri` belongs to this site's origin; cross-origin reports are silently discarded (CSP reports are client-generated and spoofable)
 - duplicate reports (same fingerprint) increment `occurrence_count` rather than inserting new rows
 - rows are purged automatically after `wp_csp_violation_retention_days` days (default: 90) by the daily cron scan; set to `0` to disable purging
+
+#### v6 roll-up columns and migration
+
+Schema v6 adds `first_reported_at` and `last_reported_at` to `csp_violation_reports`, backfills them from `reported_at`, collapses historic duplicate fingerprints, and converts `fingerprint` to a unique key where required. Duplicate reports increment `occurrence_count` and update the latest timestamp rather than inserting additional rows.
 
 ### `csp_scan_logs`
 
