@@ -188,9 +188,13 @@ class UpdateCheckerTest extends TestCase {
 		// WP_CSP_DISABLE_AUTO_UPDATE is not defined in the test bootstrap, so
 		// the filter must return the original $update value unchanged.
 		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$item    = (object) array(
+			'plugin' => 'wp-csp-automation/wp-csp-automation.php',
+			'slug'   => 'wp-csp-automation',
+		);
 
-		$this->assertTrue( $checker->filter_auto_update_plugin( true, (object) array( 'plugin' => 'wp-csp-automation/wp-csp-automation.php', 'slug' => 'wp-csp-automation' ) ) );
-		$this->assertFalse( $checker->filter_auto_update_plugin( false, (object) array( 'plugin' => 'wp-csp-automation/wp-csp-automation.php', 'slug' => 'wp-csp-automation' ) ) );
+		$this->assertTrue( $checker->filter_auto_update_plugin( true, $item ) );
+		$this->assertFalse( $checker->filter_auto_update_plugin( false, $item ) );
 	}
 
 	/**
