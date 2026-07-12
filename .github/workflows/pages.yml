@@ -29,50 +29,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
-      - name: Generate latest stable update manifest
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mkdir -p docs/updates docs/downloads
-
-          if ! RELEASE_JSON="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName,publishedAt,url,assets 2>/dev/null)"; then
-            echo "No GitHub Release found; publishing the committed update manifest."
-            exit 0
-          fi
-
-          TAG="$(jq -r '.tagName' <<< "${RELEASE_JSON}")"
-          RELEASE_URL="$(jq -r '.url' <<< "${RELEASE_JSON}")"
-          PUBLISHED_AT="$(jq -r '.publishedAt' <<< "${RELEASE_JSON}")"
-          ZIP_FILENAME="$(jq -r '.assets[] | select(.name | test("^wp-csp-automation-v[0-9]+\\.[0-9]+\\.[0-9]+[^/]*\\.zip$")) | .name' <<< "${RELEASE_JSON}" | head -n 1)"
-
-          if [[ -z "${ZIP_FILENAME}" ]]; then
-            echo "Latest release has no wp-csp-automation ZIP asset; publishing the committed update manifest."
-            exit 0
-          fi
-
-          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${ZIP_FILENAME}" --dir "docs/downloads"
-
-          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
-          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
-
-          php tools/generate-update-manifest.php \
-            --tag "${TAG}" \
-            --download-url "${DOWNLOAD_URL}" \
-            --release-url "${RELEASE_URL}" \
-            --published-at "${PUBLISHED_AT}" \
-            --output "docs/updates/wp-csp-automation.json"
 
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3

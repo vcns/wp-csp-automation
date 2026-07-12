@@ -23,7 +23,7 @@ class SchemaMigrationTest extends TestCase {
 			$this->assertStringContainsString( "CREATE TABLE wp_{$table}", $schema );
 		}
 
-		$this->assertCount( 9, $GLOBALS['_dbdelta_queries'] );
+		$this->assertCount( 11, $GLOBALS['_dbdelta_queries'] );
 		$this->assertSame( WP_CSP_DB_VERSION, get_option( 'wp_csp_db_version' ) );
 	}
 
@@ -63,7 +63,7 @@ class SchemaMigrationTest extends TestCase {
 		Activator::activate();
 
 		$this->assertSame( WP_CSP_DB_VERSION, get_option( 'wp_csp_db_version' ) );
-		$this->assertCount( 18, $GLOBALS['_dbdelta_queries'] );
+		$this->assertCount( 22, $GLOBALS['_dbdelta_queries'] );
 	}
 
 	public static function legacy_schema_version_provider(): array {
@@ -73,6 +73,7 @@ class SchemaMigrationTest extends TestCase {
 			'v3' => array( '3' ),
 			'v4' => array( '4' ),
 			'v5' => array( '5' ),
+			'v6' => array( '6' ),
 		);
 	}
 
@@ -87,6 +88,8 @@ class SchemaMigrationTest extends TestCase {
 			'csp_processed_events',
 			'csp_audit_log',
 			'csp_policy_change_decisions',
+			'csp_policy_versions',
+			'csp_decision_rule_evaluations',
 		);
 	}
 }

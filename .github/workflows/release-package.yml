@@ -1,21 +1,10 @@
 name: Release Package
 
-# ── Triggers ──────────────────────────────────────────────────────────────────
-# Push a semver tag  (e.g. git tag v0.2.0 && git push origin v0.2.0)
-#   → builds ZIP, creates GitHub Release, attaches ZIP, and publishes the latest
-#     stable ZIP plus update manifest through GitHub Pages.
-#
-# Open a PR against development
-#   → smoke-check only: builds ZIP and uploads it as a workflow artifact.
-#
-# Manual dispatch
-#   → smoke-check only: useful for verifying packaging on any branch.
-
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-*'       # pre-releases: v1.0.0-beta.1
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+      - 'v[0-9]*.[0-9]*.[0-9]*-*'
   pull_request:
     branches:
       - development
@@ -26,17 +15,16 @@ on:
       - 'assets/**'
       - 'LICENSE'
       - '.distignore'
+      - '.github/workflows/release-package.yml'
+      - 'tools/generate-update-manifest.php'
   workflow_dispatch:
 
 permissions:
-  contents: write    # required to create releases and upload release assets
-  pages: write
-  id-token: write
+  contents: write
 
-# ── Job: build ────────────────────────────────────────────────────────────────
 jobs:
   build:
-    name: Build distributable ZIP
+    name: Quality gates and distributable ZIP
     runs-on: ubuntu-latest
 
     outputs:
@@ -46,13 +34,81 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache/files
+            vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dev dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: PHP syntax lint
+        run: composer run lint:php
+
+      - name: PHPCS
+        run: composer run lint:phpcs -- --report=full
+
+      - name: PHPUnit
+        run: composer run test:no-coverage
+
+      - name: Composer audit
+        run: composer audit
+
+      - name: Verify version alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          php <<'PHP'
+          <?php
+          $plugin = file_get_contents( 'wp-csp-automation.php' );
+          if ( false === $plugin ) {
+            fwrite( STDERR, "Unable to read wp-csp-automation.php\n" );
+            exit( 1 );
+          }
+
+          preg_match( '/Version:\s*([^\r\n]+)/', $plugin, $header_matches );
+          preg_match( "/define\(\s*'WP_CSP_VERSION'\s*,\s*'([^']+)'\s*\)/", $plugin, $constant_matches );
+
+          $header_version   = trim( $header_matches[1] ?? '' );
+          $constant_version = trim( $constant_matches[1] ?? '' );
+
+          if ( '' === $header_version || $header_version !== $constant_version ) {
+            fwrite( STDERR, "Plugin header Version and WP_CSP_VERSION must match.\n" );
+            fwrite( STDERR, "Header: {$header_version}\n" );
+            fwrite( STDERR, "Constant: {$constant_version}\n" );
+            exit( 1 );
+          }
+
+          $ref      = getenv( 'GITHUB_REF' ) ?: '';
+          $tag_name = getenv( 'GITHUB_REF_NAME' ) ?: '';
+          if ( str_starts_with( $ref, 'refs/tags/v' ) && substr( $tag_name, 1 ) !== $header_version ) {
+            fwrite( STDERR, "Release tag {$tag_name} must match plugin version {$header_version}.\n" );
+            exit( 1 );
+          }
+          PHP
+
       - name: Build ZIP
         id: build
         shell: bash
         run: |
           set -euo pipefail
 
-          # Use the tag name when triggered by a tag push; otherwise "dev".
           if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
           else
@@ -61,8 +117,6 @@ jobs:
 
           ZIP_FILENAME="wp-csp-automation-${TAG}.zip"
 
-          # Copy only distributable files into a versioned subdirectory so the
-          # ZIP extracts to  wp-csp-automation/  (the expected WP plugin folder).
           mkdir -p dist/wp-csp-automation
           rsync -a --exclude-from='.distignore' ./ dist/wp-csp-automation/
 
@@ -76,17 +130,15 @@ jobs:
         run: |
           set -euo pipefail
           unzip -l dist/*.zip | grep -q 'wp-csp-automation/wp-csp-automation.php'
-          echo "✓ wp-csp-automation.php confirmed in ZIP"
 
-      - name: Verify offline/ directory absent
+      - name: Verify private/dev paths absent
         shell: bash
         run: |
           set -euo pipefail
-          if unzip -l dist/*.zip | grep -q 'wp-csp-automation/offline/'; then
-            echo "✗ offline/ directory found in ZIP — check .distignore" >&2
+          if unzip -l dist/*.zip | grep -E 'wp-csp-automation/(offline|cloudflare|test|tools|docs|vendor|node_modules)/'; then
+            echo "Release ZIP contains private, dev, or generated-only paths. Check .distignore." >&2
             exit 1
           fi
-          echo "✓ offline/ directory absent from ZIP"
 
       - name: Upload ZIP as workflow artifact
         uses: actions/upload-artifact@v4
@@ -95,7 +147,6 @@ jobs:
           path: dist/*.zip
           retention-days: 30
 
-# ── Job: release ──────────────────────────────────────────────────────────────
   release:
     name: Publish GitHub Release
     needs: build
@@ -118,7 +169,31 @@ jobs:
           name: wp-csp-automation-zip
           path: dist/
 
-      - name: Create GitHub Release
+      - name: Generate release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
+
+          # Stable releases point at the shared Pages "latest" ZIP so that the
+          # Pages feed always serves the current stable version.  Pre-release
+          # tags (those containing "-") use the immutable GitHub Release asset
+          # URL instead, because the Pages feed is not updated for pre-releases.
+          if [[ "${TAG}" == *"-"* ]]; then
+            DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+          else
+            DOWNLOAD_URL="https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip"
+          fi
+
+          php tools/generate-update-manifest.php \
+            --tag "${TAG}" \
+            --download-url "${DOWNLOAD_URL}" \
+            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            --output "dist/wp-csp-automation.json"
+
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -128,40 +203,29 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
 
-          # Mark as pre-release when the tag contains a hyphen (e.g. v1.0.0-beta.1).
           PRERELEASE_FLAG=""
           if [[ "${TAG}" == *"-"* ]]; then
             PRERELEASE_FLAG="--prerelease"
           fi
 
-          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
-          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
-          php tools/generate-update-manifest.php \
-            --tag "${TAG}" \
-            --download-url "${DOWNLOAD_URL}" \
-            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
-            --output "dist/wp-csp-automation.json"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/wp-csp-automation.json" --clobber
+          else
+            gh release create "${TAG}" \
+              --title "WP CSP Automation ${TAG}" \
+              --generate-notes \
+              ${PRERELEASE_FLAG} \
+              "dist/${ZIP_FILENAME}" \
+              "dist/wp-csp-automation.json"
+          fi
 
-          gh release create "${TAG}" \
-            --title "WP CSP Automation ${TAG}" \
-            --generate-notes \
-            ${PRERELEASE_FLAG} \
-            "dist/${ZIP_FILENAME}" \
-            "dist/wp-csp-automation.json"
-
-  pages-update-manifest:
-    name: Publish Pages Update Manifest and ZIP
+  update-feed:
+    name: Publish shared update feed
     needs:
       - build
       - release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -179,33 +243,82 @@ jobs:
           name: wp-csp-automation-zip
           path: dist/
 
-      - name: Generate latest stable update manifest and Pages ZIP
+      - name: Generate update feed files
         shell: bash
         run: |
           set -euo pipefail
 
-          TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
-          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
-          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+          FEED_DIR="/tmp/pages"
 
-          mkdir -p docs/downloads docs/updates
-          cp "dist/${ZIP_FILENAME}" "docs/downloads/${ZIP_FILENAME}"
+          mkdir -p "${FEED_DIR}"
+          cp "dist/${ZIP_FILENAME}" "${FEED_DIR}/wp-csp-automation-latest.zip"
 
           php tools/generate-update-manifest.php \
-            --tag "${TAG}" \
-            --download-url "${DOWNLOAD_URL}" \
-            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
-            --output "docs/updates/wp-csp-automation.json"
+            --tag "${GITHUB_REF_NAME}" \
+            --download-url "https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip" \
+            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
+            --output "${FEED_DIR}/wp-csp-automation.json"
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+          cat > "${FEED_DIR}/index.html" <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>WP CSP Automation Updates</title>
+          </head>
+          <body>
+            <h1>WP CSP Automation Updates</h1>
+            <ul>
+              <li><a href="./wp-csp-automation.json">Latest update manifest</a></li>
+              <li><a href="./wp-csp-automation-latest.zip">Latest release ZIP</a></li>
+            </ul>
+          </body>
+          </html>
+          HTML
 
-      - name: Upload static site artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
+      - name: Verify update token
+        env:
+          WP_UPDATES_TOKEN: ${{ secrets.WP_UPDATES_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${WP_UPDATES_TOKEN:-}" ]]; then
+            echo "Missing WP_UPDATES_TOKEN secret. Add a token with write access to vcns/wp-updates, then rerun this workflow." >&2
+            exit 1
+          fi
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to vcns/wp-updates
+        env:
+          WP_UPDATES_TOKEN: ${{ secrets.WP_UPDATES_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          UPDATE_REPO="vcns/wp-updates"
+          WORKTREE="/tmp/wp-updates"
+          REMOTE_URL="https://x-access-token:${WP_UPDATES_TOKEN}@github.com/${UPDATE_REPO}.git"
+
+          if git ls-remote --exit-code --heads "${REMOTE_URL}" gh-pages >/dev/null 2>&1; then
+            git clone --depth 1 --branch gh-pages "${REMOTE_URL}" "${WORKTREE}"
+          else
+            mkdir -p "${WORKTREE}"
+            git -C "${WORKTREE}" init --initial-branch=gh-pages
+            git -C "${WORKTREE}" remote add origin "${REMOTE_URL}"
+          fi
+
+          mkdir -p "${WORKTREE}/wp-csp-automation"
+          cp -R /tmp/pages/. "${WORKTREE}/wp-csp-automation/"
+
+          git -C "${WORKTREE}" config user.name "github-actions[bot]"
+          git -C "${WORKTREE}" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "${WORKTREE}" add wp-csp-automation
+
+          if git -C "${WORKTREE}" diff --cached --quiet; then
+            echo "No update feed changes to publish."
+            exit 0
+          fi
+
+          git -C "${WORKTREE}" commit -m "Publish wp-csp-automation ${GITHUB_REF_NAME}"
+          git -C "${WORKTREE}" push origin gh-pages

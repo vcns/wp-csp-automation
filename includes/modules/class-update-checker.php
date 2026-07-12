@@ -17,9 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Update_Checker {
 
-	private const CACHE_KEY         = 'wp_csp_update_manifest';
-	private const CACHE_TTL_SECONDS = 6 * HOUR_IN_SECONDS;
-	private const SLUG              = 'wp-csp-automation';
+	private const CACHE_KEY                 = 'wp_csp_update_manifest';
+	private const CACHE_FAILURE_KEY         = 'wp_csp_update_manifest_failed';
+	private const CACHE_TTL_SECONDS         = 12 * HOUR_IN_SECONDS;
+	private const CACHE_FAILURE_TTL_SECONDS = HOUR_IN_SECONDS;
+	private const SLUG                      = 'wp-csp-automation';
 
 	private string $manifest_url;
 
@@ -28,8 +30,10 @@ final class Update_Checker {
 	}
 
 	public function register(): void {
-		add_filter( 'site_transient_update_plugins', array( $this, 'filter_update_plugins' ) );
+		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'filter_update_plugins' ) );
 		add_filter( 'plugins_api', array( $this, 'filter_plugins_api' ), 10, 3 );
+		add_action( 'upgrader_process_complete', array( $this, 'clear_cached_manifest' ), 10, 2 );
+		add_filter( 'auto_update_plugin', array( $this, 'filter_auto_update_plugin' ), 10, 2 );
 	}
 
 	public function filter_update_plugins( mixed $transient ): mixed {
@@ -103,12 +107,73 @@ final class Update_Checker {
 			return $cached;
 		}
 
+		if ( false !== get_transient( self::CACHE_FAILURE_KEY ) ) {
+			return null;
+		}
+
 		$manifest = $this->fetch_manifest();
 		if ( null !== $manifest ) {
 			set_transient( self::CACHE_KEY, $manifest, self::CACHE_TTL_SECONDS );
+			delete_transient( self::CACHE_FAILURE_KEY );
+		} else {
+			set_transient( self::CACHE_FAILURE_KEY, '1', self::CACHE_FAILURE_TTL_SECONDS );
 		}
 
 		return $manifest;
+	}
+
+	public function clear_cached_manifest( mixed $upgrader = null, mixed $hook_extra = null ): void {
+		$plugin_file = plugin_basename( WP_CSP_FILE );
+
+		if ( is_array( $hook_extra ) ) {
+			$type   = $this->string_value( $hook_extra['type'] ?? '' );
+			$action = $this->string_value( $hook_extra['action'] ?? '' );
+
+			if ( 'plugin' !== $type || 'update' !== $action ) {
+				return;
+			}
+
+			// WordPress passes `plugin` (string) for single-plugin upgrades and
+			// `plugins` (array) for bulk upgrades.  Bail early unless this plugin
+			// was among those updated.
+			$single  = $this->string_value( $hook_extra['plugin'] ?? '' );
+			$plugins = $hook_extra['plugins'] ?? array();
+
+			if ( '' !== $single ) {
+				if ( $plugin_file !== $single ) {
+					return;
+				}
+			} elseif ( is_array( $plugins ) && ! in_array( $plugin_file, $plugins, true ) ) {
+				return;
+			}
+		}
+
+		delete_transient( self::CACHE_KEY );
+		delete_transient( self::CACHE_FAILURE_KEY );
+	}
+
+	public function filter_auto_update_plugin( mixed $update, mixed $item ): mixed {
+		if ( ! defined( 'WP_CSP_DISABLE_AUTO_UPDATE' ) || true !== (bool) constant( 'WP_CSP_DISABLE_AUTO_UPDATE' ) ) {
+			return $update;
+		}
+
+		$plugin_file = plugin_basename( WP_CSP_FILE );
+		$item_plugin = '';
+		$item_slug   = '';
+
+		if ( is_object( $item ) ) {
+			$item_plugin = isset( $item->plugin ) && is_scalar( $item->plugin ) ? (string) $item->plugin : '';
+			$item_slug   = isset( $item->slug ) && is_scalar( $item->slug ) ? (string) $item->slug : '';
+		} elseif ( is_array( $item ) ) {
+			$item_plugin = isset( $item['plugin'] ) && is_scalar( $item['plugin'] ) ? (string) $item['plugin'] : '';
+			$item_slug   = isset( $item['slug'] ) && is_scalar( $item['slug'] ) ? (string) $item['slug'] : '';
+		}
+
+		if ( $plugin_file === $item_plugin || self::SLUG === $item_slug ) {
+			return false;
+		}
+
+		return $update;
 	}
 
 	protected function fetch_manifest(): ?array {
@@ -168,7 +233,7 @@ final class Update_Checker {
 			'tested'       => $this->string_value( $manifest['tested'] ?? '' ),
 			'requires_php' => $this->string_value( $manifest['requires_php'] ?? '8.1' ),
 			'last_updated' => $this->string_value( $manifest['last_updated'] ?? '' ),
-			'author'       => $this->string_value( $manifest['author'] ?? 'Simon Jackson' ),
+			'author'       => $this->string_value( $manifest['author'] ?? 'VCNS Tech Ltd' ),
 			'sections'     => $this->normalise_sections( $manifest['sections'] ?? array() ),
 		);
 	}

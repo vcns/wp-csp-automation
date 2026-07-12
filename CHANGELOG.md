@@ -27,13 +27,15 @@ This release includes database migrations through schema version 6. Existing ins
 - CSP policy change proposals, risk classification, administrator approve/reject/revert decisions, and rejected/reverted fingerprint suppression.
 - `csp_policy_change_decisions` append-only decision ledger. DB version 5.
 - Violation report rollups with `first_reported_at`, `last_reported_at`, unique fingerprint upsert support, and occurrence counts. DB version 6.
+- Policy audit foundation with policy version snapshots, deterministic rule-evaluation provenance, manual automation configuration defaults, privileged admin REST endpoints, and a Policy Audit admin page.
+- `csp_policy_versions` append-oriented surface policy snapshots. DB version 7.
+- `csp_decision_rule_evaluations` deterministic rule findings linked to proposals and decisions. DB version 7.
 - Self-hosted update checking for GitHub-distributed builds. The shared `vcns/wp-updates` feed remains tracked in the updater consolidation PR.
-
 ### Changed
 
 - Plugin version metadata now targets `0.3.0` for the next release after `0.2.0`.
-- `WP_CSP_DB_VERSION` is `6`.
-- Policy builder emits reporting headers immediately before the CSP header.
+- `WP_CSP_DB_VERSION` bumped from `'2'` to `'7'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata; v6 = violation rollups; v7 = provenance and policy history foundation).
+- Policy builder emits `Reporting-Endpoints` and `Report-To` headers immediately before the CSP header — any code that expects the CSP to be the first header will need updating.
 - Product copy no longer describes all premium access as a one-time payment; entitlement-gated capabilities are compatible with future VCNS Portal account management.
 
 ### Fixed

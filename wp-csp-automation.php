@@ -34,8 +34,9 @@ define( 'WP_CSP_VERSION', '0.3.0' );
  * v4 -- adds csp_audit_log append-only table (R10: immutable audit log)
  * v5 -- adds policy change proposal metadata and decision/suppression ledger
  * v6 -- adds violation first/last reported roll-up timestamps and unique fingerprint upsert support
+ * v7 -- adds decision provenance, policy version snapshots, and deterministic rule evaluations
  */
-define( 'WP_CSP_DB_VERSION', '6' );
+define( 'WP_CSP_DB_VERSION', '7' );
 
 define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );
@@ -78,7 +79,7 @@ defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://wp-csp-c
  * this plugin loads. Do not make this filterable; keeping it as an early PHP
  * constant prevents another plugin from redirecting update checks at runtime.
  */
-defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json' );
+defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register(

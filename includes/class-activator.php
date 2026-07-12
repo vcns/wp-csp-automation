@@ -22,6 +22,7 @@ class Activator {
 		self::create_tables();
 		self::set_default_options();
 		self::seed_default_profiles();
+		self::seed_initial_policy_versions();
 		self::schedule_events();
 	}
 
@@ -230,28 +231,88 @@ class Activator {
 		);
 
 		// 9. Append-only policy change decision ledger.
-		// Rejected and reverted rows can suppress the same fingerprint from being proposed again.
+		// v7 extends this with provenance fields; existing action/suppression semantics remain authoritative.
 		dbDelta(
 			"CREATE TABLE {$p}csp_policy_change_decisions (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   change_type varchar(32) NOT NULL DEFAULT 'source',
+  source_inventory_id bigint(20) UNSIGNED DEFAULT NULL,
   surface varchar(32) NOT NULL,
   directive varchar(64) NOT NULL,
   source_host varchar(255) DEFAULT NULL,
   source_uri varchar(2048) DEFAULT NULL,
   decision_fingerprint varchar(64) NOT NULL,
   action varchar(16) NOT NULL,
+  state varchar(24) NOT NULL DEFAULT '',
   risk_level varchar(16) NOT NULL DEFAULT 'low',
   risk_reason text DEFAULT NULL,
   reason text DEFAULT NULL,
   user_id bigint(20) UNSIGNED DEFAULT NULL,
+  actor_type varchar(32) NOT NULL DEFAULT 'administrator',
+  actor_id varchar(64) DEFAULT NULL,
+  previous_policy_version_id bigint(20) UNSIGNED DEFAULT NULL,
+  policy_version_id bigint(20) UNSIGNED DEFAULT NULL,
+  decision_engine_version varchar(32) DEFAULT NULL,
+  deterministic_result longtext DEFAULT NULL,
+  evidence_snapshot longtext DEFAULT NULL,
+  reverted_decision_id bigint(20) UNSIGNED DEFAULT NULL,
+  software_version varchar(32) DEFAULT NULL,
   suppression_active tinyint(1) NOT NULL DEFAULT 0,
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
+  KEY source_inventory_id (source_inventory_id),
   KEY decision_fingerprint (decision_fingerprint),
   KEY action (action),
+  KEY state (state),
+  KEY actor_type (actor_type),
+  KEY policy_version_id (policy_version_id),
   KEY risk_level (risk_level),
   KEY suppression_active (suppression_active),
+  KEY created_at (created_at)
+) {$cc};"
+		);
+
+		// 10. Immutable policy version snapshots per surface.
+		dbDelta(
+			"CREATE TABLE {$p}csp_policy_versions (
+  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  surface varchar(32) NOT NULL,
+  version_number bigint(20) UNSIGNED NOT NULL,
+  mode varchar(16) NOT NULL DEFAULT 'report-only',
+  effective_header longtext NOT NULL,
+  policy_snapshot longtext NOT NULL,
+  previous_version_id bigint(20) UNSIGNED DEFAULT NULL,
+  trigger_type varchar(32) NOT NULL DEFAULT 'system',
+  trigger_id bigint(20) UNSIGNED DEFAULT NULL,
+  software_version varchar(32) DEFAULT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY surface_version (surface, version_number),
+  KEY surface (surface),
+  KEY previous_version_id (previous_version_id),
+  KEY trigger (trigger_type, trigger_id),
+  KEY created_at (created_at)
+) {$cc};"
+		);
+
+		// 11. Deterministic rule evaluation provenance.
+		dbDelta(
+			"CREATE TABLE {$p}csp_decision_rule_evaluations (
+  id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  proposal_id bigint(20) UNSIGNED DEFAULT NULL,
+  decision_id bigint(20) UNSIGNED DEFAULT NULL,
+  engine_version varchar(32) NOT NULL,
+  rule_id varchar(32) NOT NULL,
+  rule_version varchar(16) NOT NULL,
+  result varchar(16) NOT NULL,
+  risk_effect varchar(16) DEFAULT NULL,
+  automation_effect varchar(32) DEFAULT NULL,
+  explanation text DEFAULT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY proposal_id (proposal_id),
+  KEY decision_id (decision_id),
+  KEY rule_id (rule_id),
   KEY created_at (created_at)
 ) {$cc};"
 		);
@@ -350,6 +411,7 @@ class Activator {
 			// post, page, or plugin material change.
 			'wp_csp_learning_window_hours'         => 48,
 			'wp_csp_last_material_change_at'       => current_time( 'mysql', true ),
+			'wp_csp_automation_config'             => self::default_automation_config(),
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -357,6 +419,35 @@ class Activator {
 				add_option( $key, $value );
 			}
 		}
+	}
+
+	private static function default_automation_config(): array {
+		$surface_config = array(
+			'mode'                           => 'manual',
+			'enabled_directives'             => array(),
+			'excluded_directives'            => array(),
+			'allowed_source_schemes'         => array( 'https' ),
+			'treat_same_origin_as_low'       => true,
+			'treat_known_cdn_as_low'         => false,
+			'allow_wildcards'                => false,
+			'allow_cleartext_http'           => false,
+			'allow_browser_schemes'          => false,
+			'allow_ip_literals'              => false,
+			'allow_non_standard_ports'       => false,
+			'approval_confidence_threshold'  => 1.0,
+			'require_ai_agreement'           => false,
+			'automatic_rejection_enabled'    => false,
+			'max_automatic_changes_per_scan' => 0,
+			'change_rate_guardrail'          => 0,
+			'emergency_disabled'             => true,
+		);
+
+		return array(
+			'frontend' => $surface_config,
+			'admin'    => $surface_config,
+			'login'    => $surface_config,
+			'api'      => $surface_config,
+		);
 	}
 
 	// ── Seed default CSP profiles ─────────────────────────────────────────────
@@ -385,6 +476,30 @@ class Activator {
 					),
 					array( '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 				);
+			}
+		}
+	}
+
+	private static function seed_initial_policy_versions(): void {
+		if ( ! class_exists( 'WP_CSP\CSP\Policy_Version_Manager' ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table   = $wpdb->prefix . 'csp_policy_versions';
+		$manager = new \WP_CSP\CSP\Policy_Version_Manager();
+
+		foreach ( array( 'frontend', 'admin', 'login', 'api' ) as $surface ) {
+			$exists = $wpdb->get_var(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"SELECT id FROM {$table} WHERE surface = %s LIMIT 1",
+					$surface
+				)
+			);
+
+			if ( ! $exists ) {
+				$manager->capture_snapshot( $surface, 'system_migration', 0 );
 			}
 		}
 	}

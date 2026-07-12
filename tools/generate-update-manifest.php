@@ -18,7 +18,7 @@ $options = getopt(
 );
 
 if ( false === $options || empty( $options['output'] ) ) {
-	fwrite( STDERR, "Usage: php tools/generate-update-manifest.php --output docs/updates/wp-csp-automation.json [--tag v0.2.1] [--download-url URL]\n" );
+	fwrite( STDERR, "Usage: php tools/generate-update-manifest.php --output /tmp/pages/wp-csp-automation.json [--tag v0.2.1] [--download-url URL]\n" );
 	exit( 1 );
 }
 
@@ -39,6 +39,10 @@ if ( '' === $version ) {
 }
 
 $download_url = string_option( $options, 'download-url' );
+if ( '' === $download_url ) {
+	$download_url = 'https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip';
+}
+
 $release_url  = string_option( $options, 'release-url' );
 if ( '' === $release_url && '' !== $tag ) {
 	$release_url = 'https://github.com/vcns/wp-csp-automation/releases/tag/' . rawurlencode( $tag );
@@ -46,7 +50,10 @@ if ( '' === $release_url && '' !== $tag ) {
 
 $published_at = string_option( $options, 'published-at' );
 if ( '' === $published_at ) {
-	$published_at = gmdate( 'c' );
+	$published_at = gmdate( 'Y-m-d' );
+} else {
+	$timestamp    = strtotime( $published_at );
+	$published_at = false !== $timestamp ? gmdate( 'Y-m-d', $timestamp ) : $published_at;
 }
 
 $manifest = array(
@@ -55,13 +62,13 @@ $manifest = array(
 	'name'         => 'WP CSP Automation Manager',
 	'version'      => $version,
 	'download_url' => $download_url,
-	'homepage'     => 'https://github.com/vcns/wp-csp-automation',
+	'homepage'     => 'https://vcns.github.io/wp-csp-automation',
 	'release_url'  => $release_url,
 	'requires'     => header_value( $plugin, 'Requires at least' ) ?: '6.4',
 	'tested'       => '6.8',
 	'requires_php' => header_value( $plugin, 'Requires PHP' ) ?: '8.1',
 	'last_updated' => $published_at,
-	'author'       => header_value( $plugin, 'Author' ) ?: 'Simon Jackson',
+	'author'       => 'VCNS Tech Ltd',
 	'sections'     => array(
 		'description' => 'Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress.',
 		'changelog'   => '' !== $release_url ? 'See the release notes: ' . $release_url : 'Release notes are published with tagged GitHub Releases.',

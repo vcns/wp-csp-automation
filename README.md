@@ -20,6 +20,9 @@ It provides per-surface CSP profiles, nonce injection, source discovery, violati
 - Source discovery and approval workflow
 - Risk-ranked CSP change proposals with administrator approve/reject decisions
 - Revert-and-suppress workflow so a reversed source is not proposed again automatically
+- Policy version snapshots, policy diffs, decision provenance, and deterministic rule findings for reviewable CSP changes
+- Policy Audit admin view and privileged admin REST endpoints for current policy, pending reviews, decisions, history, and manual automation configuration
+- Automation configuration scaffold that defaults every surface to `manual`; no proposal is auto-approved on install or upgrade
 - Promotion gate before switching a surface into enforce mode
 - Conflict detection for competing CSP headers
 - Scheduled rescans with audit logging
@@ -85,7 +88,8 @@ Once published to WordPress.org:
 2. Run an initial scan from the dashboard.
 3. Review discovered sources in the inventory.
 4. Stay in report-only mode while reviewing violations.
-5. Promote one surface at a time into enforce mode when the approved inventory is stable.
+5. Use **CSP Manager -> Policy Audit** to inspect pending decisions, decision history, and captured policy versions.
+6. Promote one surface at a time into enforce mode when the approved inventory is stable.
 
 ## Getting started
 
@@ -93,8 +97,13 @@ Once published to WordPress.org:
 2. Run an initial scan from the CSP Manager dashboard.
 3. Review and approve only the external sources your site actually requires.
 4. Reject or revert unwanted sources so the same fingerprint is suppressed from future automation.
-5. Stay in report-only mode until violations are understood.
-6. Promote one surface at a time into enforce mode.
+5. Use the Policy Audit page to inspect why a proposal exists and what policy version resulted from decisions.
+6. Stay in report-only mode until violations are understood.
+7. Promote one surface at a time into enforce mode.
+
+## Automation and AI posture
+
+Automation is currently scaffolded but defaults to `manual` for every surface. The free tier retains source discovery, manual review, deterministic risk classification, decision history, policy history, and rollback-oriented provenance. Future paid automation and AI-assisted recommendation work must keep deterministic product rules as the authority; AI output must not directly modify an enforced CSP policy.
 
 ## Premium activation
 

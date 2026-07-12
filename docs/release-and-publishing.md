@@ -137,7 +137,7 @@ Repository workflow files now provide the baseline automation:
 
 The repository publishes a static update manifest for GitHub-distributed builds:
 
-- `https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json`
+- `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json`
 
 WordPress does not automatically consume arbitrary update JSON for plugins outside the WordPress.org directory. The plugin registers an update checker that reads this manifest and maps it into the native plugin update transient.
 
@@ -145,11 +145,14 @@ Stable tag releases generate:
 
 - `wp-csp-automation-vX.Y.Z.zip`
 - `wp-csp-automation.json`
-- a Pages deployment containing `docs/updates/wp-csp-automation.json`
+- `wp-csp-automation-latest.zip` in `vcns/wp-updates`
+- `wp-csp-automation.json` in `vcns/wp-updates`
 
 Pre-release tags attach ZIP and manifest assets to the GitHub Release, but they do not update the Pages "latest stable" manifest.
 
-The normal Pages workflow also regenerates the manifest from the latest stable GitHub Release before deploying docs. This prevents a later docs-only publish from overwriting the update endpoint with stale committed JSON.
+The normal documentation Pages workflow no longer publishes update metadata. The update feed lives in the separate public `vcns/wp-updates` repository so sister plugins can publish into their own subdirectories without overwriting each other.
+
+The release workflow requires a repository or organization secret named `WP_UPDATES_TOKEN` with write access to `vcns/wp-updates`.
 
 ## Public docs site
 
@@ -220,7 +223,7 @@ Before publishing each version:
 - confirm repository secrets `SVN_USERNAME` and `SVN_PASSWORD` exist before tagging
 - package from a clean checkout or CI workspace
 - test installation from the packaged zip
-- confirm the Pages update manifest points at the intended stable ZIP after the tag workflow completes
+- confirm the shared Pages update manifest points at the intended stable ZIP after the tag workflow completes
 
 ## Rollback planning
 
