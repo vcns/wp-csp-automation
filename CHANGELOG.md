@@ -10,6 +10,7 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 ### Added
 
+- **Policy audit foundation** — Added policy version snapshots, deterministic rule-evaluation provenance, manual automation configuration defaults, privileged admin REST endpoints, and a Policy Audit admin page. Automation defaults to `manual`; no source is auto-approved on install or upgrade.
 - **`Reporting-Endpoints` header** — `Policy_Builder::emit_header()` now emits a `Reporting-Endpoints: csp-endpoint="<url>"` Structured Fields Dictionary header (RFC 9651) before every CSP header. Without this header, browsers silently discard any `report-to` directive in the CSP. Also emits the legacy `Report-To` JSON header as a fallback for pre-Reporting-API browsers; that format is deprecated per RFC 9651 but retained for compatibility.
 - **Forbidden directive denylist** — `Policy_Builder` gained the `FORBIDDEN_DIRECTIVES` class constant listing `plugin-types`, `block-all-mixed-content`, `navigate-to`, and `prefetch-src`. These are stripped from profile overrides at emit time; any stripping is logged to `csp_audit_log` at `warning` severity.
 - **`strict-dynamic` host-source suppression** — When `strict-dynamic` is active and licensed, approved host sources are suppressed from `script-src` at emit time. Browsers silently ignore host allowlists when `strict-dynamic` is present (CSP3 §8.2); emitting them was creating misleading policy noise.
@@ -30,11 +31,13 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - **Audit log DB persistence** — `Audit_Log::log()` now calls `write_to_db()` (new private method) before `push_admin_notice()`. The DB record is the immutable audit trail; the wp_options queue is for transient admin display only.
 - **Feature gate documentation** — `Feature_Gate` class docblock now lists all premium feature keys: `trusted_types`, `strict_dynamic`, `multi_surface_scan`.
 - **CSP policy change control** — discovered and report-learned sources now pass through `Policy_Change_Manager`, which risk-scores proposals, records administrator approve/reject/revert decisions, and suppresses rejected or reverted fingerprints from being proposed again.
-- **`csp_policy_change_decisions` table** — append-only decision ledger for source approvals, rejections, reversions, risk metadata, decision reasons, and suppression state. DB version bumped from 4 -> 5.
+- **`csp_policy_change_decisions` table** — append-only decision ledger for source approvals, rejections, reversions, risk metadata, decision reasons, provenance metadata, and suppression state. DB version bumped from 4 -> 5 and extended in v7.
+- **`csp_policy_versions` table** — append-oriented surface policy snapshots for policy history and diff inspection.
+- **`csp_decision_rule_evaluations` table** — deterministic rule findings linked to proposals and decisions.
 
 ### Changed
 
-- `WP_CSP_DB_VERSION` bumped from `'2'` to `'5'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata).
+- `WP_CSP_DB_VERSION` bumped from `'2'` to `'7'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata; v6 = violation rollups; v7 = provenance and policy history foundation).
 - Policy builder emits `Reporting-Endpoints` and `Report-To` headers immediately before the CSP header — any code that expects the CSP to be the first header will need updating.
 
 ### Fixed

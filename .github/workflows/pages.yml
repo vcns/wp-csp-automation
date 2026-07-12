@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -45,7 +45,11 @@ jobs:
         run: |
           set -euo pipefail
 
+<<<<<<< HEAD
           mkdir -p docs/updates
+=======
+          mkdir -p docs/updates docs/downloads
+>>>>>>> origin/development
 
           if ! RELEASE_JSON="$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName,publishedAt,url,assets 2>/dev/null)"; then
             echo "No GitHub Release found; publishing the committed update manifest."
@@ -62,7 +66,14 @@ jobs:
             exit 0
           fi
 
+<<<<<<< HEAD
           DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+=======
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "${ZIP_FILENAME}" --dir "docs/downloads"
+
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+>>>>>>> origin/development
 
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
@@ -81,7 +92,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:

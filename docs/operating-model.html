@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang='en-GB'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Operating Model Diagram | WP CSP Automation Manager</title>
+  <meta name='description' content='Full operating model sequence diagram for WP CSP Automation Manager.'>
+  <link rel='preconnect' href='https://fonts.googleapis.com'>
+  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+  <link href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap' rel='stylesheet'>
+  <link rel='stylesheet' href='styles.css'>
+  <style>
+    .diagram-page main {
+      max-width: none;
+      padding: 2rem max(1rem, calc((100% - 1500px) / 2)) 2.5rem;
+    }
+
+    .diagram-section {
+      overflow: visible;
+    }
+
+    .diagram-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+
+    .diagram-canvas {
+      width: 100%;
+      min-height: 640px;
+      overflow: auto;
+      padding: 1.25rem;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .diagram-canvas .mermaid {
+      min-width: 1600px;
+    }
+
+    .diagram-canvas svg {
+      max-width: none !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class='page-shell diagram-page'>
+    <header class='hero compact-hero'>
+      <div class='hero-copy'>
+        <p class='eyebrow'>Operating model</p>
+        <h1>Full CSP workflow sequence.</h1>
+        <p class='lede'>This expanded view shows the end-to-end operating model from activation, learning, approvals, enforcement, rollback, and scheduled housekeeping.</p>
+        <div class='hero-actions'>
+          <a class='button primary' href='user-guide.html#how-it-works'>Back to user guide</a>
+          <a class='button secondary' href='index.html'>Help home</a>
+        </div>
+      </div>
+      <aside class='hero-panel'>
+        <h2>Viewing advice</h2>
+        <ul>
+          <li>Open this page in a full browser tab.</li>
+          <li>Use browser zoom if needed.</li>
+          <li>Scroll horizontally on smaller screens.</li>
+          <li>Use the user guide for the summary workflow.</li>
+        </ul>
+      </aside>
+    </header>
+
+    <main>
+      <section class='section diagram-section'>
+        <p class='section-label'>Expanded diagram</p>
+        <h2>Activation to enforcement lifecycle.</h2>
+        <p>This intentionally keeps the detailed path visible. The main user guide links here rather than embedding the full diagram inline.</p>
+        <div class='diagram-toolbar'>
+          <a class='button secondary' href='operating-model.html' target='_blank' rel='noopener'>Open in new tab</a>
+        </div>
+        <div class='diagram-canvas' aria-label='Full operating model sequence diagram'>
+          <div class='mermaid'>
+sequenceDiagram
+    autonumber
+    participant Admin as Administrator
+    participant WP as WordPress + plugin
+    participant DB as WordPress database
+    participant Browser as Browser
+    participant Report as CSP report endpoint
+    participant Worker as Remote config and licensing
+    participant Scheduler as Daily scheduler
+
+    Admin->>WP: Install and activate plugin
+    WP->>DB: Create CSP tables and seed report-only profiles
+    WP->>Worker: Fetch signed product config and entitlement metadata
+    Worker-->>WP: Return public metadata and entitlement response
+    Note over WP,Worker: Stripe secrets stay in remote licensing infrastructure
+
+    WP->>Browser: Emit report-only CSP header for each surface
+    WP->>Browser: Add per-request nonces to managed scripts and styles
+    Admin->>WP: Run manual scan
+    WP->>WP: Crawl representative frontend, admin, login and API URLs
+    WP->>DB: Store scan log and pending source proposals
+
+    Browser->>WP: Request real site journeys
+    WP->>Browser: Serve page with CSP header and reporting endpoint
+    Browser->>Report: Post violation reports for observed policy failures
+    Report->>Report: Validate content type and same-origin document URI
+    Report->>DB: Deduplicate, rate-limit and store violation report
+    Report->>DB: During learning window, create or refresh pending sources
+
+    Admin->>WP: Review Source Inventory and Violations
+    Admin->>DB: Approve, reject or revert proposals
+    WP->>DB: Record decision, risk context and suppression fingerprint
+
+    Admin->>WP: Request enforce mode for one surface
+    WP->>DB: Check approved inventory, recent violations and overrides
+    alt Promotion gate passes
+        WP->>Browser: Emit enforcing CSP header for that surface
+    else Gate fails or breakage is reported
+        WP->>Browser: Keep or return surface to report-only
+        Admin->>WP: Review violations and policy decisions again
+    end
+
+    Scheduler->>WP: Run daily scan and housekeeping
+    WP->>DB: Retire stale hashes and purge old violation reports
+    WP-->>Admin: Send notification when configured and policy changed
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class='site-footer'>
+      <p>WP CSP Automation Manager operating model</p>
+      <p><a href='index.html'>Help home</a> · <a href='user-guide.html'>User guide</a> · <a href='faq.html'>FAQ</a></p>
+    </footer>
+  </div>
+  <script type='module'>
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'strict'
+    });
+  </script>
+</body>
+</html>

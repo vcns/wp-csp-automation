@@ -14,7 +14,7 @@ declare( strict_types=1 );
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
 define( 'WP_CSP_VERSION',        '0.2.0' );
-define( 'WP_CSP_DB_VERSION',     '5' );
+define( 'WP_CSP_DB_VERSION',     '7' );
 define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
 define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
@@ -237,7 +237,9 @@ if ( ! function_exists( 'hash_equals' ) ) {
 
 // ── WP_Error / REST stubs ─────────────────────────────────────────────────────
 if ( ! class_exists( 'WP_REST_Request' ) ) {
-	class WP_REST_Request {
+	class WP_REST_Request implements ArrayAccess {
+		private array $params = [];
+
 		public function __construct( public string $method = 'POST', public string $route = '' ) {}
 
 		public function get_body(): string {
@@ -259,6 +261,34 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 				'parameters' => isset( $parts[1] ) ? array( 'params' => trim( $parts[1] ) ) : array(),
 			);
 		}
+
+		public function set_param( string $key, mixed $value ): void {
+			$this->params[ $key ] = $value;
+		}
+
+		public function offsetExists( mixed $offset ): bool {
+			return isset( $this->params[ $offset ] );
+		}
+
+		public function offsetGet( mixed $offset ): mixed {
+			return $this->params[ $offset ] ?? null;
+		}
+
+		public function offsetSet( mixed $offset, mixed $value ): void {
+			$this->params[ $offset ] = $value;
+		}
+
+		public function offsetUnset( mixed $offset ): void {
+			unset( $this->params[ $offset ] );
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Server' ) ) {
+	class WP_REST_Server {
+		public const READABLE = 'GET';
+		public const CREATABLE = 'POST';
+		public const EDITABLE = 'POST, PUT, PATCH';
 	}
 }
 
@@ -303,6 +333,8 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 	class wpdb_stub {
 		public string  $prefix     = 'wp_';
 		public ?string $last_error = null;
+		public int     $rows_affected = 0;
+		public int     $insert_id      = 0;
 
 		public function prepare( string $query, mixed ...$args ): string {
 			$i = 0;
@@ -341,11 +373,16 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 
 		public function query( string $sql ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'query';
-			return $GLOBALS['_wpdb_query_result'] ?? 1;
+			$GLOBALS['_wpdb_last_query']     = $sql;
+			$result                          = $GLOBALS['_wpdb_query_result'] ?? 1;
+			$this->rows_affected             = false === $result ? 0 : (int) $result;
+			return $result;
 		}
 
 		public function insert( string $table, array $data, array $format = [] ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'insert';
+			$this->rows_affected            = 1;
+			++$this->insert_id;
 			$GLOBALS['_wpdb_inserted_rows'][] = array(
 				'table'  => $table,
 				'data'   => $data,
@@ -356,6 +393,8 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 
 		public function update( string $table, array $data, array $where, array $format = [], array $where_format = [] ): int|false {
 			$GLOBALS['_wpdb_last_operation'] = 'update';
+			$result                         = $GLOBALS['_wpdb_update_result'] ?? 0;
+			$this->rows_affected            = false === $result ? 0 : (int) $result;
 			$GLOBALS['_wpdb_updated_rows'][] = array(
 				'table'        => $table,
 				'data'         => $data,
@@ -363,7 +402,7 @@ if ( ! class_exists( 'wpdb_stub' ) ) {
 				'format'       => $format,
 				'where_format' => $where_format,
 			);
-			return $GLOBALS['_wpdb_update_result'] ?? 0;
+			return $result;
 		}
 
 		public function get_charset_collate(): string {
@@ -429,6 +468,7 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wp_rest_headers']         = [];
 	$GLOBALS['_wpdb_query_result']       = 1;
 	$GLOBALS['_wpdb_last_operation']     = null;
+	$GLOBALS['_wpdb_last_query']         = null;
 	$GLOBALS['_wpdb_inserted_rows']      = [];
 	$GLOBALS['_wpdb_updated_rows']       = [];
 }

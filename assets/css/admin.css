@@ -125,3 +125,11 @@
 	font-size: 0.9em;
 	word-break: break-all;
 }
+
+.wp-csp-audit-table th {
+	vertical-align: top;
+}
+
+.wp-csp-audit-table td {
+	vertical-align: top;
+}

@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en-GB'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP CSP Automation Manager</title>
-  <meta name="description" content="Documentation, setup guidance, release notes, and operational help for WP CSP Automation Manager.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>WP CSP Automation Manager Help</title>
+  <meta name='description' content='End-user help, rollout guidance, learning path, FAQ, and operating guidance for WP CSP Automation Manager.'>
+  <link rel='preconnect' href='https://fonts.googleapis.com'>
+  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+  <link href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap' rel='stylesheet'>
+  <link rel='stylesheet' href='styles.css'>
 </head>
 <body>
+<<<<<<< HEAD
   <div class="page-shell">
     <header class="hero">
       <div class="hero-copy">
@@ -21,22 +22,35 @@
           <a class="button primary" href="https://github.com/vcns/wp-csp-automation">View Repository</a>
           <a class="button secondary" href="updates/wp-csp-automation.json">Latest Version JSON</a>
           <a class="button secondary" href="#quick-start">Quick Start</a>
+=======
+  <div class='page-shell'>
+    <header class='hero'>
+      <div class='hero-copy'>
+        <p class='eyebrow'>WP CSP Automation Manager</p>
+        <h1>Practical CSP help for WordPress administrators.</h1>
+        <p class='lede'>This help site explains what the plugin does, how to roll it out safely, how to read the dashboard, and how to decide which CSP changes should be approved.</p>
+        <div class='hero-actions'>
+          <a class='button primary' href='user-guide.html'>Read the user guide</a>
+          <a class='button secondary' href='faq.html'>Open the FAQ</a>
+          <a class='button secondary' href='https://github.com/vcns/wp-csp-automation/releases'>Download releases</a>
+>>>>>>> origin/development
         </div>
       </div>
-      <aside class="hero-panel">
+      <aside class='hero-panel'>
         <h2>At a glance</h2>
         <ul>
-          <li>WordPress 6.4+</li>
-          <li>PHP 8.1+</li>
-          <li>Per-surface CSP policies</li>
-          <li>Nonce injection and report-only rollout</li>
-          <li>Risk-ranked policy change approvals</li>
-          <li>Stripe one-time purchase support</li>
-          <li>Signed remote config via Ed25519</li>
+          <li>WordPress 6.4+ and PHP 8.1+</li>
+          <li>Per-surface policies for frontend, admin, login, and API</li>
+          <li>Report-only rollout before enforcement</li>
+          <li>Nonce injection for WordPress-managed scripts</li>
+          <li>Local violation reporting and source learning</li>
+          <li>Risk-ranked approval workflow</li>
+          <li>Optional premium entitlement handled by a remote licensing service</li>
         </ul>
       </aside>
     </header>
 
+<<<<<<< HEAD
     <nav class="section-nav">
       <a href="#quick-start">Quick Start</a>
       <a href="#installation">Installation</a>
@@ -48,68 +62,118 @@
       <a href="#release-flow">Release Flow</a>
       <a href="#faq">FAQ</a>
       <a href="#support">Support</a>
+=======
+    <nav class='section-nav' aria-label='Documentation sections'>
+      <a href='#start-here'>Start here</a>
+      <a href='#how-it-works'>How it works</a>
+      <a href='#learning-curve'>Learning curve</a>
+      <a href='#rollout-plan'>Rollout plan</a>
+      <a href='#dashboard'>Dashboard</a>
+      <a href='#decisions'>Approval decisions</a>
+      <a href='#premium'>Premium</a>
+      <a href='#help-library'>Help library</a>
+      <a href='#faq-preview'>FAQ</a>
+>>>>>>> origin/development
     </nav>
 
     <main>
-      <section id="quick-start" class="section section-grid">
+      <section id='start-here' class='section section-grid'>
         <div>
-          <p class="section-label">Quick Start</p>
-          <h2>How to get from zero to report-only safely.</h2>
-          <p>Use this sequence on a clean site or staging environment before you attempt production enforcement.</p>
+          <p class='section-label'>Start here</p>
+          <h2>What the product is for.</h2>
+          <p>WP CSP Automation Manager helps a WordPress administrator introduce a stricter Content Security Policy without immediately blocking live site resources. It does this by keeping each site surface in report-only mode first, collecting browser violation reports, discovering external sources, and turning those observations into reviewable policy proposals.</p>
+          <p>The plugin is not a one-click security switch. It is a controlled workflow. The administrator still decides which third-party hosts, scripts, frames, fonts, images, connections, and forms are legitimate for the site.</p>
         </div>
-        <ol class="steps">
-          <li>Install and activate the plugin on WordPress 6.4+ running PHP 8.1+.</li>
-          <li>Open CSP Manager settings and verify the site can run a manual scan.</li>
-          <li>Run the first scan and review the source inventory for external origins.</li>
-          <li>Approve required sources, reject risky proposals, and revert anything that should be suppressed from future automation.</li>
-          <li>Stay in report-only mode while monitoring violations and approving only required sources.</li>
-          <li>Promote one surface at a time to enforce mode after the inventory is stable.</li>
-        </ol>
+        <div class='callout-stack'>
+          <div class='callout'>
+            <h3>Best first use</h3>
+            <p>Use it on staging first. Run a scan, browse representative pages, review the source inventory, and keep report-only enabled until the violations table is quiet.</p>
+          </div>
+          <div class='warning-callout'>
+            <h3>Do not start in enforce mode</h3>
+            <p>Enforce mode can block scripts, styles, frames, fonts, media, and API calls. Move one surface at a time only after the dashboard evidence supports the change.</p>
+          </div>
+        </div>
       </section>
 
-      <section id="installation" class="section">
-        <p class="section-label">Installation</p>
-        <h2>Both the standard and manual install paths.</h2>
-        <div class="card-grid">
-          <article class="card">
-            <h3>System Requirements</h3>
-            <ul>
-              <li>WordPress 6.4 or higher</li>
-              <li>PHP 8.1 or higher</li>
-              <li>php.ini <a href="https://www.php.net/manual/en/sodium.installation.php">'sodium'</a> available for Ed25519 signature verification</li>
-            </ul>
+      <section id='how-it-works' class='section'>
+        <p class='section-label'>How it works</p>
+        <h2>The operating model.</h2>
+        <div class='card-grid'>
+          <article class='card'>
+            <h3>1. Detect the surface</h3>
+            <p>Requests are treated as frontend, admin, login, or API. Each surface has its own policy profile and its own mode.</p>
+          </article>
+          <article class='card'>
+            <h3>2. Emit a policy</h3>
+            <p>The plugin builds a CSP header from strict defaults, approved hosts, approved inline hashes, and a per-request nonce.</p>
+          </article>
+          <article class='card'>
+            <h3>3. Learn from evidence</h3>
+            <p>Static scans find many external assets. Browser violation reports identify runtime activity that static HTML cannot reliably reveal.</p>
+          </article>
+          <article class='card'>
+            <h3>4. Require approval</h3>
+            <p>Discovered sources are proposed as pending changes. They are not included in the live policy until an administrator approves them.</p>
+          </article>
+          <article class='card'>
+            <h3>5. Record decisions</h3>
+            <p>Approvals, rejections, and reversions are recorded in the policy change ledger. Rejected or reverted fingerprints suppress repeated automatic proposals.</p>
+          </article>
+          <article class='card'>
+            <h3>6. Promote safely</h3>
+            <p>The promotion gate blocks enforce mode until the surface has approved inventory and no recent violation activity inside the configured window.</p>
+          </article>
+          <article class='card'>
+            <h3>3. Learn from evidence</h3>
+            <p>Static scans find many external assets. Browser violation reports identify runtime activity that static HTML cannot reliably reveal.</p>
           </article>
         </div>
-        <div class="checklist-grid">
-          <div class="checklist">
-            <h3>Normal Installation</h3>
-            <ul>
-              <li>Go to Plugins, then Add New Plugin.</li>
-              <li>Search for WP CSP Automation Manager.</li>
-              <li>Install and activate the plugin.</li>
-            </ul>
+      </section>
+
+      <section id='learning-curve' class='section'>
+        <p class='section-label'>Learning curve</p>
+        <h2>What users need to learn, in order.</h2>
+        <div class='timeline'>
+          <div class='stage'>
+            <span class='stage-number'>1</span>
+            <div>
+              <h3>Basic CSP terms</h3>
+              <p>Learn what a surface, directive, source, nonce, report-only policy, enforce policy, and violation report mean.</p>
+            </div>
           </div>
-          <div class="checklist">
-            <h3>Manual Installation</h3>
-            <ul>
-              <li>Download the plugin ZIP package.</li>
-              <li>Open Plugins, then Add New Plugin, then Upload Plugin.</li>
-              <li>Select the ZIP file and install it.</li>
-              <li>Activate the plugin after upload.</li>
-            </ul>
+          <div class='stage'>
+            <span class='stage-number'>2</span>
+            <div>
+              <h3>Dashboard reading</h3>
+              <p>Use Profiles for mode, Source Inventory for pending hosts, Policy Changes for the decision ledger, Violations for browser evidence, and Scan Log for crawl history.</p>
+            </div>
           </div>
-          <div class="checklist">
-            <h3>Activation</h3>
-            <ul>
-              <li>Open CSP Manager settings.</li>
-              <li>Run the first scan.</li>
-              <li>Review source inventory and violations.</li>
-              <li>Keep each surface in report-only until ready.</li>
-            </ul>
+          <div class='stage'>
+            <span class='stage-number'>3</span>
+            <div>
+              <h3>Approval judgement</h3>
+              <p>Approve only sources with a clear business or functional purpose. Treat script, connection, frame, form, and worker changes as higher risk.</p>
+            </div>
+          </div>
+          <div class='stage'>
+            <span class='stage-number'>4</span>
+            <div>
+              <h3>Report-only evidence</h3>
+              <p>Browse real user journeys while report-only is active. Checkout, login, forms, embedded media, maps, analytics, consent tools, and page builders often reveal missing sources.</p>
+            </div>
+          </div>
+          <div class='stage'>
+            <span class='stage-number'>5</span>
+            <div>
+              <h3>Controlled enforcement</h3>
+              <p>Enforce the lowest-risk surface first, monitor violations after the change, and keep a rollback path to report-only.</p>
+            </div>
           </div>
         </div>
       </section>
 
+<<<<<<< HEAD
       <section id="updates" class="section section-grid">
         <div>
           <p class="section-label">Updates</p>
@@ -134,79 +198,135 @@
       </section>
 
       <section id="premium-activation" class="section section-grid">
+=======
+      <section id='rollout-plan' class='section'>
+        <p class='section-label'>Rollout plan</p>
+        <h2>A practical deployment sequence.</h2>
+        <div class='table-wrap'>
+          <table>
+            <thead>
+              <tr><th>Phase</th><th>Action</th><th>Evidence to collect</th><th>Move on when</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Prepare</td><td>Install on staging and confirm requirements.</td><td>Plugin activates, dashboard opens, no competing CSP header is reported.</td><td>The site still renders normally.</td></tr>
+              <tr><td>Scan</td><td>Run a manual scan from the dashboard.</td><td>Source Inventory contains expected external hosts.</td><td>Obvious required sources have been reviewed.</td></tr>
+              <tr><td>Exercise</td><td>Browse real user journeys in report-only mode.</td><td>Violations table shows blocked runtime activity without breaking the site.</td><td>Required runtime sources are understood.</td></tr>
+              <tr><td>Approve</td><td>Approve narrow legitimate sources; reject unknown or unwanted sources.</td><td>Policy Changes ledger contains clear decision reasons.</td><td>Inventory is stable and recent violations are resolved.</td></tr>
+              <tr><td>Enforce</td><td>Promote one surface to enforce mode.</td><td>No user-facing breakage and no fresh unresolved violations.</td><td>The surface remains stable through normal use.</td></tr>
+              <tr><td>Maintain</td><td>Repeat after theme, plugin, content, or integration changes.</td><td>New proposals and reports are reviewed before further enforcement changes.</td><td>The policy remains explainable and auditable.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id='dashboard' class='section section-grid'>
+>>>>>>> origin/development
         <div>
-          <p class="section-label">Premium Activation</p>
-          <h2>How entitlement activation actually works.</h2>
-          <p>Premium access is activated through Stripe Checkout and a verified webhook, not from a browser redirect alone.</p>
-          <ol class="steps">
-            <li>Configure the Stripe mode, publishable key, secret key, and webhook secret in the plugin settings.</li>
-            <li>Ensure Stripe is configured to send the supported checkout session webhook events to the plugin REST endpoint.</li>
-            <li>Start checkout from the plugin premium screen.</li>
-            <li>Complete the one-time payment in Stripe Checkout.</li>
-            <li>Wait for the verified webhook to grant the entitlement locally on the site.</li>
-          </ol>
+          <p class='section-label'>Dashboard</p>
+          <h2>Where to look in the WordPress admin.</h2>
+          <p>Open <strong>CSP Manager</strong> in the WordPress admin. The main dashboard is split into tabs that match the product workflow.</p>
+          <ul class='bullets'>
+            <li><strong>Profiles:</strong> see each surface and switch between report-only, enforce, and disabled.</li>
+            <li><strong>Source Inventory:</strong> review discovered hosts, risk, state, evidence count, and last-seen time.</li>
+            <li><strong>Policy Changes:</strong> review the audit trail for approvals, rejections, reversions, and suppressions.</li>
+            <li><strong>Violations:</strong> inspect browser-reported blocked resources and occurrence counts.</li>
+            <li><strong>Scan Log:</strong> check manual and scheduled scan results.</li>
+          </ul>
         </div>
-        <div class="callout-stack">
-          <div class="callout">
-            <h3>What Stripe is not used for</h3>
-            <p>Free features do not require Stripe. The plugin does not perform per-request remote licence validation during normal runtime.</p>
+        <div class='callout-stack'>
+          <div class='callout'>
+            <h3>Manual scan</h3>
+            <p>Use <strong>Run Manual Scan</strong> after installing the plugin, changing a theme, adding a plugin, altering a checkout flow, or adding third-party content.</p>
           </div>
-          <div class="callout">
-            <h3>Entitlement scope</h3>
-            <p>The stored entitlement is tied to the current site's identity, so domain changes affect licence matching.</p>
+          <div class='callout'>
+            <h3>Scheduled scan</h3>
+            <p>The plugin schedules a daily scan. Notification email is used when a scheduled scan detects a policy change.</p>
           </div>
         </div>
       </section>
 
-      <section id="stripe-and-privacy" class="section">
-        <p class="section-label">Stripe and Privacy</p>
-        <h2>What leaves the site, what stays local, and what must never be exposed.</h2>
-        <div class="card-grid">
-          <article class="card">
-            <h3>Stripe usage</h3>
-            <p>Stripe is used only for premium checkout and webhook processing. The plugin creates one-time Checkout Sessions and verifies webhook signatures before granting entitlements.</p>
+      <section id='decisions' class='section'>
+        <p class='section-label'>Approval decisions</p>
+        <h2>How to decide what belongs in the policy.</h2>
+        <div class='decision-grid'>
+          <article class='decision-card allow'>
+            <h3>Approve</h3>
+            <p>Approve a source when it is required, expected, narrow, and explainable. Examples include the payment provider used by checkout, the font CDN used by the theme, or the analytics host already approved by the site owner.</p>
           </article>
-          <article class="card">
-            <h3>Local data storage</h3>
-            <p>Violation reports, source inventory, hashes, scan logs, and entitlements are stored in the local WordPress database.</p>
+          <article class='decision-card caution'>
+            <h3>Investigate</h3>
+            <p>Investigate if the source appears only once, has no clear owner, is high risk, or relates to script, connection, form, frame, or worker behaviour. Ask which plugin, theme, or business process requires it.</p>
           </article>
-          <article class="card">
+          <article class='decision-card deny'>
+            <h3>Reject or revert</h3>
+            <p>Reject unknown or unnecessary proposals. Revert a previously approved source when it is no longer required. Both actions suppress the same fingerprint from being proposed again automatically.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id='premium' class='section section-grid'>
+        <div>
+          <p class='section-label'>Premium</p>
+          <h2>What premium changes.</h2>
+          <p>The free tier provides the core report-only workflow, basic scan, basic dashboard, and violation endpoint. Premium features add multi-surface scanning, <code>strict-dynamic</code>, Trusted Types support, and additional analytics or export surfaces where available.</p>
+          <p>Payment processing is handled by the remote licensing service. Stripe secret material does not need to be stored in the WordPress installation.</p>
+        </div>
+        <div class='warning-callout'>
+          <h3>Activation model</h3>
+          <p>Premium access is not granted by a browser redirect alone. It depends on the remote licensing service and verified payment processing before the local entitlement is considered active.</p>
+        </div>
+      </section>
+
+      <section id='help-library' class='section'>
+        <p class='section-label'>Help library</p>
+        <h2>Choose the next document.</h2>
+        <div class='card-grid'>
+          <article class='card'>
+            <h3>User guide</h3>
+            <p>Full guide for installation, configuration, scanning, source approvals, enforcement, maintenance, and troubleshooting.</p>
+            <a href='user-guide.html'>Read the user guide</a>
+          </article>
+          <article class='card'>
+            <h3>FAQ</h3>
+            <p>Direct answers for rollout, compatibility, report-only behaviour, premium activation, privacy, and recovery.</p>
+            <a href='faq.html'>Open the FAQ</a>
+          </article>
+          <article class='card'>
+            <h3>Architecture notes</h3>
+            <p>Maintainer-level notes on runtime flow, trust boundaries, and component responsibilities.</p>
+            <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/architecture.md'>Read architecture notes</a>
+          </article>
+          <article class='card'>
             <h3>Remote config</h3>
-            <p>The plugin fetches a signed JSON config document from an HTTPS endpoint discovered through DNS. That config must contain public product metadata only, never secrets.</p>
+            <p>Operator guidance for DNS-discovered signed config, key handling, cache behaviour, and fallback configuration.</p>
+            <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/remote-config-and-signing.md'>Read remote config guide</a>
           </article>
-          <article class="card">
-            <h3>Secrets boundary</h3>
-            <p>Stripe secret keys, webhook secrets, and private signing keys must never be placed in DNS records, public config payloads, or browser-delivered code.</p>
+          <article class='card'>
+            <h3>Update endpoint</h3>
+            <p>How the GitHub Pages manifest is mapped into the WordPress plugin update UI.</p>
+            <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md'>Read update endpoint guide</a>
           </article>
-          <article class="card">
-            <h3>Privacy model</h3>
-            <p>No general telemetry is intended as part of normal runtime. Outbound requests are limited to Stripe during purchase flow and your remote config endpoint for public signed metadata.</p>
-          </article>
-          <article class="card">
-            <h3>Verification model</h3>
-            <p>Remote config is signature-verified with Ed25519 when `sodium` is available. Stripe webhook events are verified before any entitlement change is made.</p>
-          </article>
-          <article class="card">
-            <h3>Change control</h3>
-            <p>Discovered and report-learned sources are risk-scored as proposals. Administrators approve, reject, or revert them; rejected and reverted fingerprints are suppressed from future automatic proposals.</p>
+          <article class='card'>
+            <h3>Security policy</h3>
+            <p>Where to report suspected vulnerabilities without disclosing them in public issues.</p>
+            <a href='https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md'>Read security policy</a>
           </article>
         </div>
       </section>
 
-      <section id="help-guides" class="section">
-        <p class="section-label">Help Guides</p>
-        <h2>Useful guides for admins, operators, and maintainers.</h2>
-        <div class="card-grid">
-          <article class="card">
-            <h3>Installation and rollout</h3>
-            <p>Plugin requirements, first scan, source approval, report-only rollout, and when to move into enforce mode.</p>
-            <a href="https://github.com/vcns/wp-csp-automation/blob/main/readme.txt">Read the installation guide</a>
+      <section id='faq-preview' class='section'>
+        <p class='section-label'>FAQ preview</p>
+        <h2>The questions most administrators ask first.</h2>
+        <div class='faq-list'>
+          <article class='faq-item'>
+            <h3>Will report-only mode block anything?</h3>
+            <p>No. Report-only mode asks the browser to report would-be violations. It does not block the resource. This is the safest way to learn what a live WordPress site actually needs.</p>
           </article>
-          <article class="card">
-            <h3>Architecture</h3>
-            <p>Component boundaries, request flow, trust boundaries, failure handling, and extension guidance.</p>
-            <a href="https://github.com/vcns/wp-csp-automation/blob/main/docs/architecture.md">Read architecture notes</a>
+          <article class='faq-item'>
+            <h3>Can enforce mode break a site?</h3>
+            <p>Yes. Enforce mode can block required resources. Use it only after reviewing violations and approving required sources.</p>
           </article>
+<<<<<<< HEAD
           <article class="card">
             <h3>Remote config and signing</h3>
             <p>DNS TXT record format, signed JSON payload contract, Ed25519 key handling, caching, and rotation planning.</p>
@@ -357,67 +477,26 @@
             <p>The plugin blocks switching to enforce mode unless at least one source or hash has been approved for that surface, and no recent unresolved violation has been reported. This two-condition check reduces the risk of locking users out with an over-strict policy.</p>
           </article>
           <article class="card">
+=======
+          <article class='faq-item'>
+>>>>>>> origin/development
             <h3>Should I approve every discovered source?</h3>
-            <p>No. Approve only sources that are genuinely required for the site to function. Deny anything that looks unknown, unnecessary, or tracking-related.</p>
-          </article>
-          <article class="card">
-            <h3>Where are violation reports stored?</h3>
-            <p>They are stored locally in the WordPress database in the site's <code>csp_violation_reports</code> table. Nothing is sent to an external reporting service by default; reports are deduplicated by fingerprint. Old reports are purged automatically: by default, rows older than 90 days are deleted after every daily scan. This threshold is configurable in CSP Manager → Settings (<code>wp_csp_violation_retention_days</code>); set it to <code>0</code> to keep reports indefinitely.</p>
-          </article>
-          <article class="card">
-            <h3>Does this plugin require Stripe?</h3>
-            <p>No. Free features work without Stripe credentials. Stripe is only required if you want to use the premium purchase and entitlement flow.</p>
-          </article>
-          <article class="card">
-            <h3>Is the premium licence tied to one WordPress install?</h3>
-            <p>Yes. The entitlement is bound to a stable hash of the site URL, so moving to a different domain changes the site identity and affects licence matching.</p>
-          </article>
-          <article class="card">
-            <h3>What PHP extensions are required?</h3>
-            <p>The plugin relies on `json` and `hash`, which are standard in PHP 8.x, and `sodium` for Ed25519 signature verification of the remote config. If `sodium` is unavailable, the plugin logs a warning and continues in degraded verification mode.</p>
-          </article>
-          <article class="card">
-            <h3>Is this compatible with caching plugins?</h3>
-            <p>Usually, but nonce-based pages should not be served from a full-page cache unless nonce-aware exclusions are in place. The plugin does not configure those cache exclusions for you.</p>
-          </article>
-          <article class="card">
-            <h3>Can I enforce a strict CSP on wp-admin?</h3>
-            <p>With caveats. WordPress core Trac #59446 is unresolved: some core admin screens and bundled themes emit inline scripts outside the WordPress script API, so strict nonce-based enforcement can break parts of the admin UI. The plugin surfaces a warning notice when the admin surface is set to enforce mode. Monitor violation reports carefully before committing to enforcement on this surface, and keep a report-only fallback path available.</p>
-          </article>
-          <article class="card">
-            <h3>I switched to Enforce mode and my site broke. What do I do?</h3>
-            <p>Switch the affected surface back to report-only, review the violation entries for blocked resources, approve the required sources or hashes, and then test enforce mode again.</p>
-          </article>
-          <article class="card">
-            <h3>How do I report a security vulnerability?</h3>
-            <p>Do not report vulnerabilities in public issues. Follow the repository security policy and use the private reporting process documented there.</p>
+            <p>No. Approve only sources that are necessary, known, and narrow. Reject or investigate anything unknown.</p>
           </article>
         </div>
-      </section>
-
-      <section id="support" class="section section-grid">
-        <div>
-          <p class="section-label">Support</p>
-          <h2>Where to look when something is wrong.</h2>
-          <ul class="bullets">
-            <li>Use the dashboard violation table when a surface fails in enforce mode.</li>
-            <li>Use the source inventory before broadening allowlists manually.</li>
-            <li>Use the scan log when discovery results change unexpectedly.</li>
-            <li>Use Stripe delivery logs and processed event rows when premium grants are missing.</li>
-            <li>Use audit log warnings when remote config refresh fails.</li>
-          </ul>
-        </div>
-        <div class="callout support-box">
-          <h3>Security reporting</h3>
-          <p>Do not file public vulnerabilities in issues or discussion threads. Follow the repository security policy and use the private reporting channel described there.</p>
-          <a class="button tertiary" href="https://github.com/vcns/wp-csp-automation/blob/main/SECURITY.md">Read security policy</a>
+        <div class='section-action'>
+          <a class='button tertiary' href='faq.html'>Read all FAQ entries</a>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer">
+    <footer class='site-footer'>
       <p>WP CSP Automation Manager documentation site</p>
+<<<<<<< HEAD
       <p><a href="https://github.com/vcns/wp-csp-automation">Repository</a> · <a href="https://vcns.github.io/wp-csp-automation/">GitHub Pages</a></p>
+=======
+      <p><a href='https://github.com/vcns/wp-csp-automation'>Repository</a> · <a href='https://vcns.github.io/wp-csp-automation/'>GitHub Pages</a></p>
+>>>>>>> origin/development
     </footer>
   </div>
 </body>

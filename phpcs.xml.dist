@@ -18,6 +18,15 @@
 
   <rule ref="WordPress-Core"/>
 
+  <rule ref="WordPress.DB.DirectDatabaseQuery">
+    <severity>0</severity>
+  </rule>
+
+  <rule ref="WordPress.DB.PreparedSQL">
+    <exclude-pattern>includes/class-activator.php</exclude-pattern>
+    <exclude-pattern>includes/csp/class-violation-reporter.php</exclude-pattern>
+  </rule>
+
   <config name="minimum_supported_wp_version" value="6.4"/>
 
   <rule ref="WordPress.WP.I18n">

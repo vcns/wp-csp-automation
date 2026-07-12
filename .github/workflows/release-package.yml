@@ -2,7 +2,8 @@ name: Release Package
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 # Push a semver tag  (e.g. git tag v0.2.0 && git push origin v0.2.0)
-#   → builds ZIP, creates GitHub Release, attaches ZIP as a downloadable asset.
+#   → builds ZIP, creates GitHub Release, attaches ZIP, and publishes the latest
+#     stable ZIP plus update manifest through GitHub Pages.
 #
 # Open a PR against development
 #   → smoke-check only: builds ZIP and uploads it as a workflow artifact.
@@ -133,7 +134,12 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
+<<<<<<< HEAD
           DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+=======
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+>>>>>>> origin/development
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \
             --download-url "${DOWNLOAD_URL}" \
@@ -148,14 +154,26 @@ jobs:
             "dist/wp-csp-automation.json"
 
   pages-update-manifest:
+<<<<<<< HEAD
     name: Publish Pages Update Manifest
+=======
+    name: Publish Pages Update Manifest and ZIP
+>>>>>>> origin/development
     needs:
       - build
       - release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+<<<<<<< HEAD
     environment:
       name: production
+=======
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+>>>>>>> origin/development
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
@@ -168,14 +186,32 @@ jobs:
           php-version: '8.1'
           coverage: none
 
+<<<<<<< HEAD
       - name: Generate latest stable update manifest
+=======
+      - name: Download ZIP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wp-csp-automation-zip
+          path: dist/
+
+      - name: Generate latest stable update manifest and Pages ZIP
+>>>>>>> origin/development
         shell: bash
         run: |
           set -euo pipefail
 
           TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
+<<<<<<< HEAD
           DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+=======
+          PAGES_BASE_URL="https://vcns.github.io/wp-csp-automation"
+          DOWNLOAD_URL="${PAGES_BASE_URL}/downloads/${ZIP_FILENAME}"
+
+          mkdir -p docs/downloads docs/updates
+          cp "dist/${ZIP_FILENAME}" "docs/downloads/${ZIP_FILENAME}"
+>>>>>>> origin/development
 
           php tools/generate-update-manifest.php \
             --tag "${TAG}" \

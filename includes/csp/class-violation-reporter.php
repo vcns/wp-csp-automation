@@ -5,7 +5,8 @@
  * Implements §4.13 of the directive:
  *   - Handles both CSP Level 3 (application/csp-report) and legacy formats.
  *   - Deduplicates by a stable fingerprint: hash(surface + blocked_uri + violated_directive).
- *   - Increments occurrence_count on duplicate reports.
+ *   - Stores one row per unique fingerprint, with first/last reported timestamps.
+ *   - Increments occurrence_count on duplicate reports using a single database upsert.
  *   - Rate-limits storage: drops reports after 500 per hour per surface (soft cap).
  *   - Returns 204 No Content for valid reports (browser expects no body).
  *   - Premium feature: violation analytics export, advanced dedup.
@@ -188,54 +189,70 @@ class Violation_Reporter {
 		set_transient( $rate_key, $count + 1, self::RATE_LIMIT_WINDOW );
 
 		$fingerprint = hash( 'sha256', $surface . '|' . $blocked_uri . '|' . $violated_directive );
-		$now         = current_time( 'mysql', true );
 
-		$existing = $wpdb->get_var(
+		$now = current_time( 'mysql', true );
+
+		$document_uri_sanitized        = sanitize_text_field( substr( $document_uri, 0, 2048 ) );
+		$effective_directive_sanitized = sanitize_text_field( substr( isset( $r['effective_directive'] ) ? $r['effective_directive'] : '', 0, 128 ) );
+		$original_policy_sanitized     = sanitize_textarea_field( isset( $r['original_policy'] ) ? $r['original_policy'] : '' );
+		$source_file_sanitized         = sanitize_text_field( substr( isset( $r['source_file'] ) ? $r['source_file'] : '', 0, 512 ) );
+		$line_number_value             = null === $r['line_number'] ? -1 : (int) $r['line_number'];
+		$column_number_value           = null === $r['column_number'] ? -1 : (int) $r['column_number'];
+		$status_code_value             = null === $r['status_code'] ? -1 : (int) $r['status_code'];
+		$disposition_sanitized         = in_array( isset( $r['disposition'] ) ? $r['disposition'] : '', array( 'enforce', 'report' ), true ) ? $r['disposition'] : 'report';
+		$referrer_sanitized            = sanitize_text_field( substr( isset( $r['referrer'] ) ? $r['referrer'] : '', 0, 2048 ) );
+		$user_agent_raw                = isset( $_SERVER['HTTP_USER_AGENT'] ) ? wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) : '';
+		$user_agent_sanitized          = sanitize_text_field( substr( (string) $user_agent_raw, 0, 512 ) );
+		$sample_sanitized              = sanitize_text_field( substr( isset( $r['sample'] ) ? $r['sample'] : '', 0, 256 ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared	
-				"SELECT id FROM {$table} WHERE fingerprint = %s LIMIT 1",
-				$fingerprint
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"INSERT INTO {$table} (
+					profile_surface, blocked_uri, document_uri, violated_directive, effective_directive,
+					original_policy, source_file, line_number, column_number, status_code, disposition,
+					referrer, user_agent, sample, reported_at, first_reported_at, last_reported_at,
+					fingerprint, occurrence_count
+				) VALUES (
+					%s, %s, %s, %s, %s,
+					%s, %s, NULLIF(%d, -1), NULLIF(%d, -1), NULLIF(%d, -1), %s,
+					%s, %s, %s, %s, %s, %s,
+					%s, %d
+				) ON DUPLICATE KEY UPDATE
+					occurrence_count = occurrence_count + 1,
+					reported_at = VALUES(last_reported_at),
+					last_reported_at = VALUES(last_reported_at),
+					referrer = VALUES(referrer),
+					user_agent = VALUES(user_agent),
+					sample = CASE WHEN VALUES(sample) <> '' THEN VALUES(sample) ELSE sample END",
+				$surface,
+				$blocked_uri,
+				$document_uri_sanitized,
+				$violated_directive,
+				$effective_directive_sanitized,
+				$original_policy_sanitized,
+				$source_file_sanitized,
+				$line_number_value,
+				$column_number_value,
+				$status_code_value,
+				$disposition_sanitized,
+				$referrer_sanitized,
+				$user_agent_sanitized,
+				$sample_sanitized,
+				$now,
+				$now,
+				$now,
+				$fingerprint,
+				1
 			)
 		);
 
-		if ( $existing ) {
-			$wpdb->query(
-				$wpdb->prepare(
-					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					"UPDATE {$table} SET occurrence_count = occurrence_count + 1, reported_at = %s WHERE id = %d",
-					$now,
-					(int) $existing
-				)
-			);
-		} else {
-			$wpdb->insert(
-				$table,
-				array(
-					'profile_surface'     => $surface,
-					'blocked_uri'         => $blocked_uri,
-					'document_uri'        => sanitize_text_field( substr( $document_uri, 0, 2048 ) ),
-					'violated_directive'  => $violated_directive,
-					'effective_directive' => sanitize_text_field( substr( isset( $r['effective_directive'] ) ? $r['effective_directive'] : '', 0, 128 ) ),
-					'original_policy'     => sanitize_textarea_field( isset( $r['original_policy'] ) ? $r['original_policy'] : '' ),
-					'source_file'         => sanitize_text_field( substr( isset( $r['source_file'] ) ? $r['source_file'] : '', 0, 512 ) ),
-					'line_number'         => $r['line_number'],
-					'column_number'       => $r['column_number'],
-					'status_code'         => $r['status_code'],
-					'disposition'         => in_array( isset( $r['disposition'] ) ? $r['disposition'] : '', array( 'enforce', 'report' ), true ) ? $r['disposition'] : 'report',
-					'referrer'            => sanitize_text_field( substr( isset( $r['referrer'] ) ? $r['referrer'] : '', 0, 2048 ) ),
-					'user_agent'          => sanitize_text_field( substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', 0, 512 ) ),
-					// sample: first ~40 chars of the offending inline block; only present
-					// when 'report-sample' is in the policy (browsers truncate at 40 chars).
-					'sample'              => sanitize_text_field( substr( isset( $r['sample'] ) ? $r['sample'] : '', 0, 256 ) ),
-					'reported_at'         => $now,
-					'fingerprint'         => $fingerprint,
-					'occurrence_count'    => 1,
-				),
-				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
-			);
+		// Only the first occurrence needs to create/refresh a source proposal; duplicate
+		// violation counts are now represented on the violation row itself.
+		if ( 1 === (int) $wpdb->rows_affected ) {
+			$this->learn_source_from_report( $r, $surface, $blocked_uri, $now );
 		}
-
-		$this->learn_source_from_report( $r, $surface, $blocked_uri, $now );
 	}
 
 	private function learn_source_from_report( array $r, string $surface, string $blocked_uri, string $now ): void {
