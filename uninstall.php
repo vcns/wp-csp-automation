@@ -21,6 +21,8 @@ $tables = array(
 	'csp_processed_events',
 	'csp_audit_log',
 	'csp_policy_change_decisions',
+	'csp_policy_versions',
+	'csp_decision_rule_evaluations',
 );
 
 foreach ( $tables as $table ) {
@@ -42,6 +44,9 @@ $options = array(
 	'wp_csp_cron_hour',
 	'wp_csp_notify_email',
 	'wp_csp_violation_retention_days',
+	'wp_csp_learning_window_hours',
+	'wp_csp_last_material_change_at',
+	'wp_csp_automation_config',
 	'wp_csp_admin_notices',
 );
 

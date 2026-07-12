@@ -34,8 +34,9 @@ define( 'WP_CSP_VERSION', '0.2.0' );
  * v4 -- adds csp_audit_log append-only table (R10: immutable audit log)
  * v5 -- adds policy change proposal metadata and decision/suppression ledger
  * v6 -- adds violation first/last reported roll-up timestamps and unique fingerprint upsert support
+ * v7 -- adds decision provenance, policy version snapshots, and deterministic rule evaluations
  */
-define( 'WP_CSP_DB_VERSION', '6' );
+define( 'WP_CSP_DB_VERSION', '7' );
 
 define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );
