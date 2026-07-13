@@ -6,49 +6,51 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 ## [Unreleased]
 
-> **Note:** The changes listed below are present in the current codebase (v0.2.0, DB schema v4) and will be formally versioned in the next release.
+No unreleased changes yet.
+
+## [0.3.0] - 2026-07-12
+
+This release includes database migrations through schema version 7. Existing installations can migrate directly from earlier schema versions through the normal `dbDelta()` activation path. CSP runtime behaviour remains local and does not depend on remote billing, licensing, or update services during normal page rendering.
 
 ### Added
 
-- **`Reporting-Endpoints` header** — `Policy_Builder::emit_header()` now emits a `Reporting-Endpoints: csp-endpoint="<url>"` Structured Fields Dictionary header (RFC 9651) before every CSP header. Without this header, browsers silently discard any `report-to` directive in the CSP. Also emits the legacy `Report-To` JSON header as a fallback for pre-Reporting-API browsers; that format is deprecated per RFC 9651 but retained for compatibility.
-- **Forbidden directive denylist** — `Policy_Builder` gained the `FORBIDDEN_DIRECTIVES` class constant listing `plugin-types`, `block-all-mixed-content`, `navigate-to`, and `prefetch-src`. These are stripped from profile overrides at emit time; any stripping is logged to `csp_audit_log` at `warning` severity.
-- **`strict-dynamic` host-source suppression** — When `strict-dynamic` is active and licensed, approved host sources are suppressed from `script-src` at emit time. Browsers silently ignore host allowlists when `strict-dynamic` is present (CSP3 §8.2); emitting them was creating misleading policy noise.
-- **`upgrade-insecure-requests` directive** — Added to default policy profiles for `frontend`, `admin`, and `login` surfaces (not `api`). Serialised as a standalone boolean token (no source list). Does not replace HSTS (RFC 6797).
-- **`child-src 'none'` directive** — Added to default profiles as a legacy Safari fallback for `worker-src` (worker-src → child-src → script-src fallback chain in Safari).
-- **`fenced-frame-src 'none'` directive** — Added to default profiles as a forward-looking Privacy Sandbox directive.
-- **`sandbox` directive support** — `Policy_Builder` now handles `sandbox: null` (disabled) and skips `sandbox` entirely when the profile is in report-only mode (CSP spec — `sandbox` is ignored in `Content-Security-Policy-Report-Only`).
-- **Trusted Types directives** — `require-trusted-types-for` and `trusted-types` added to default profiles (both disabled by default with empty arrays). When enabled, always emitted as report-only regardless of surface enforcement mode (Chromium-strong; not yet cross-browser). Gated behind `trusted_types` premium feature key.
-- **`'report-sample'` keyword in defaults** — Added to `script-src`, `script-src-elem`, `style-src`, and `style-src-elem` across all surfaces. Without this keyword, browsers never populate the `script-sample`/`sample` field in violation reports.
-- **`sample` column in `csp_violation_reports`** — New `sample varchar(256) DEFAULT NULL` column stores the inline script/style snippet from violation reports (legacy field: `script-sample`; Reporting API field: `sample`). DB version bumped from 2 → 3.
-- **`csp_audit_log` table (eighth table)** — Append-only structured audit log for all significant plugin events. Columns: `id`, `component`, `event`, `detail`, `severity`, `user_id`, `created_at`. No `UPDATE` or `DELETE` is ever issued against this table. DB version bumped from 3 → 4.
-- **Violation retention purge** — `Scheduler::run_daily_scan()` now calls `purge_old_violations()` after each scan. Deletes `csp_violation_reports` rows older than `wp_csp_violation_retention_days` days (new option, default 90). Set to `0` to disable. Purge count logged to `csp_audit_log`.
-- **`Content-Type` validation on violation endpoint** — `Violation_Reporter::handle()` rejects requests with an unsupported `Content-Type` with HTTP 400. Accepted types: `application/csp-report`, `application/reports+json`, `application/json`.
-- **Cross-origin `document-uri` check** — `Violation_Reporter::store_report()` silently discards reports whose `document-uri` hostname does not match the WordPress site origin (RFC 6454). CSP reports are client-generated and spoofable.
-- **`sample` field normalisation** — `map_csp_report()` maps legacy `script-sample`; `map_reporting_api()` maps Reporting API `sample`; both write to the new `sample` column.
-- **wp-admin CSP limitation notice** — `Admin_UI::maybe_show_admin_csp_warning()` displays a one-per-session info notice when the admin surface profile mode is `enforce`, referencing WordPress core Trac #59446 (wp-admin cannot yet receive strict nonce-based CSP without risk of breakage).
-- **`wp_csp_violation_retention_days` option** — Seeded to `90` on activation. Registered and sanitised in admin settings.
-- **Audit log DB persistence** — `Audit_Log::log()` now calls `write_to_db()` (new private method) before `push_admin_notice()`. The DB record is the immutable audit trail; the wp_options queue is for transient admin display only.
-- **Feature gate documentation** — `Feature_Gate` class docblock now lists all premium feature keys: `trusted_types`, `strict_dynamic`, `multi_surface_scan`.
-- **CSP policy change control** — discovered and report-learned sources now pass through `Policy_Change_Manager`, which risk-scores proposals, records administrator approve/reject/revert decisions, and suppresses rejected or reverted fingerprints from being proposed again.
-- **`csp_policy_change_decisions` table** — append-only decision ledger for source approvals, rejections, reversions, risk metadata, decision reasons, and suppression state. DB version bumped from 4 -> 5.
-
+- `Reporting-Endpoints` header emission alongside CSP headers, with legacy `Report-To` fallback.
+- Forbidden directive denylist for removed or deprecated CSP directives.
+- `strict-dynamic` host-source suppression when licensed and enabled.
+- `upgrade-insecure-requests`, `child-src`, `fenced-frame-src`, sandbox handling, and Trusted Types defaults in policy profiles.
+- `'report-sample'` defaults for script and style directives.
+- `sample` column in `csp_violation_reports` for violation snippets. DB version 3.
+- `csp_audit_log` append-only table. DB version 4.
+- Violation retention purge with `wp_csp_violation_retention_days`.
+- Content-Type validation, cross-origin `document-uri` rejection, and sample-field normalisation for violation reports.
+- wp-admin enforce-mode limitation notice.
+- CSP policy change proposals, risk classification, administrator approve/reject/revert decisions, and rejected/reverted fingerprint suppression.
+- `csp_policy_change_decisions` append-only decision ledger. DB version 5.
+- Violation report rollups with `first_reported_at`, `last_reported_at`, unique fingerprint upsert support, and occurrence counts. DB version 6.
+- Policy audit foundation with policy version snapshots, deterministic rule-evaluation provenance, manual automation configuration defaults, privileged admin REST endpoints, and a Policy Audit admin page.
+- `csp_policy_versions` append-oriented surface policy snapshots. DB version 7.
+- `csp_decision_rule_evaluations` deterministic rule findings linked to proposals and decisions. DB version 7.
+- Self-hosted update checking for GitHub-distributed builds. The shared `vcns/wp-updates` feed remains tracked in the updater consolidation PR.
 ### Changed
 
-- `WP_CSP_DB_VERSION` bumped from `'2'` to `'5'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata).
+- Plugin version metadata now targets `0.3.0` for the next release after `0.2.0`.
+- `WP_CSP_DB_VERSION` bumped from `'2'` to `'7'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata; v6 = violation rollups; v7 = provenance and policy history foundation).
 - Policy builder emits `Reporting-Endpoints` and `Report-To` headers immediately before the CSP header — any code that expects the CSP to be the first header will need updating.
+- Product copy no longer describes all premium access as a one-time payment; entitlement-gated capabilities are compatible with future VCNS Portal account management.
 
 ### Fixed
 
-- **Silent `report-to` bug** — The CSP string referenced `csp-endpoint` in `report-to` without ever declaring the endpoint via `Reporting-Endpoints:`. Browsers silently discarded all `report-to` directives; violation reports via the Reporting API were never delivered. Fixed by emitting `Reporting-Endpoints:` in `emit_header()`.
+- Fixed silent Reporting API delivery failure where the CSP string referenced `report-to csp-endpoint` without declaring the endpoint through `Reporting-Endpoints`.
 
 ## [0.2.0] - 2026-06-03
 
 ### Added
+
 - Initial public plugin implementation for WordPress 6.4+ and PHP 8.1+.
 - Bootstrap file with plugin headers, constants, autoloader, activation, deactivation, and uninstall hooks.
 - Database installer for seven custom tables covering policy profiles, source inventory, hash inventory, violation reports, scan logs, entitlements, and processed Stripe webhook events.
 - Per-surface CSP engine for frontend, admin, login, and REST API requests.
-- Strict defaults for all 18 CSP directives, including `'none'` defaults where appropriate.
+- Strict defaults for all CSP directives.
 - Nonce generation and injection through native WordPress 6.4+ script attribute hooks with legacy tag-filter fallback.
 - Policy builder capable of emitting strict `Content-Security-Policy` and `Content-Security-Policy-Report-Only` headers.
 - Crawl-based discovery workflow for external sources with approval and deny actions.
@@ -64,15 +66,16 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 - Transient-cached remote configuration with configurable TTL and grace-window handling.
 - Admin UI covering dashboard, settings, entitlement display, checkout initiation, and manual rescans.
 - Full uninstall routine that drops all custom tables and removes plugin-owned `wp_csp_*` options.
-- Public WordPress.org `readme.txt` and repository documentation set.
 
 ### Security
+
 - Enforced prepared SQL access for parameterised queries and consistent escaping in admin output.
 - Added promotion gate so enforce mode is blocked until at least one approved source or hash exists.
 - Restricted admin actions to `manage_options` users with nonce verification.
 - Kept Stripe secret material out of browser-delivered code and remote DNS configuration.
 
 ## Release policy
+
 - `main` is the shipping branch for tagged releases.
 - WordPress.org release artifacts are built from a clean tag only.
 - Database schema changes must increment `WP_CSP_DB_VERSION` and include upgrade logic.

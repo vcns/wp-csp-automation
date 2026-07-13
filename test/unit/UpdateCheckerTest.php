@@ -15,7 +15,7 @@ class UpdateCheckerTest extends TestCase {
 	}
 
 	public function test_new_manifest_version_populates_update_response(): void {
-		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '0.3.0' ) );
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '0.4.0' ) );
 
 		$checker   = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
 		$transient = (object) array(
@@ -28,9 +28,20 @@ class UpdateCheckerTest extends TestCase {
 
 		$item = $result->response['wp-csp-automation/wp-csp-automation.php'] ?? null;
 		$this->assertIsObject( $item );
-		$this->assertSame( '0.3.0', $item->new_version );
-		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v0.3.0/wp-csp-automation-v0.3.0.zip', $item->package );
+		$this->assertSame( '0.4.0', $item->new_version );
+		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v0.4.0/wp-csp-automation-v0.4.0.zip', $item->package );
 		$this->assertArrayNotHasKey( 'wp-csp-automation/wp-csp-automation.php', $result->no_update );
+	}
+
+	public function test_register_wires_native_update_hooks(): void {
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+
+		$checker->register();
+
+		$this->assertArrayHasKey( 'pre_set_site_transient_update_plugins', $GLOBALS['_wp_actions'] );
+		$this->assertArrayHasKey( 'plugins_api', $GLOBALS['_wp_actions'] );
+		$this->assertArrayHasKey( 'upgrader_process_complete', $GLOBALS['_wp_actions'] );
+		$this->assertArrayHasKey( 'auto_update_plugin', $GLOBALS['_wp_actions'] );
 	}
 
 	public function test_current_manifest_version_populates_no_update_without_package(): void {
@@ -94,6 +105,135 @@ class UpdateCheckerTest extends TestCase {
 		$checker->get_manifest();
 
 		$this->assertCount( 1, $GLOBALS['_wp_remote_get_requests'] );
+	}
+
+	public function test_failed_manifest_fetch_is_cached_between_calls(): void {
+		$GLOBALS['_wp_remote_get_response'] = array(
+			'response' => array( 'code' => 500 ),
+			'body'     => '',
+		);
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+
+		$checker->get_manifest();
+		$checker->get_manifest();
+
+		$this->assertCount( 1, $GLOBALS['_wp_remote_get_requests'] );
+	}
+
+	public function test_update_completion_clears_cached_manifest(): void {
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '0.3.0' ) );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$checker->get_manifest();
+
+		$this->assertNotFalse( get_transient( 'wp_csp_update_manifest' ) );
+
+		$checker->clear_cached_manifest(
+			null,
+			array(
+				'action'  => 'update',
+				'type'    => 'plugin',
+				'plugins' => array( 'wp-csp-automation/wp-csp-automation.php' ),
+			)
+		);
+
+		$this->assertFalse( get_transient( 'wp_csp_update_manifest' ) );
+	}
+
+	public function test_update_completion_clears_cache_for_single_plugin_key(): void {
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '0.3.0' ) );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$checker->get_manifest();
+
+		$this->assertNotFalse( get_transient( 'wp_csp_update_manifest' ) );
+
+		// WordPress uses `plugin` (singular) for single-plugin upgrades.
+		$checker->clear_cached_manifest(
+			null,
+			array(
+				'action' => 'update',
+				'type'   => 'plugin',
+				'plugin' => 'wp-csp-automation/wp-csp-automation.php',
+			)
+		);
+
+		$this->assertFalse( get_transient( 'wp_csp_update_manifest' ) );
+	}
+
+	public function test_update_completion_does_not_clear_cache_for_other_single_plugin(): void {
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '0.3.0' ) );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$checker->get_manifest();
+
+		$cached = get_transient( 'wp_csp_update_manifest' );
+		$this->assertNotFalse( $cached );
+
+		// A different plugin is updated; the cache must be kept.
+		$checker->clear_cached_manifest(
+			null,
+			array(
+				'action' => 'update',
+				'type'   => 'plugin',
+				'plugin' => 'some-other-plugin/some-other-plugin.php',
+			)
+		);
+
+		$this->assertNotFalse( get_transient( 'wp_csp_update_manifest' ) );
+	}
+
+	public function test_filter_auto_update_passes_through_when_constant_undefined(): void {
+		// WP_CSP_DISABLE_AUTO_UPDATE is not defined in the test bootstrap, so
+		// the filter must return the original $update value unchanged.
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$item    = (object) array(
+			'plugin' => 'wp-csp-automation/wp-csp-automation.php',
+			'slug'   => 'wp-csp-automation',
+		);
+
+		$this->assertTrue( $checker->filter_auto_update_plugin( true, $item ) );
+		$this->assertFalse( $checker->filter_auto_update_plugin( false, $item ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_filter_auto_update_disables_by_plugin_file(): void {
+		define( 'WP_CSP_DISABLE_AUTO_UPDATE', true );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$item    = (object) array( 'plugin' => 'wp-csp-automation/wp-csp-automation.php', 'slug' => 'other-slug' );
+
+		$this->assertFalse( $checker->filter_auto_update_plugin( true, $item ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_filter_auto_update_disables_by_slug(): void {
+		define( 'WP_CSP_DISABLE_AUTO_UPDATE', true );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$item    = (object) array( 'plugin' => 'other/other.php', 'slug' => 'wp-csp-automation' );
+
+		$this->assertFalse( $checker->filter_auto_update_plugin( true, $item ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_filter_auto_update_passes_through_for_unrelated_plugin(): void {
+		define( 'WP_CSP_DISABLE_AUTO_UPDATE', true );
+
+		$checker = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
+		$item    = (object) array( 'plugin' => 'some-other/some-other.php', 'slug' => 'some-other' );
+
+		$this->assertTrue( $checker->filter_auto_update_plugin( true, $item ) );
 	}
 
 	private function response( array $manifest ): array {

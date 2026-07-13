@@ -11,7 +11,7 @@ The following files are published through GitHub Pages and are intended for Word
 - `faq.html` — practical FAQ covering rollout, approvals, violations, compatibility, premium activation, privacy, and incident recovery
 - `styles.css` — shared styles for the public help pages
 - `404.html` — GitHub Pages not-found page
-- `updates/wp-csp-automation.json` — public update manifest consumed by the self-hosted WordPress update checker
+- `updates/wp-csp-automation.json` — committed sample manifest; live update metadata is published to `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json`
 
 ## Internal documentation
 

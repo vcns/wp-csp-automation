@@ -2,7 +2,7 @@
 
 WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy headers safely and incrementally.
 
-It provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, and an optional premium entitlement model backed by one-time Stripe Checkout.
+It provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, and optional entitlement-gated premium capabilities.
 
 ## Features
 
@@ -20,6 +20,9 @@ It provides per-surface CSP profiles, nonce injection, source discovery, violati
 - Source discovery and approval workflow
 - Risk-ranked CSP change proposals with administrator approve/reject decisions
 - Revert-and-suppress workflow so a reversed source is not proposed again automatically
+- Policy version snapshots, policy diffs, decision provenance, and deterministic rule findings for reviewable CSP changes
+- Policy Audit admin view and privileged admin REST endpoints for current policy, pending reviews, decisions, history, and manual automation configuration
+- Automation configuration scaffold that defaults every surface to `manual`; no proposal is auto-approved on install or upgrade
 - Promotion gate before switching a surface into enforce mode
 - Conflict detection for competing CSP headers
 - Scheduled rescans with audit logging
@@ -85,7 +88,8 @@ Once published to WordPress.org:
 2. Run an initial scan from the dashboard.
 3. Review discovered sources in the inventory.
 4. Stay in report-only mode while reviewing violations.
-5. Promote one surface at a time into enforce mode when the approved inventory is stable.
+5. Use **CSP Manager -> Policy Audit** to inspect pending decisions, decision history, and captured policy versions.
+6. Promote one surface at a time into enforce mode when the approved inventory is stable.
 
 ## Getting started
 
@@ -93,41 +97,39 @@ Once published to WordPress.org:
 2. Run an initial scan from the CSP Manager dashboard.
 3. Review and approve only the external sources your site actually requires.
 4. Reject or revert unwanted sources so the same fingerprint is suppressed from future automation.
-5. Stay in report-only mode until violations are understood.
-6. Promote one surface at a time into enforce mode.
+5. Use the Policy Audit page to inspect why a proposal exists and what policy version resulted from decisions.
+6. Stay in report-only mode until violations are understood.
+7. Promote one surface at a time into enforce mode.
+
+## Automation and AI posture
+
+Automation is currently scaffolded but defaults to `manual` for every surface. The free tier retains source discovery, manual review, deterministic risk classification, decision history, policy history, and rollback-oriented provenance. Future paid automation and AI-assisted recommendation work must keep deterministic product rules as the authority; AI output must not directly modify an enforced CSP policy.
 
 ## Premium activation
 
-Premium activation uses Stripe Checkout routed through a Cloudflare Worker licensing server.
-Stripe API keys never touch the WordPress installation — they live as Worker secrets on the
-server side.
+Premium activation uses VCNS licensing services. Stripe may be used as a billing event source, but Stripe API keys never touch the WordPress installation.
 
-1. Open **CSP Manager → Entitlement** in the WordPress admin.
-2. Click **Upgrade to Pro** — this sends your site's identity to the licensing server and
-   opens a Stripe Checkout page.
-3. Complete the one-time payment.
-4. Stripe delivers the payment confirmation webhook to the licensing server, which records the
-   entitlement.
-5. Return to the Entitlement page — the plugin syncs automatically and activates Pro features.
+1. Open **CSP Manager -> Entitlement** in the WordPress admin.
+2. Click **Upgrade to Pro** or manage your plan through the available VCNS account-management flow.
+3. Complete the billing or account-management steps shown by VCNS.
+4. The licensing service records the entitlement after the billing or subscription event is verified.
+5. Return to the Entitlement page; the plugin syncs automatically and activates entitled features.
 
 Important behaviour:
 
 - Free features do not require any payment or configuration at all.
-- Premium access is not granted from the browser redirect alone — it requires the Stripe webhook
-  to be verified by the licensing server.
-- The entitlement is tied to the current site's URL.
+- Premium access is not granted from the browser redirect alone; it requires a verified entitlement from the licensing service.
+- Existing legacy entitlements remain site-bound. Future VCNS Portal entitlements may use product instance and organisation identifiers.
 - No Stripe keys are stored in WordPress or visible in the plugin settings.
 
 ## Stripe and external services
 
-Stripe is used only for the premium purchase flow. All Stripe interaction happens through a
-Cloudflare Worker licensing server — the WordPress plugin never holds or transmits Stripe keys.
+Stripe may be used for premium billing flows. Stripe interaction happens through VCNS licensing services; the WordPress plugin never holds or transmits Stripe keys.
 
-- The plugin sends site identity and return URLs to the Worker; the Worker creates the Checkout Session.
-- Stripe delivers webhook events directly to the Worker, which verifies signatures and records entitlements.
+- The plugin sends site identity and return URLs to the licensing service when an administrator starts a premium flow.
+- Stripe delivers webhook events directly to VCNS licensing infrastructure where applicable, which verifies signatures and records entitlements.
 - The plugin does not require the Stripe PHP SDK.
-- The plugin does not perform per-request remote licence checks during normal runtime — entitlement
-  state is cached locally and re-synced on demand.
+- The plugin does not perform per-request remote licence checks during normal runtime; entitlement state is cached locally and re-synced on demand.
 
 The plugin also fetches a remote configuration document from a DNS-discovered HTTPS endpoint.
 
@@ -141,7 +143,7 @@ The plugin keeps most operational data local to WordPress.
 
 - Browser-submitted CSP violation reports are stored in the local database.
 - Source inventory, hashes, scan logs, and entitlements are stored locally.
-- Stripe is contacted only when an admin initiates premium purchase flow or when Stripe sends webhook events.
+- External billing services are contacted only during administrator-initiated premium flows or server-to-server billing events.
 - The remote config endpoint is contacted only to fetch public signed product metadata.
 
 No telemetry or background tracking is intended as part of the normal plugin runtime.

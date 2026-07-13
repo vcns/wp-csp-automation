@@ -2,12 +2,12 @@
 /**
  * Plugin Name:       WP CSP Automation Manager
  * Plugin URI:        https://github.com/vcns/wp-csp-automation
- * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress. Premium features unlocked via one-time Stripe payment.
- * Version:           0.2.0
+ * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress. Premium features are entitlement-gated and managed through VCNS licensing services.
+ * Version:           0.3.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Author:            Simon Jackson
- * Author URI:        https://github.com/vcns
+ * Author:            VCNS Tech Ltd
+ * Author URI:        https://vcns.tech
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-csp-automation
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Core constants ────────────────────────────────────────────────────────────
-define( 'WP_CSP_VERSION', '0.2.0' );
+define( 'WP_CSP_VERSION', '0.3.0' );
 
 /**
  * Schema version. Increment whenever a database schema change is made.
@@ -34,8 +34,9 @@ define( 'WP_CSP_VERSION', '0.2.0' );
  * v4 -- adds csp_audit_log append-only table (R10: immutable audit log)
  * v5 -- adds policy change proposal metadata and decision/suppression ledger
  * v6 -- adds violation first/last reported roll-up timestamps and unique fingerprint upsert support
+ * v7 -- adds decision provenance, policy version snapshots, and deterministic rule evaluations
  */
-define( 'WP_CSP_DB_VERSION', '6' );
+define( 'WP_CSP_DB_VERSION', '7' );
 
 define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );
@@ -78,7 +79,7 @@ defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://wp-csp-c
  * this plugin loads. Do not make this filterable; keeping it as an early PHP
  * constant prevents another plugin from redirecting update checks at runtime.
  */
-defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-csp-automation/updates/wp-csp-automation.json' );
+defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register(

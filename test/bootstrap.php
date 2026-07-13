@@ -13,8 +13,8 @@ declare( strict_types=1 );
 
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
-define( 'WP_CSP_VERSION',        '0.2.0' );
-define( 'WP_CSP_DB_VERSION',     '5' );
+define( 'WP_CSP_VERSION',        '0.3.0' );
+define( 'WP_CSP_DB_VERSION',     '7' );
 define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
 define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
@@ -237,7 +237,9 @@ if ( ! function_exists( 'hash_equals' ) ) {
 
 // ── WP_Error / REST stubs ─────────────────────────────────────────────────────
 if ( ! class_exists( 'WP_REST_Request' ) ) {
-	class WP_REST_Request {
+	class WP_REST_Request implements ArrayAccess {
+		private array $params = [];
+
 		public function __construct( public string $method = 'POST', public string $route = '' ) {}
 
 		public function get_body(): string {
@@ -259,6 +261,34 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 				'parameters' => isset( $parts[1] ) ? array( 'params' => trim( $parts[1] ) ) : array(),
 			);
 		}
+
+		public function set_param( string $key, mixed $value ): void {
+			$this->params[ $key ] = $value;
+		}
+
+		public function offsetExists( mixed $offset ): bool {
+			return isset( $this->params[ $offset ] );
+		}
+
+		public function offsetGet( mixed $offset ): mixed {
+			return $this->params[ $offset ] ?? null;
+		}
+
+		public function offsetSet( mixed $offset, mixed $value ): void {
+			$this->params[ $offset ] = $value;
+		}
+
+		public function offsetUnset( mixed $offset ): void {
+			unset( $this->params[ $offset ] );
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Server' ) ) {
+	class WP_REST_Server {
+		public const READABLE = 'GET';
+		public const CREATABLE = 'POST';
+		public const EDITABLE = 'POST, PUT, PATCH';
 	}
 }
 
@@ -405,6 +435,7 @@ if ( ! function_exists( 'wp_unschedule_hook' ) ) {
 
 if ( ! function_exists( 'dbDelta' ) ) {
 	function dbDelta( string $queries = '' ): array {
+		$GLOBALS['_dbdelta_queries'][] = $queries;
 		return [];
 	}
 }
@@ -441,6 +472,7 @@ function wp_test_reset_globals(): void {
 	$GLOBALS['_wpdb_last_query']         = null;
 	$GLOBALS['_wpdb_inserted_rows']      = [];
 	$GLOBALS['_wpdb_updated_rows']       = [];
+	$GLOBALS['_dbdelta_queries']         = [];
 }
 
 // Initialise globals so classes loaded at parse time do not hit undefined array errors.

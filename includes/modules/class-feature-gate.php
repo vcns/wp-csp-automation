@@ -36,6 +36,9 @@ class Feature_Gate {
 		'basic_scan',
 		'basic_dashboard',
 		'violation_endpoint',
+		'manual_policy_review',
+		'policy_history',
+		'decision_evidence_explorer',
 	);
 
 	// Product key the free tier links to in the entitlement store.

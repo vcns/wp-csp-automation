@@ -2,7 +2,7 @@
 
 ## Overview
 
-The plugin creates nine custom tables on activation. All table names are prefixed with the site's configured WordPress table prefix (default `wp_`). Tables are created and migrated via `dbDelta()` in `includes/class-activator.php`; the current schema version is tracked in the `wp_csp_db_version` option and compared against the `WP_CSP_DB_VERSION` constant on every boot.
+The plugin creates custom tables on activation. All table names are prefixed with the site's configured WordPress table prefix (default `wp_`). Tables are created and migrated via `dbDelta()` in `includes/class-activator.php`; the current schema version is tracked in the `wp_csp_db_version` option and compared against the `WP_CSP_DB_VERSION` constant on every boot.
 
 | Version | Change |
 |---------|--------|
@@ -11,6 +11,8 @@ The plugin creates nine custom tables on activation. All table names are prefixe
 | v3 | `csp_violation_reports` gains `sample` column |
 | v4 | `csp_audit_log` append-only table added |
 | v5 | source proposal risk/decision metadata and `csp_policy_change_decisions` append-only ledger added |
+| v6 | `csp_violation_reports` gains first/last reported roll-up timestamps and unique fingerprint upsert support |
+| v7 | decision provenance columns, policy version snapshots, deterministic rule evaluations, and manual automation defaults |
 
 ## Table list
 
@@ -134,6 +136,10 @@ Operational notes:
 - duplicate reports (same fingerprint) increment `occurrence_count` rather than inserting new rows
 - rows are purged automatically after `wp_csp_violation_retention_days` days (default: 90) by the daily cron scan; set to `0` to disable purging
 
+#### v6 roll-up columns and migration
+
+Schema v6 adds `first_reported_at` and `last_reported_at` to `csp_violation_reports`, backfills them from `reported_at`, collapses historic duplicate fingerprints, and converts `fingerprint` to a unique key where required. Duplicate reports increment `occurrence_count` and update the latest timestamp rather than inserting additional rows.
+
 ### `csp_scan_logs`
 
 Purpose:
@@ -248,6 +254,12 @@ Key columns:
 - `risk_level`, `risk_reason`
 - `reason` — administrator-provided decision note
 - `user_id`
+- `state` — explicit lifecycle state such as `approved`, `rejected`, or `reverted`
+- `actor_type`, `actor_id` — final decision actor metadata; AI providers are recommendation sources, not actors
+- `previous_policy_version_id`, `policy_version_id` — policy snapshot references when the decision materially changes policy
+- `decision_engine_version`, `deterministic_result` — versioned deterministic rule output
+- `evidence_snapshot` — compact source inventory evidence present when the decision was made
+- `software_version`
 - `suppression_active` — `1` when this decision suppresses future proposals for the fingerprint
 - `created_at`
 
@@ -257,6 +269,54 @@ Operational notes:
 - the latest row for a `decision_fingerprint` controls suppression state
 - approving a previously rejected source appends a new non-suppressing decision, making that approval the latest decision
 - rejecting or reverting a source marks the source row denied and appends a suppressing decision
+
+### `csp_policy_versions`
+
+Purpose:
+
+- stores append-oriented snapshots of the effective policy for each surface after material policy decisions
+
+Key columns:
+
+- `id`
+- `surface`
+- `version_number`
+- `mode`
+- `effective_header`
+- `policy_snapshot` — JSON snapshot containing directives, approved sources, active hashes, and metadata
+- `previous_version_id`
+- `trigger_type`, `trigger_id`
+- `software_version`
+- `created_at`
+
+Operational notes:
+
+- rollback must create a new policy version instead of deleting or rewriting prior versions
+- snapshots are used by the audit UI and REST API to show policy history and diffs
+
+### `csp_decision_rule_evaluations`
+
+Purpose:
+
+- records the deterministic rule path used for a proposal or final decision
+
+Key columns:
+
+- `id`
+- `proposal_id`
+- `decision_id`
+- `engine_version`
+- `rule_id`, `rule_version`
+- `result`
+- `risk_effect`
+- `automation_effect`
+- `explanation`
+- `created_at`
+
+Operational notes:
+
+- rule IDs are stable product identifiers such as `CSP-SRC-003`
+- these rows explain why a proposal was eligible, blocked, or required administrator review
 
 ## Relationships
 
@@ -269,6 +329,8 @@ Primary runtime relationships:
 - `csp_processed_events.stripe_event_id` gates whether a Stripe event can mutate entitlements
 - `csp_audit_log` is not joined to other tables; it records events by component name
 - `csp_policy_change_decisions.decision_fingerprint` controls whether discovery or report learning may propose the same source again
+- `csp_policy_change_decisions.policy_version_id` links a decision to the resulting `csp_policy_versions` snapshot when applicable
+- `csp_decision_rule_evaluations.decision_id` links deterministic rule findings to final decisions
 
 ## Index guidance
 
@@ -282,6 +344,8 @@ The following fields are indexed or uniquely constrained in the activation SQL:
 - `csp_processed_events`: UNIQUE on `stripe_event_id`; index on `stripe_session_id`
 - `csp_audit_log`: `severity`, `created_at`
 - `csp_policy_change_decisions`: `decision_fingerprint`, `action`, `risk_level`, `suppression_active`, `created_at`
+- `csp_policy_versions`: UNIQUE on `(surface, version_number)`, indexes on `surface`, `previous_version_id`, `trigger_type/trigger_id`, `created_at`
+- `csp_decision_rule_evaluations`: `proposal_id`, `decision_id`, `rule_id`, `created_at`
 
 If performance issues appear under high violation volume, first review:
 
@@ -305,7 +369,7 @@ Whenever schema changes are introduced:
 
 ### Created on activation
 
-- all nine tables are created if absent
+- all plugin tables are created if absent
 - default settings and default per-surface policy profiles are seeded
 - the `wp_csp_db_version` option is set to `WP_CSP_DB_VERSION`
 
@@ -318,6 +382,8 @@ Whenever schema changes are introduced:
 - processed events are appended per webhook receipt
 - `csp_audit_log` is appended to by all significant plugin operations; never mutated in place
 - `csp_policy_change_decisions` is appended to whenever an administrator approves, rejects, or reverts a source proposal
+- `csp_policy_versions` is appended to for approved and reverted source decisions
+- `csp_decision_rule_evaluations` is appended to for decision rule provenance
 
 ### Removed on uninstall
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with an optional premium entitlement model powered by one-time Stripe checkout.
+WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with optional entitlement-gated premium capabilities. Billing and account management are expected to move through VCNS licensing services rather than being owned by the CSP runtime.
 
 ## Primary design principles
 
@@ -11,6 +11,7 @@ WP CSP Automation Manager is a WordPress plugin that helps site owners roll out 
 - No secrets in remote config: DNS-discovered configuration contains only public product metadata.
 - WordPress-native integration: use core hooks, REST APIs, cron, transients, and HTTP APIs instead of parallel infrastructure.
 - Progressive hardening: approvals and policy promotion are explicit human actions.
+- Deterministic authority: recommendation systems may advise, but policy mutation remains controlled by local deterministic rules and administrator decisions.
 
 ## Top-level component map
 
@@ -34,7 +35,7 @@ Responsibilities:
 
 Responsibilities:
 
-- create and seed nine custom tables
+- create and seed custom tables, including audit, decision, policy version, and rule evaluation tables
 - register default settings (including violation retention policy) and default policy profiles
 - schedule daily cron jobs
 - remove cron jobs on deactivation
@@ -67,17 +68,19 @@ Responsibilities:
 - ingest violation reports (with Content-Type and origin validation)
 - risk-score discovered and report-learned source proposals before administrator approval
 - record administrator approve/reject/revert decisions and suppress rejected/reverted fingerprints
+- capture policy version snapshots for material decisions
+- record deterministic rule findings for policy decisions
 - run scheduled and manual scans (including post-scan violation purge)
 - detect conflicting CSP headers
 
-### Premium and payment runtime
+### Entitlement and payment runtime
 
 `includes/modules/*`
 
 Responsibilities:
 
 - fetch remote premium-product configuration
-- create Stripe Checkout sessions
+- initiate account-management or checkout flows when configured
 - verify Stripe webhook signatures
 - store local entitlements
 - gate premium features (`strict_dynamic`, `trusted_types`, `multi_surface_scan`)
@@ -152,20 +155,28 @@ Responsibilities:
 1. Discovery and report-endpoint learning create pending source proposals, not approved policy.
 2. `Policy_Change_Manager` computes a stable fingerprint from `(surface, directive, source_host)`.
 3. High-risk proposals include script/style execution, connection, form, frame, worker, wildcard, cleartext HTTP, broad browser schemes, and unsafe keyword patterns.
-4. Administrators approve, reject, or revert proposals from the Source Inventory queue.
-5. Every decision is appended to `csp_policy_change_decisions` and mirrored to `csp_audit_log`.
-6. Rejected and reverted decisions set suppression on that fingerprint; future automation skips the same source until a later approval becomes the newest decision.
+4. `Decision_Engine` evaluates proposals through versioned deterministic rules and returns risk, hard exclusions, automation eligibility, and rule findings.
+5. Administrators approve, reject, or revert proposals from the Source Inventory queue.
+6. Every decision is appended to `csp_policy_change_decisions`, mirrored to `csp_audit_log`, and linked to deterministic rule findings in `csp_decision_rule_evaluations`.
+7. Approved and reverted decisions capture a `csp_policy_versions` snapshot for the affected surface.
+8. Rejected and reverted decisions set suppression on that fingerprint; future automation skips the same source until a later approval becomes the newest decision.
 
-### 6. Premium checkout flow
+### 6. Policy audit flow
 
-1. Admin selects a product tier from the entitlement page.
-2. `Checkout_Service` resolves the Stripe price ID from signed remote config.
-3. The plugin creates a Stripe Checkout Session through the Stripe API.
-4. Admin is redirected to Stripe-hosted checkout.
-5. Stripe sends a webhook after payment completion.
-6. `Webhook_Controller` verifies the signature and replay window.
-7. `Entitlement_Store` grants or updates the local entitlement.
-8. `Feature_Gate` exposes premium features based on local tier state.
+1. Administrators open **CSP Manager -> Policy Audit**.
+2. The current surface summary shows CSP mode, automation mode, latest policy version, pending proposal count, unresolved high-risk count, and the latest captured header.
+3. The review queue lists pending proposals with surface, directive, source, risk, evidence count, first seen, and last seen.
+4. Recent decisions show actor, state, surface, directive, source, risk, decision-engine version, and linked policy version.
+5. Privileged REST endpoints under `/wp-json/csp-manager/v1/admin/*` expose policy history, policy diffs, decisions, pending reviews, and automation configuration for richer future UI workflows.
+
+### 7. Premium entitlement flow
+
+1. Admin opens the entitlement page and starts the configured VCNS account-management flow.
+2. Legacy installations may still initiate a compatibility checkout flow from signed remote config.
+3. Billing events are handled by VCNS infrastructure, with Stripe acting as an external event source where applicable.
+4. Verified entitlement data is cached locally by `Entitlement_Store`.
+5. `Feature_Gate` exposes premium features from local entitlement state.
+6. Normal CSP generation never performs a remote billing or entitlement lookup.
 
 ## Surface model
 
@@ -267,6 +278,7 @@ These design choices should not be changed casually:
 Future work should preserve existing seams:
 
 - add new premium capabilities through `Feature_Gate`
+- keep commercial tier labels separate from internal capability identifiers such as `automation_low_risk`, `automation_advanced`, and `ai_recommendations`
 - add new remote config values through the existing signed JSON contract
 - add new scan types through `Scheduler` and `Discovery`
 - keep admin actions behind capability checks and nonces
