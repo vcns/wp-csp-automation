@@ -65,7 +65,7 @@ class Policy_Version_Manager {
 		$row   = $wpdb->get_row(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT * FROM {$table} WHERE surface = %s ORDER BY version_number DESC LIMIT 1",
+				"SELECT id, surface, version_number, mode, effective_header, previous_version_id, trigger_type, trigger_id, software_version, created_at FROM {$table} WHERE surface = %s ORDER BY version_number DESC LIMIT 1",
 				$this->normalise_surface( $surface )
 			),
 			ARRAY_A

@@ -123,7 +123,7 @@ class Admin_Controller {
 	public function list_policies(): \WP_REST_Response {
 		global $wpdb;
 
-		$profiles = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_policy_profiles ORDER BY surface", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$profiles = $wpdb->get_results( "SELECT surface, mode FROM {$wpdb->prefix}csp_policy_profiles ORDER BY surface", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows     = array();
 		foreach ( is_array( $profiles ) ? $profiles : array() as $profile ) {
 			$surface = (string) $profile['surface'];
@@ -155,7 +155,7 @@ class Admin_Controller {
 		$rows  = $wpdb->get_results(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"SELECT * FROM {$table} WHERE surface = %s ORDER BY version_number DESC LIMIT 100",
+				"SELECT id, surface, version_number, mode, effective_header, previous_version_id, trigger_type, trigger_id, software_version, created_at FROM {$table} WHERE surface = %s ORDER BY version_number DESC LIMIT 100",
 				$surface
 			),
 			ARRAY_A
@@ -209,7 +209,7 @@ class Admin_Controller {
 			$args[]  = '%' . $wpdb->esc_like( $host ) . '%';
 		}
 
-		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY created_at DESC LIMIT 100';
+		$sql = "SELECT id, change_type, source_inventory_id, surface, directive, source_host, source_uri, decision_fingerprint, action, state, risk_level, risk_reason, reason, user_id, actor_type, actor_id, previous_policy_version_id, policy_version_id, decision_engine_version, reverted_decision_id, software_version, suppression_active, created_at FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY created_at DESC LIMIT 100';
 		if ( ! empty( $args ) ) {
 			$sql = $wpdb->prepare( $sql, ...$args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}

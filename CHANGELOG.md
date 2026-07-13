@@ -10,7 +10,7 @@ No unreleased changes yet.
 
 ## [0.3.0] - 2026-07-12
 
-This release includes database migrations through schema version 6. Existing installations can migrate directly from earlier schema versions through the normal `dbDelta()` activation path. CSP runtime behaviour remains local and does not depend on remote billing, licensing, or update services during normal page rendering.
+This release includes database migrations through schema version 7. Existing installations can migrate directly from earlier schema versions through the normal `dbDelta()` activation path. CSP runtime behaviour remains local and does not depend on remote billing, licensing, or update services during normal page rendering.
 
 ### Added
 
