@@ -349,8 +349,8 @@ class Policy_Change_Manager {
 			'reverted' => 'reverted',
 			default => 'pending',
 		};
-		$previous_policy_version_ref = $previous_policy_version_id > 0 ? (string) $previous_policy_version_id : null;
-		$policy_version_ref          = $policy_version_id > 0 ? (string) $policy_version_id : null;
+		$previous_policy_version_value = $previous_policy_version_id > 0 ? (string) $previous_policy_version_id : null;
+		$policy_version_value          = $policy_version_id > 0 ? (string) $policy_version_id : null;
 
 		$inserted = $wpdb->insert(
 			$wpdb->prefix . 'csp_policy_change_decisions',
@@ -370,8 +370,8 @@ class Policy_Change_Manager {
 				'user_id'                    => $user_id,
 				'actor_type'                 => 'administrator',
 				'actor_id'                   => $user_id > 0 ? (string) $user_id : null,
-				'previous_policy_version_id' => $previous_policy_version_ref,
-				'policy_version_id'          => $policy_version_ref,
+				'previous_policy_version_id' => $previous_policy_version_value,
+				'policy_version_id'          => $policy_version_value,
 				'decision_engine_version'    => $deterministic['engine_version'],
 				'deterministic_result'       => wp_json_encode( $deterministic ),
 				'evidence_snapshot'          => wp_json_encode( $this->source_evidence_snapshot( $source ) ),
