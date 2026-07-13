@@ -116,11 +116,11 @@ class Admin_Controller {
 		);
 	}
 
-	public function can_manage(): bool {
+	public function can_manage( ?\WP_REST_Request $_request = null ): bool {
 		return current_user_can( 'manage_options' );
 	}
 
-	public function list_policies(): \WP_REST_Response {
+	public function list_policies( ?\WP_REST_Request $_request = null ): \WP_REST_Response {
 		global $wpdb;
 
 		$profiles = $wpdb->get_results( "SELECT surface, mode FROM {$wpdb->prefix}csp_policy_profiles ORDER BY surface", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -253,7 +253,7 @@ class Admin_Controller {
 		);
 	}
 
-	public function list_pending_reviews(): \WP_REST_Response {
+	public function list_pending_reviews( ?\WP_REST_Request $_request = null ): \WP_REST_Response {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'csp_source_inventory';
@@ -262,7 +262,7 @@ class Admin_Controller {
 		return new \WP_REST_Response( array( 'pending' => is_array( $rows ) ? $rows : array() ) );
 	}
 
-	public function get_automation_config(): \WP_REST_Response {
+	public function get_automation_config( ?\WP_REST_Request $_request = null ): \WP_REST_Response {
 		return new \WP_REST_Response( array( 'automation_config' => $this->automation_config->all() ) );
 	}
 
