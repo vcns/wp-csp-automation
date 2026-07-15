@@ -16,7 +16,7 @@ Rights granted under the GNU General Public License do not grant rights to use t
 The following names and marks are trademarks or service marks of VCNS Tech Ltd, whether registered or unregistered:
 
 * WP CSP Automation™
-* WP CSP Automation Manager™
+* CSP Automation Manager™
 * VCNS Tech Ltd™
 * Associated logos
 * Product icons
@@ -76,7 +76,7 @@ However, modified versions must not:
 * use original logos;
 * present themselves as official releases;
 * imply endorsement by VCNS Tech Ltd;
-* use the names WP CSP Automation or WP CSP Automation Manager as product names.
+* use the names WP CSP Automation or CSP Automation Manager as product names.
 
 Forks should adopt:
 

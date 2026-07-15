@@ -1,6 +1,6 @@
-# WP CSP Automation Manager
+# CSP Automation Manager
 
-WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy headers safely and incrementally.
+CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy headers safely and incrementally.
 
 It provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, and optional entitlement-gated premium capabilities.
 
@@ -66,7 +66,7 @@ Every tagged release publishes a ready-to-install ZIP to the
 
 ### Self-hosted update checks
 
-The plugin includes a self-hosted update checker for GitHub-distributed builds. WordPress does not automatically poll arbitrary JSON endpoints for plugins outside WordPress.org, so WP CSP Automation Manager reads a public GitHub Pages manifest and maps it into the native WordPress plugin update UI.
+The plugin includes a self-hosted update checker for GitHub-distributed builds. WordPress does not automatically poll arbitrary JSON endpoints for plugins outside WordPress.org, so CSP Automation Manager reads a public GitHub Pages manifest and maps it into the native WordPress plugin update UI.
 
 Default manifest endpoint:
 
@@ -79,7 +79,7 @@ Tagged stable releases update that manifest with the latest version and the dire
 Once published to WordPress.org:
 
 1. Go to **Plugins → Add New Plugin**.
-2. Search for `WP CSP Automation Manager`.
+2. Search for `CSP Automation Manager`.
 3. Click **Install**, then **Activate**.
 
 ### After activation
