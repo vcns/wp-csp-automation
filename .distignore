@@ -1,9 +1,11 @@
 # Version control
 .git/
+.git
 .gitignore
 .gitattributes
 
 # CI / automation config
+.distignore
 .github/
 .wordpress-org/
 
@@ -27,6 +29,8 @@ build/
 dist/
 tools/
 node_modules/
+.phpunit.cache/
+code-review-findings.json
 
 # Composer deps not bundled in releases (no autoloader used at runtime)
 vendor/
@@ -46,9 +50,14 @@ phpcs.xml.dist
 docs/
 requirements_spec.md
 research.md
+RESEARCH.md
+SPECIFICATION.md
 CHANGELOG.md
+COMMERCIAL_TERMS.md
 CONTRIBUTING.md
 SECURITY.md
+TRADEMARK_POLICY.md
+README.md
 
 # OS artefacts
 .DS_Store
