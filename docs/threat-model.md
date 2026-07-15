@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document captures the trust boundaries, threat actors, and security-critical invariants for WP CSP Automation Manager. The runtime flow is described in `docs/architecture.md`; this document focuses on adversarial framing.
+This document captures the trust boundaries, threat actors, and security-critical invariants for CSP Automation Manager. The runtime flow is described in `docs/architecture.md`; this document focuses on adversarial framing.
 
 ## Trust boundaries
 

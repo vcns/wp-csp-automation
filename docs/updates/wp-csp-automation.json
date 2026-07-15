@@ -1,11 +1,11 @@
 {
     "slug": "wp-csp-automation",
     "plugin": "wp-csp-automation/wp-csp-automation.php",
-    "name": "WP CSP Automation Manager",
-    "version": "1.0.2",
+    "name": "CSP Automation Manager",
+    "version": "1.0.3",
     "download_url": "https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip",
     "homepage": "https://vcns.github.io/wp-csp-automation",
-    "release_url": "https://github.com/vcns/wp-csp-automation/releases/tag/v1.0.2",
+    "release_url": "https://github.com/vcns/wp-csp-automation/releases/tag/v1.0.3",
     "requires": "6.4",
     "tested": "6.8",
     "requires_php": "8.1",
@@ -13,6 +13,6 @@
     "author": "VCNS Tech Ltd",
     "sections": {
         "description": "Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress.",
-        "changelog": "See the release notes: https://github.com/vcns/wp-csp-automation/releases/tag/v1.0.2"
+        "changelog": "See the release notes: https://github.com/vcns/wp-csp-automation/releases/tag/v1.0.3"
     }
 }

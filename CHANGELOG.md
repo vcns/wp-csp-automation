@@ -8,6 +8,12 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 No unreleased changes yet.
 
+## [1.0.3] - 2026-07-15
+
+### Changed
+
+- Renamed the public plugin display name to `CSP Automation Manager` to comply with WordPress.org plugin naming requirements.
+
 ## [1.0.2] - 2026-07-15
 
 ### Changed
