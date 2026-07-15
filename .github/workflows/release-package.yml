@@ -252,10 +252,11 @@ jobs:
             PRERELEASE_FLAG="--prerelease"
           fi
 
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/${MANIFEST_FILENAME}" --clobber
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/${MANIFEST_FILENAME}" --repo "${GITHUB_REPOSITORY}" --clobber
           else
             gh release create "${TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
               --title "WP CSP Automation ${TAG}" \
               --generate-notes \
               ${PRERELEASE_FLAG} \
