@@ -15,7 +15,7 @@ class UpdateCheckerTest extends TestCase {
 	}
 
 	public function test_new_manifest_version_populates_update_response(): void {
-		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '1.0.2' ) );
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '1.0.3' ) );
 
 		$checker   = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
 		$transient = (object) array(
@@ -28,8 +28,8 @@ class UpdateCheckerTest extends TestCase {
 
 		$item = $result->response['wp-csp-automation/wp-csp-automation.php'] ?? null;
 		$this->assertIsObject( $item );
-		$this->assertSame( '1.0.2', $item->new_version );
-		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v1.0.2/wp-csp-automation-v1.0.2.zip', $item->package );
+		$this->assertSame( '1.0.3', $item->new_version );
+		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v1.0.3/wp-csp-automation-v1.0.3.zip', $item->package );
 		$this->assertArrayNotHasKey( 'wp-csp-automation/wp-csp-automation.php', $result->no_update );
 	}
 

@@ -3,7 +3,7 @@
  * Plugin Name:       WP CSP Automation Manager
  * Plugin URI:        https://github.com/vcns/wp-csp-automation
  * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress. Premium features are entitlement-gated and managed through VCNS licensing services.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            VCNS Tech Ltd
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Core constants ────────────────────────────────────────────────────────────
-define( 'WP_CSP_VERSION', '1.0.1' );
+define( 'WP_CSP_VERSION', '1.0.2' );
 
 /**
  * Schema version. Increment whenever a database schema change is made.
@@ -44,9 +44,7 @@ define( 'WP_CSP_URL', plugin_dir_url( __FILE__ ) );
 
 /**
  * Ed25519 public key (Base64) for remote config signature verification.
- * Generated with sodium_crypto_sign_keypair(). Replace this placeholder
- * once you have run the key-generation script — see offline/keygen.php.
- * The Stripe publishable key goes in WordPress settings, NOT here.
+ * Stripe and licensing secrets are never stored in this WordPress plugin.
  *
  * Overridable by defining WP_CSP_CONFIG_PUBLIC_KEY in wp-config.php before
  * this plugin loads. Do not make this filterable — a plugin-layer override
@@ -59,18 +57,18 @@ defined( 'WP_CSP_CONFIG_PUBLIC_KEY' ) || define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'D/
  *
  * Overridable by defining WP_CSP_CONFIG_DNS_RECORD in wp-config.php.
  */
-defined( 'WP_CSP_CONFIG_DNS_RECORD' ) || define( 'WP_CSP_CONFIG_DNS_RECORD', 'wp-csp-automation.jacksonfamily.me' );
+defined( 'WP_CSP_CONFIG_DNS_RECORD' ) || define( 'WP_CSP_CONFIG_DNS_RECORD', 'config.wp-csp.vcns.tech' );
 
 /**
- * Base URL of the Cloudflare Worker that serves config, handles checkout
- * session creation, and stores entitlements. All Stripe keys live here as
- * Worker secrets — never on the customer's WordPress installation.
+ * Base URL of the VCNS licensing service that serves config, handles checkout
+ * session creation, and stores entitlements. Stripe keys never live on the
+ * customer's WordPress installation.
  *
  * Overridable by defining WP_CSP_WORKER_URL in wp-config.php. Do not make
  * this filterable — a plugin-layer override could redirect requests to a
  * malicious endpoint.
  */
-defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://wp-csp-config.jacksonfamily.me' );
+defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://licensing.wp-csp.vcns.tech' );
 
 /**
  * Public update manifest used by the self-hosted WordPress update checker.

@@ -8,6 +8,15 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 No unreleased changes yet.
 
+## [1.0.2] - 2026-07-15
+
+### Changed
+
+- Tightened the release package so development-only files, internal policy notes, and local cache files are excluded from distributed ZIP builds.
+- Moved default configuration and licensing endpoints to VCNS-owned service hostnames while preserving `wp-config.php` overrides.
+- Added explicit external-services disclosure for VCNS configuration, licensing, checkout, and GitHub update metadata requests.
+- Added release workflow checks that fail if submission-only or development-only files are present in the packaged ZIP.
+
 ## [1.0.1] - 2026-07-15
 
 This release includes database migrations through schema version 7. Existing installations can migrate directly from earlier schema versions through the normal `dbDelta()` activation path. CSP runtime behaviour remains local and does not depend on remote billing, licensing, or update services during normal page rendering.
