@@ -8,7 +8,7 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 No unreleased changes yet.
 
-## [0.3.0] - 2026-07-12
+## [1.0.1] - 2026-07-15
 
 This release includes database migrations through schema version 7. Existing installations can migrate directly from earlier schema versions through the normal `dbDelta()` activation path. CSP runtime behaviour remains local and does not depend on remote billing, licensing, or update services during normal page rendering.
 
@@ -33,7 +33,7 @@ This release includes database migrations through schema version 7. Existing ins
 - Self-hosted update checking for GitHub-distributed builds. The shared `vcns/wp-updates` feed remains tracked in the updater consolidation PR.
 ### Changed
 
-- Plugin version metadata now targets `0.3.0` for the next release after `0.2.0`.
+- Plugin version metadata now targets `1.0.1` for the initial GitHub release package.
 - `WP_CSP_DB_VERSION` bumped from `'2'` to `'7'` (v3 = sample column; v4 = audit log table; v5 = policy change decision ledger and proposal metadata; v6 = violation rollups; v7 = provenance and policy history foundation).
 - Policy builder emits `Reporting-Endpoints` and `Report-To` headers immediately before the CSP header — any code that expects the CSP to be the first header will need updating.
 - Product copy no longer describes all premium access as a one-time payment; entitlement-gated capabilities are compatible with future VCNS Portal account management.
