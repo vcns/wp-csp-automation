@@ -1,6 +1,6 @@
 # Documentation
 
-This directory contains the public help site and the internal operating documentation for WP CSP Automation Manager.
+This directory contains the public help site and the internal operating documentation for CSP Automation Manager.
 
 ## Public help site
 

@@ -223,7 +223,7 @@ final class Update_Checker {
 		}
 
 		return array(
-			'name'         => $this->string_value( $manifest['name'] ?? 'WP CSP Automation Manager' ),
+			'name'         => $this->string_value( $manifest['name'] ?? 'CSP Automation Manager' ),
 			'slug'         => self::SLUG,
 			'plugin'       => $this->string_value( $manifest['plugin'] ?? plugin_basename( WP_CSP_FILE ) ),
 			'version'      => $version,

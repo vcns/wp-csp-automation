@@ -15,7 +15,7 @@ class UpdateCheckerTest extends TestCase {
 	}
 
 	public function test_new_manifest_version_populates_update_response(): void {
-		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '1.0.3' ) );
+		$GLOBALS['_wp_remote_get_response'] = $this->response( $this->manifest( '1.0.4' ) );
 
 		$checker   = new Update_Checker( 'https://updates.example.com/wp-csp-automation.json' );
 		$transient = (object) array(
@@ -28,8 +28,8 @@ class UpdateCheckerTest extends TestCase {
 
 		$item = $result->response['wp-csp-automation/wp-csp-automation.php'] ?? null;
 		$this->assertIsObject( $item );
-		$this->assertSame( '1.0.3', $item->new_version );
-		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v1.0.3/wp-csp-automation-v1.0.3.zip', $item->package );
+		$this->assertSame( '1.0.4', $item->new_version );
+		$this->assertSame( 'https://github.com/vcns/wp-csp-automation/releases/download/v1.0.4/wp-csp-automation-v1.0.4.zip', $item->package );
 		$this->assertArrayNotHasKey( 'wp-csp-automation/wp-csp-automation.php', $result->no_update );
 	}
 
@@ -91,7 +91,7 @@ class UpdateCheckerTest extends TestCase {
 		$result = $checker->filter_plugins_api( false, 'plugin_information', $args );
 
 		$this->assertIsObject( $result );
-		$this->assertSame( 'WP CSP Automation Manager', $result->name );
+		$this->assertSame( 'CSP Automation Manager', $result->name );
 		$this->assertSame( '0.3.0', $result->version );
 		$this->assertSame( 'Release notes', $result->sections['changelog'] );
 	}
@@ -247,7 +247,7 @@ class UpdateCheckerTest extends TestCase {
 		return array(
 			'slug'          => 'wp-csp-automation',
 			'plugin'        => 'wp-csp-automation/wp-csp-automation.php',
-			'name'          => 'WP CSP Automation Manager',
+			'name'          => 'CSP Automation Manager',
 			'version'       => $version,
 			'download_url'  => 'https://github.com/vcns/wp-csp-automation/releases/download/v' . $version . '/wp-csp-automation-v' . $version . '.zip',
 			'homepage'      => 'https://github.com/vcns/wp-csp-automation',
