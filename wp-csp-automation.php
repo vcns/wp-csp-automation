@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       CSP Automation Manager
  * Plugin URI:        https://github.com/vcns/wp-csp-automation
- * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress. Premium features are entitlement-gated and managed through VCNS licensing services.
- * Version:           1.0.3
+ * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress.
+ * Version:           1.0.4
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            VCNS Tech Ltd
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Core constants ────────────────────────────────────────────────────────────
-define( 'WP_CSP_VERSION', '1.0.3' );
+define( 'WP_CSP_VERSION', '1.0.4' );
 
 /**
  * Schema version. Increment whenever a database schema change is made.
@@ -42,42 +42,6 @@ define( 'WP_CSP_FILE', __FILE__ );
 define( 'WP_CSP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_CSP_URL', plugin_dir_url( __FILE__ ) );
 
-/**
- * Ed25519 public key (Base64) for remote config signature verification.
- * Stripe and licensing secrets are never stored in this WordPress plugin.
- *
- * Overridable by defining WP_CSP_CONFIG_PUBLIC_KEY in wp-config.php before
- * this plugin loads. Do not make this filterable — a plugin-layer override
- * could redirect signature verification to an attacker-controlled key.
- */
-defined( 'WP_CSP_CONFIG_PUBLIC_KEY' ) || define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'D/9fAq0rZLeWbHeh8hK0+C0viK36f+ee4LcP2D/J3Tg=' );
-
-/**
- * DNS TXT record queried to discover the latest signed config URL.
- *
- * Overridable by defining WP_CSP_CONFIG_DNS_RECORD in wp-config.php.
- */
-defined( 'WP_CSP_CONFIG_DNS_RECORD' ) || define( 'WP_CSP_CONFIG_DNS_RECORD', 'config.wp-csp.vcns.tech' );
-
-/**
- * Base URL of the VCNS licensing service that serves config, handles checkout
- * session creation, and stores entitlements. Stripe keys never live on the
- * customer's WordPress installation.
- *
- * Overridable by defining WP_CSP_WORKER_URL in wp-config.php. Do not make
- * this filterable — a plugin-layer override could redirect requests to a
- * malicious endpoint.
- */
-defined( 'WP_CSP_WORKER_URL' ) || define( 'WP_CSP_WORKER_URL', 'https://licensing.wp-csp.vcns.tech' );
-
-/**
- * Public update manifest used by the self-hosted WordPress update checker.
- *
- * Overridable by defining WP_CSP_UPDATE_MANIFEST_URL in wp-config.php before
- * this plugin loads. Do not make this filterable; keeping it as an early PHP
- * constant prevents another plugin from redirecting update checks at runtime.
- */
-defined( 'WP_CSP_UPDATE_MANIFEST_URL' ) || define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json' );
 
 // ── PSR-4 autoloader ──────────────────────────────────────────────────────────
 spl_autoload_register(

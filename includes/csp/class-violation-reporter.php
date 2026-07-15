@@ -9,7 +9,7 @@
  *   - Increments occurrence_count on duplicate reports using a single database upsert.
  *   - Rate-limits storage: drops reports after 500 per hour per surface (soft cap).
  *   - Returns 204 No Content for valid reports (browser expects no body).
- *   - Premium feature: violation analytics export, advanced dedup.
+ *   - Stores rollup data for administrator review and future export surfaces.
  */
 
 declare( strict_types=1 );

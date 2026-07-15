@@ -10,7 +10,7 @@
  *   - Passes the current-request hash map back to Scheduler so retire_stale()
  *     receives real data rather than an empty array.
  *
- * Note: hash-based inline approval is a premium alternative to nonces when
+ * Note: hash-based inline approval is an alternative to nonces when
  * the inline content is truly static. For dynamic inline blocks, nonces remain
  * the preferred path.
  */

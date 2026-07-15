@@ -1,12 +1,10 @@
-# Release and Publishing
+# Release And Publishing
 
 ## Purpose
 
 This document describes the internal release path from GitHub development work to a shipped WordPress.org plugin release.
 
-## Branching model
-
-Current intended flow:
+## Branching Model
 
 - `feature/*` and `fix/*` branches target `development`
 - `development` is the integration branch
@@ -22,8 +20,6 @@ Operational rules:
 
 ## Versioning
 
-The plugin uses semantic versioning for public releases.
-
 Update all release-facing version locations together:
 
 - plugin header `Version` in `wp-csp-automation.php`
@@ -36,56 +32,21 @@ If schema changes are included, also update:
 - `WP_CSP_DB_VERSION`
 - upgrade logic and schema docs
 
-## Release workflow
+## Release Workflow
 
-### 1. Stabilise in development
+1. Merge approved feature and fix PRs into `development`.
+2. Confirm CI is green and documentation is up to date.
+3. Cut a `release/*` branch.
+4. Bump versions, finalise changelog, and fix only release blockers.
+5. Open a PR from `release/*` to `main`.
+6. Merge using the repository's protected-branch policy.
+7. Tag the merged `main` state, for example `v1.0.4`.
+8. Let the tag-driven workflows build the GitHub Release ZIP and deploy to WordPress.org SVN.
+9. Back-merge `main` or the release branch into `development`.
 
-- merge approved feature and fix PRs into `development`
-- confirm CI is green
-- confirm docs are up to date
+## Packaging Rules
 
-### 2. Cut release branch
-
-Example:
-
-- `release/0.2.1`
-
-On the release branch:
-
-- bump versions
-- finalise changelog
-- update any release-facing readme details
-- fix only release blockers
-
-### 3. Validate release branch
-
-Run or confirm:
-
-- full CI pipeline
-- manual smoke test on a clean WordPress install
-- test-mode premium flow verification
-- uninstall cleanup verification
-
-### 4. Merge to main
-
-- open PR from `release/*` to `main`
-- require review and passing checks
-- merge using the repository's protected-branch policy
-
-### 5. Tag and publish
-
-- create annotated tag, for example `v0.2.1`
-- build the release artifact from the tag on `main`
-- deploy to WordPress.org SVN from the tagged state
-
-### 6. Back-merge
-
-- merge `main` or the release branch back into `development`
-- confirm branches are aligned before new feature work continues
-
-## Packaging rules
-
-The WordPress.org release zip should contain only the plugin directory contents required for runtime and compliance.
+The WordPress.org release ZIP should contain only the plugin directory contents required for runtime and compliance.
 
 Include:
 
@@ -98,137 +59,86 @@ Include:
 Do not include:
 
 - `.git`
-- GitHub workflow files in the deploy artifact if your deploy process filters them out
+- GitHub workflow files
 - local test fixtures not needed at runtime
 - development environment files
 - secrets or example secrets
+- internal docs and policy notes
+- tools, vendor dependencies, or CI-only files
 
-## WordPress.org repository model
+## WordPress.org Repository Model
 
-WordPress.org plugin distribution uses SVN, even if GitHub is the development source of truth.
+WordPress.org plugin distribution uses SVN, even when GitHub is the development source of truth.
 
 Typical mapping:
 
 - GitHub `main` tag -> WordPress.org `tags/<version>`
 - current stable release contents -> WordPress.org `trunk`
-- assets such as banners and icons -> WordPress.org `assets` directory in SVN
+- banners and icons -> WordPress.org `assets` directory in SVN
 
-## Suggested deployment automation
-
-Use GitHub Actions or another CI runner to:
-
-1. trigger on version tags from `main`
-2. build a clean plugin artifact
-3. check the artifact contents
-4. commit the release to the WordPress.org SVN repo
-5. tag the release in SVN
-
-Repository workflow files now provide the baseline automation:
+## Workflow Files
 
 - `.github/workflows/ci.yml` for PHP lint, PHPCS, Semgrep, secret scanning, and package creation
 - `.github/workflows/pr-branch-policy.yml` for source-branch enforcement on PRs into `development` and `main`
 - `.github/workflows/codeql.yml` for GitHub-native static analysis
 - `.github/workflows/dast.yml` for disposable-environment baseline DAST
 - `.github/workflows/pages.yml` for publishing the public GitHub Pages help site from `docs/`
-- `.github/workflows/release-package.yml` for release-candidate ZIP validation and tag-driven GitHub Release ZIP/manifest publishing
+- `.github/workflows/release-package.yml` for release-candidate ZIP validation and tag-driven GitHub Release ZIP publishing
 - `.github/workflows/wporg-deploy.yml` for tag-driven deployment to WordPress.org SVN
 
-## Self-hosted update endpoint
+## GitHub Release Artifacts
 
-The repository publishes a static update manifest for GitHub-distributed builds:
-
-- `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json`
-
-WordPress does not automatically consume arbitrary update JSON for plugins outside the WordPress.org directory. The plugin registers an update checker that reads this manifest and maps it into the native plugin update transient.
-
-Stable tag releases generate GitHub Release assets:
+Tagged releases generate a ready-to-install ZIP asset:
 
 - `wp-csp-automation-vX.Y.Z.zip`
-- `wp-csp-automation.json`
-- `wp-csp-automation-latest.zip` in `vcns/wp-updates`
-- `wp-csp-automation.json` in `vcns/wp-updates`
 
-Pre-release tags attach ZIP and manifest assets to the GitHub Release and mark the GitHub Release as a pre-release.
+The repository does not publish a custom WordPress update manifest or shared update-feed ZIP. WordPress.org-distributed installs receive update metadata from WordPress.org after SVN deployment.
 
-The normal documentation Pages workflow no longer publishes update metadata. The update feed lives in the separate public `vcns/wp-updates` repository so sister plugins can publish into their own subdirectories without overwriting each other.
+Pull request and manual workflow runs produce ZIP artifacts for validation only.
 
-The release workflow requires a repository or organization secret named `WP_UPDATES_TOKEN` with write access to `vcns/wp-updates`.
+## Public Docs Site
 
-Pull request and manual workflow runs produce ZIP and manifest artifacts for validation only. Their manifest URLs are intentionally blank so non-tag builds cannot advertise a non-existent GitHub Release asset.
-
-## Public docs site
-
-The repository now includes a public GitHub Pages site in `docs/` intended for:
+The repository includes a public GitHub Pages site in `docs/` for:
 
 - install and rollout guidance
-- operational help for CSP and Stripe setup
+- operational help for CSP setup
 - release and publishing references
 - support and security policy signposting
-
-The Pages workflow publishes `docs/` when documentation-related changes reach `main`, including changes under:
-
-- `docs/**`
-- `readme.txt`
-- `CHANGELOG.md`
-- `SECURITY.md`
 
 Published URL:
 
 - `https://vcns.github.io/wp-csp-automation/`
 
-Required GitHub repository secrets for WordPress.org deployment:
+## WordPress.org Review Readiness
 
-- environment variable `SVC_USERNAME`
-- environment secret `SVN_PASSWORD`
-
-Recommended GitHub environments:
-
-- `development` for dry-run or non-production credential separation
-- `production` for live WordPress.org deployment credentials
-
-The deploy workflow maps `vars.SVC_USERNAME` into the action's required `SVN_USERNAME` environment variable at runtime.
-
-## WordPress.org review readiness
-
-Before first submission, verify:
+Before submission, verify:
 
 - GPL-compatible licensing is clear
 - `readme.txt` is valid and accurate
+- the plugin display name complies with trademark restrictions
 - no remote code execution or code download features exist
+- no custom update process exists in the submitted package
 - external service usage is disclosed clearly in `readme.txt`
-- premium upsell remains compliant with WordPress.org guidelines
+- shipped functionality is not trialware and does not depend on remote licensing
 - no obfuscated code is present
 - no tracking without user consent is present
 
-## Premium plugin directory caution
-
-Because this plugin includes a paid upgrade path, review WordPress.org plugin guidelines carefully, especially around:
-
-- upsell behaviour in wp-admin
-- off-site service disclosures
-- functionality split between free and paid versions
-- branding and promotional copy
-
-The free plugin should remain functional and useful on its own. Avoid making the WordPress.org listing feel like a thin paywall wrapper.
-
-## Release checklist
+## Release Checklist
 
 Before publishing each version:
 
 - confirm version numbers are aligned
-- confirm README.md, readme.txt, SECURITY.md, and docs/architecture.md are mutually consistent and accurately reflect the behaviour of the version being released
+- confirm README.md, readme.txt, SECURITY.md, and docs/architecture.md are mutually consistent
 - confirm branch protections and CI are active
-- confirm `.github/workflows/release-package.yml` has produced a release ZIP artifact from the release branch or tag
-- confirm remote config public key is correct for that release
+- confirm `.github/workflows/release-package.yml` produced a release ZIP artifact from the release branch or tag
 - confirm no development keys or test endpoints remain in code or docs
 - confirm `readme.txt` sections reflect actual shipped behaviour
 - confirm `.wordpress-org/assets/` artwork is current and matches the listing
 - confirm repository secrets `SVN_USERNAME` and `SVN_PASSWORD` exist before tagging
 - package from a clean checkout or CI workspace
-- test installation from the packaged zip
-- confirm the shared Pages update manifest points at the intended stable ZIP after the tag workflow completes
+- test installation from the packaged ZIP
 
-## Rollback planning
+## Rollback Planning
 
 If a bad release ships:
 

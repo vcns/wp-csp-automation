@@ -13,7 +13,7 @@
  *   - Reporting-Endpoints (RFC 9651 Structured Fields Dictionary) emitted so that
  *     the report-to directive is resolved by the browser. Also emits the deprecated
  *     Report-To JSON header as a legacy fallback for pre-Reporting-API browsers.
- *   - 'strict-dynamic' added to script-src when profile enables it (pro feature).
+ *   - 'strict-dynamic' added to script-src when profile enables it.
  *     When active, approved host sources are suppressed from script-src — browsers
  *     silently ignore host allowlists when strict-dynamic is present (CSP3 §8.2),
  *     so including them is misleading noise.

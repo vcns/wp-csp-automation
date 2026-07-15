@@ -4,7 +4,7 @@ Tags: security, csp, content security policy, headers, wordpress security
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,53 +14,33 @@ Automates strict Content Security Policy rollout, violation reporting, source di
 
 CSP Automation Manager helps site owners roll out strict Content Security Policy headers safely and incrementally.
 
-The plugin provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, policy-change review, append-only audit records, and entitlement-gated premium capabilities.
+The plugin provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, policy-change review, append-only audit records, policy history, and administrator-controlled rollout tools.
 
 == External services ==
 
-This plugin can contact external services for optional update, configuration, licensing, and checkout functionality. Core CSP header generation runs locally and does not require a remote service during normal front-end page rendering.
+This WordPress.org build does not contact third-party services for plugin updates, licensing, checkout, telemetry, or remote product configuration.
 
-= VCNS configuration and licensing services =
+The plugin emits CSP reporting headers that point browsers back to this WordPress site's own REST endpoint:
 
-The plugin may contact VCNS services operated by VCNS Tech Ltd.
-
-Service endpoints:
-* `config.wp-csp.vcns.tech`
-* `https://licensing.wp-csp.vcns.tech`
+* `/wp-json/csp-manager/v1/report`
 
 Purpose:
-* discover signed non-secret product configuration;
-* validate locally cached premium entitlements;
-* start optional premium checkout or account-management flows.
+* receive browser-generated CSP violation reports for this site;
+* store reports locally so administrators can review and refine policy safely.
 
-Data sent:
-* site URL or site-derived identifier;
-* plugin version and product key;
-* entitlement or checkout identifiers where premium functionality is used.
+Data handled:
+* browser CSP violation report fields such as blocked URL, document URL, violated directive, referrer, user agent, line/column where provided, and an optional script sample where the active policy requests `report-sample`.
 
-No Stripe API secret keys are stored in this WordPress installation. Stripe payment processing, where used, is handled outside WordPress by VCNS licensing services.
-
-Service provider:
-* VCNS Tech Ltd, https://vcns.tech/
-
-= GitHub update metadata =
-
-For GitHub-distributed builds, the plugin may request a public update manifest from:
-
-* `https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation.json`
-
-Purpose:
-* map a VCNS-hosted update manifest into WordPress' native plugin update UI for builds installed outside WordPress.org.
-
-Data sent:
-* normal HTTPS request metadata such as IP address, user agent, and requested URL.
-
-Service provider:
-* GitHub, Inc., https://github.com/
-* GitHub Terms of Service: https://docs.github.com/site-policy/github-terms/github-terms-of-service
-* GitHub Privacy Statement: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+Reports are validated and stored in this site's WordPress database. They are not sent to any external provider by this plugin.
 
 == Changelog ==
+
+= 1.0.4 =
+
+* Removes the custom runtime update checker and all third-party update manifest polling from the WordPress.org plugin package.
+* Removes legacy external-service admin surfaces from the WordPress.org plugin package.
+* Makes all shipped CSP capabilities available locally without payment, remote entitlement checks, or trialware-style feature locking.
+* Updates package copy and disclosures for WordPress.org guideline alignment.
 
 = 1.0.3 =
 
@@ -69,12 +49,10 @@ Service provider:
 = 1.0.2 =
 
 * Tightens the release package so development-only files, internal policy notes, and local cache files are excluded from distributed ZIP builds.
-* Moves default configuration and licensing endpoints to VCNS-owned service hostnames while preserving `wp-config.php` overrides.
-* Adds explicit external-services disclosure for VCNS configuration, licensing, checkout, and GitHub update metadata requests.
 * Adds release workflow checks that fail if submission-only or development-only files are present in the packaged ZIP.
 
 = 1.0.1 =
-* Adds Reporting API headers, forbidden-directive filtering, violation sample persistence, audit logging, policy-change proposals, decision suppression, revert behaviour, violation rollups, and self-hosted update checking.
+* Adds Reporting API headers, forbidden-directive filtering, violation sample persistence, audit logging, policy-change proposals, decision suppression, revert behaviour, violation rollups, policy history, and review APIs.
 
 = 0.2.0 =
 * Initial public plugin implementation.

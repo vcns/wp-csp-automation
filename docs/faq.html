@@ -40,7 +40,7 @@
       <a href='#approvals'>Approvals</a>
       <a href='#violations'>Violations</a>
       <a href='#compatibility'>Compatibility</a>
-      <a href='#premium'>Premium</a>
+      <a href='#wordpress-org'>WordPress.org build</a>
       <a href='#privacy'>Privacy</a>
       <a href='#troubleshooting'>Troubleshooting</a>
     </nav>
@@ -72,7 +72,7 @@
           </article>
           <article class='faq-item'>
             <h3>What are the minimum requirements?</h3>
-            <p>WordPress 6.4 or later, PHP 8.1 or later, and the PHP sodium extension for Ed25519 remote config verification.</p>
+            <p>WordPress 6.4 or later and PHP 8.1 or later.</p>
           </article>
         </div>
       </section>
@@ -213,33 +213,33 @@
         </div>
       </section>
 
-      <section id='premium' class='section'>
-        <p class='section-label'>Premium</p>
-        <h2>Licensing and premium features.</h2>
+      <section id='wordpress-org' class='section'>
+        <p class='section-label'>WordPress.org build</p>
+        <h2>Local features and guideline posture.</h2>
         <div class='faq-list'>
           <article class='faq-item'>
-            <h3>Does the free tier work without payment?</h3>
-            <p>Yes. The free tier works without payment and without Stripe configuration.</p>
+            <h3>Does the plugin work without payment?</h3>
+            <p>Yes. All features shipped in the WordPress.org package are available locally without payment or remote entitlement checks.</p>
           </article>
           <article class='faq-item'>
-            <h3>Where are Stripe secret keys stored?</h3>
-            <p>They are not stored in the WordPress installation. Payment processing is handled by the remote licensing service, with Stripe secret material held server-side.</p>
+            <h3>Does the plugin use a custom update endpoint?</h3>
+            <p>No. The WordPress.org package does not poll a third-party update manifest or install updates from outside the WordPress.org update system.</p>
           </article>
           <article class='faq-item'>
-            <h3>How is premium access activated?</h3>
-            <p>The purchase flow goes through the remote licensing service. Premium access depends on verified payment processing and local entitlement state, not merely the browser redirect after checkout.</p>
+            <h3>Does the plugin contact a licensing service?</h3>
+            <p>No. The WordPress.org package does not contact third-party services for licensing, checkout, telemetry, or remote product configuration.</p>
           </article>
           <article class='faq-item'>
-            <h3>What happens if the premium modules are not present?</h3>
-            <p>The plugin degrades to the free tier. Premium checks return false and core free features continue to operate.</p>
+            <h3>Are CSP reports sent to VCNS or another provider?</h3>
+            <p>No. Browser CSP reports are posted back to this WordPress site's own REST endpoint and stored locally.</p>
           </article>
           <article class='faq-item'>
-            <h3>What premium features exist?</h3>
-            <p>Premium feature keys include Trusted Types, <code>strict-dynamic</code>, and multi-surface scan support. Additional analytics and export surfaces may also be provided.</p>
+            <h3>Are new CSP sources applied automatically?</h3>
+            <p>No. New sources remain pending until an administrator approves them.</p>
           </article>
           <article class='faq-item'>
-            <h3>Is the entitlement tied to the domain?</h3>
-            <p>The entitlement is tied to the current site identity. Domain changes can affect matching and may require entitlement review.</p>
+            <h3>Does manual automation mode change policy on its own?</h3>
+            <p>No. Automation configuration defaults to manual mode on install and upgrade.</p>
           </article>
         </div>
       </section>
@@ -250,7 +250,7 @@
         <div class='faq-list'>
           <article class='faq-item'>
             <h3>What is stored locally?</h3>
-            <p>Policy profiles, source inventory, hash inventory, violation reports, scan logs, entitlement state, processed event records, audit log entries, and policy change decisions are stored in the WordPress database.</p>
+            <p>Policy profiles, source inventory, hash inventory, violation reports, scan logs, audit log entries, policy versions, and policy change decisions are stored in the WordPress database.</p>
           </article>
           <article class='faq-item'>
             <h3>Does normal CSP operation require telemetry?</h3>
@@ -258,11 +258,7 @@
           </article>
           <article class='faq-item'>
             <h3>What leaves the site?</h3>
-            <p>Free-tier operation mainly relies on local processing and update/config fetches. Premium purchase flows involve the remote licensing service and Stripe checkout.</p>
-          </article>
-          <article class='faq-item'>
-            <h3>Does remote config contain secrets?</h3>
-            <p>It should not. Remote config is for public product metadata such as tier definitions and price identifiers. Secret keys belong in the remote licensing infrastructure, not DNS, public JSON, or WordPress settings.</p>
+            <p>The WordPress.org package keeps CSP operation local. It does not contact third-party services for plugin updates, licensing, checkout, telemetry, or remote product configuration.</p>
           </article>
         </div>
       </section>
@@ -282,14 +278,6 @@
           <article class='faq-item'>
             <h3>The manual scan finds no sources. Is that wrong?</h3>
             <p>Not necessarily. Static scans see rendered HTML and linked CSS. Runtime-only activity may appear only through browser violation reports.</p>
-          </article>
-          <article class='faq-item'>
-            <h3>The update does not appear in WordPress. What should I check?</h3>
-            <p>Check the public update manifest, the current installed version, WordPress update caching, outbound HTTPS access, and the plugin update transient timing.</p>
-          </article>
-          <article class='faq-item'>
-            <h3>Remote config refresh fails. What should I check?</h3>
-            <p>Check DNS TXT discovery, fallback URL, TLS, JSON validity, signature verification, sodium availability, and audit log warnings.</p>
           </article>
           <article class='faq-item'>
             <h3>How do I report a security vulnerability?</h3>

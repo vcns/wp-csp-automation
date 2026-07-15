@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin view: WP CSP Automation Dashboard.
+ * Admin view: CSP Automation Manager dashboard.
  * Shows per-surface policy profiles, source inventory, violations, scan log.
  * Rendered by Admin_UI::render_dashboard().
  */
@@ -42,7 +42,7 @@ $scan_logs_raw = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}csp_scan_logs
 $scan_logs     = ! empty( $scan_logs_raw ) ? $scan_logs_raw : array();
 ?>
 <div class="wrap wp-csp-wrap">
-	<h1><?php esc_html_e( 'WP CSP Automation – Dashboard', 'wp-csp-automation' ); ?></h1>
+	<h1><?php esc_html_e( 'CSP Automation Manager Dashboard', 'wp-csp-automation' ); ?></h1>
 
 	<!-- ── Top action bar ────────────────────────────────────────────────── -->
 	<p>

@@ -2,10 +2,9 @@
 /**
  * WordPress Admin UI: menus, settings API, AJAX handlers.
  *
- * Registers three admin pages:
+ * Registers admin pages:
  *   1. wp-csp-dashboard  – CSP surface profiles, source inventory, violations, scan history
- *   2. wp-csp-settings   – Stripe keys, DNS config domain, cron schedule, notify email
- *   3. wp-csp-entitlement – Purchase status and Buy Pro flow
+ *   2. wp-csp-settings   – promotion gates, learning window, cron schedule, notify email
  *
  * All form submissions are protected by check_admin_referer() and
  * current_user_can('manage_options').
@@ -41,9 +40,7 @@ class Admin_UI {
 		add_action( 'admin_notices', array( $this, 'display_admin_notices' ) );
 
 		// AJAX handlers.
-		add_action( 'wp_ajax_wp_csp_create_checkout', array( $this, 'ajax_create_checkout' ) );
 		add_action( 'wp_ajax_wp_csp_manual_scan', array( $this, 'ajax_manual_scan' ) );
-		add_action( 'wp_ajax_wp_csp_refresh_config', array( $this, 'ajax_refresh_config' ) );
 		add_action( 'wp_ajax_wp_csp_approve_source', array( $this, 'ajax_approve_source' ) );
 		add_action( 'wp_ajax_wp_csp_deny_source', array( $this, 'ajax_deny_source' ) );
 		add_action( 'wp_ajax_wp_csp_revert_source', array( $this, 'ajax_revert_source' ) );
@@ -89,26 +86,12 @@ class Admin_UI {
 			'wp-csp-policy-audit',
 			array( $this, 'render_policy_audit' )
 		);
-
-		add_submenu_page(
-			'wp-csp-dashboard',
-			__( 'Premium', 'wp-csp-automation' ),
-			__( 'Premium', 'wp-csp-automation' ),
-			'manage_options',
-			'wp-csp-entitlement',
-			array( $this, 'render_entitlement' )
-		);
 	}
 
 	// ── Settings API ──────────────────────────────────────────────────────────
 
 	public function register_settings(): void {
 		$settings = array(
-			'wp_csp_config_dns_domain'             => 'sanitize_text_field',
-			'wp_csp_config_fallback_url'           => 'esc_url_raw',
-			'wp_csp_config_cache_ttl'              => 'absint',
-			'wp_csp_config_grace_ttl'              => 'absint',
-			'wp_csp_entitlement_grace_hours'       => 'absint',
 			'wp_csp_cron_hour'                     => 'absint',
 			'wp_csp_notify_email'                  => 'sanitize_email',
 			'wp_csp_enforce_gate_violation_window' => 'absint',
@@ -129,7 +112,6 @@ class Admin_UI {
 			'toplevel_page_wp-csp-dashboard',
 			'csp-manager_page_wp-csp-settings',
 			'csp-manager_page_wp-csp-policy-audit',
-			'csp-manager_page_wp-csp-entitlement',
 		);
 		if ( ! in_array( $hook_suffix, $csp_pages, true ) ) {
 			return;
@@ -190,13 +172,6 @@ class Admin_UI {
 		require WP_CSP_DIR . 'includes/admin/views/page-policy-audit.php';
 	}
 
-	public function render_entitlement(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'wp-csp-automation' ) );
-		}
-		require WP_CSP_DIR . 'includes/admin/views/page-entitlement.php';
-	}
-
 	// ── Admin notices ─────────────────────────────────────────────────────────
 
 	public function display_admin_notices(): void {
@@ -214,7 +189,7 @@ class Admin_UI {
 			printf(
 				'<div class="notice notice-%1$s is-dismissible"><p><strong>%2$s</strong> [%3$s] %4$s</p></div>',
 				esc_attr( $type ),
-				esc_html__( 'WP CSP Automation:', 'wp-csp-automation' ),
+				esc_html__( 'CSP Automation Manager:', 'wp-csp-automation' ),
 				esc_html( $notice['component'] . '/' . $notice['event'] ),
 				esc_html( $notice['detail'] )
 			);
@@ -249,7 +224,7 @@ class Admin_UI {
 			wp_kses(
 				sprintf(
 					/* translators: %s: URL to WordPress core Trac ticket */
-					__( '<strong>WP CSP Automation:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved — some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'wp-csp-automation' ),
+					__( '<strong>CSP Automation Manager:</strong> The wp-admin CSP surface is in <strong>enforce mode</strong>. WordPress core <a href="%s" target="_blank" rel="noopener">Trac #59446</a> is unresolved - some admin UI components may be blocked. Monitor violation reports before keeping enforce mode active.', 'wp-csp-automation' ),
 					'https://core.trac.wordpress.org/ticket/59446'
 				),
 				array(
@@ -262,26 +237,6 @@ class Admin_UI {
 				)
 			)
 		);
-	}
-
-	// ── AJAX: create Stripe checkout ──────────────────────────────────────────
-
-	public function ajax_create_checkout(): void {
-		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
-		}
-
-		$product_key = sanitize_text_field( wp_unslash( $_POST['product_key'] ?? 'wp-csp-automation' ) );
-		$result      = class_exists( 'WP_CSP\Modules\Checkout_Service' )
-			? ( new \WP_CSP\Modules\Checkout_Service( $this->plugin->audit ) )->create_session( $product_key )
-			: new \WP_Error( 'no_checkout', __( 'Checkout module not available.', 'wp-csp-automation' ) );
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-		} else {
-			wp_send_json_success( array( 'checkout_url' => esc_url_raw( $result ) ) );
-		}
 	}
 
 	// ── AJAX: manual scan ─────────────────────────────────────────────────────
@@ -299,26 +254,6 @@ class Admin_UI {
 			wp_send_json_error( array( 'message' => $results['error'] ) );
 		} else {
 			wp_send_json_success( $results );
-		}
-	}
-
-	// ── AJAX: refresh remote config ───────────────────────────────────────────
-
-	public function ajax_refresh_config(): void {
-		check_ajax_referer( 'wp_csp_admin_nonce', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'wp-csp-automation' ) ), 403 );
-		}
-
-		if ( null === $this->plugin->config ) {
-			wp_send_json_error( array( 'message' => __( 'Remote config module not available on free tier.', 'wp-csp-automation' ) ) );
-			return;
-		}
-		$ok = $this->plugin->config->refresh();
-		if ( $ok ) {
-			wp_send_json_success( array( 'version' => get_option( 'wp_csp_config_version', 'unknown' ) ) );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Config refresh failed. Check audit log.', 'wp-csp-automation' ) ) );
 		}
 	}
 

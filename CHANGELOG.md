@@ -8,6 +8,19 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 No unreleased changes yet.
 
+## [1.0.4] - 2026-07-15
+
+### Changed
+
+- Made all shipped CSP capabilities available locally without payment, remote entitlement checks, or trialware-style feature locking.
+- Updated readme, package metadata, and public copy to reflect the WordPress.org build's local-only runtime behaviour.
+
+### Removed
+
+- Removed the custom runtime update checker and third-party update manifest polling from the WordPress.org plugin package.
+- Removed licensing, checkout, and remote product configuration admin surfaces from the WordPress.org plugin package.
+- Removed legacy production defaults for remote configuration, licensing, and custom update endpoints from the plugin bootstrap.
+
 ## [1.0.3] - 2026-07-15
 
 ### Changed
@@ -45,7 +58,7 @@ This release includes database migrations through schema version 7. Existing ins
 - Policy audit foundation with policy version snapshots, deterministic rule-evaluation provenance, manual automation configuration defaults, privileged admin REST endpoints, and a Policy Audit admin page.
 - `csp_policy_versions` append-oriented surface policy snapshots. DB version 7.
 - `csp_decision_rule_evaluations` deterministic rule findings linked to proposals and decisions. DB version 7.
-- Self-hosted update checking for GitHub-distributed builds. The shared `vcns/wp-updates` feed remains tracked in the updater consolidation PR.
+- GitHub-distributed update checking. This runtime updater was removed from the WordPress.org plugin package in 1.0.4.
 ### Changed
 
 - Plugin version metadata now targets `1.0.1` for the initial GitHub release package.

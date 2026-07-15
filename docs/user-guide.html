@@ -144,7 +144,6 @@
             <ul>
               <li>WordPress 6.4 or later.</li>
               <li>PHP 8.1 or later.</li>
-              <li>PHP sodium extension for Ed25519 remote config verification.</li>
               <li>Administrator access to the WordPress admin.</li>
             </ul>
           </article>
@@ -176,15 +175,13 @@
               <tr><th>Setting area</th><th>What it controls</th><th>Recommended starting point</th></tr>
             </thead>
             <tbody>
-              <tr><td>Remote Product Configuration</td><td>DNS record, fallback HTTPS URL, cache TTL, and stale-config grace period for signed product metadata.</td><td>Leave defaults unless self-hosting the remote configuration.</td></tr>
               <tr><td>Promotion Gates</td><td>The number of violation-free hours required before enforce mode is allowed.</td><td>Use at least 24 hours for production. Increase it for complex sites.</td></tr>
               <tr><td>Report Endpoint Learning</td><td>The time window after content or plugin changes where reports can create pending source candidates.</td><td>Use the default 48 hours, then review proposals.</td></tr>
               <tr><td>Scan Schedule</td><td>Daily scan hour and notification email.</td><td>Use a quiet UTC hour and a monitored mailbox.</td></tr>
-              <tr><td>Entitlement</td><td>Grace behaviour for premium entitlement validation.</td><td>No Stripe secret keys are entered into WordPress. Leave this alone unless using premium activation.</td></tr>
             </tbody>
           </table>
         </div>
-        <p class='section-note'>Settings are available under <strong>CSP Manager → Settings</strong>. Most end-users should not need to alter remote configuration unless they are operating their own licensing or config infrastructure.</p>
+        <p class='section-note'>Settings are available under <strong>CSP Manager -> Settings</strong>. Most end-users should only need to adjust the learning, promotion, and scan schedule values.</p>
       </section>
 
       <section id='scan-and-learn' class='section section-grid'>
@@ -325,9 +322,6 @@
               <tr><td>Enforce button is blocked.</td><td>The promotion gate has not passed.</td><td>Check for approved inventory, recent violations, and temporary overrides.</td></tr>
               <tr><td>Manual scan finds little or nothing.</td><td>The activity is runtime behaviour rather than static HTML.</td><td>Browse the site in report-only mode and rely on violation reports for fetch, XHR, WebSocket, EventSource, and workers.</td></tr>
               <tr><td>Repeated unknown host appears.</td><td>A plugin, theme, injected tag, or external script is generating it.</td><td>Trace the source owner before approval. Reject if not required.</td></tr>
-              <tr><td>Premium checkout is unavailable.</td><td>Remote licensing or premium module availability needs attention.</td><td>Check the Premium page and remote config status. Free features should continue to work.</td></tr>
-              <tr><td>Remote config refresh fails.</td><td>DNS, fallback URL, TLS, signature, or sodium availability may be involved.</td><td>Check Settings, audit warnings, DNS TXT configuration, and the HTTPS config endpoint.</td></tr>
-              <tr><td>WordPress update does not appear.</td><td>Manifest fetch failed, manifest is cached, or current version is already latest.</td><td>Check the update manifest, WordPress update screen, and transient cache timing.</td></tr>
             </tbody>
           </table>
         </div>

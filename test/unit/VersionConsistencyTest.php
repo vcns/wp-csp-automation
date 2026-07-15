@@ -16,13 +16,11 @@ class VersionConsistencyTest extends TestCase {
 		$constant_version = $this->extract_plugin_constant_version( $root . '/wp-csp-automation.php' );
 		$stable_tag       = $this->extract_readme_stable_tag( $root . '/readme.txt' );
 		$changelog        = $this->extract_latest_changelog_release( $root . '/CHANGELOG.md' );
-		$manifest_version = $this->extract_manifest_version( $root . '/docs/updates/wp-csp-automation.json' );
 
 		$this->assertMatchesRegularExpression( '/^\d+\.\d+\.\d+$/', $plugin_version, 'Plugin version must be a valid semver string.' );
 		$this->assertSame( $plugin_version, $constant_version );
 		$this->assertSame( $plugin_version, $stable_tag );
 		$this->assertSame( $plugin_version, $changelog );
-		$this->assertSame( $plugin_version, $manifest_version );
 	}
 
 	private function extract_plugin_header_version( string $file ): string {
@@ -59,15 +57,6 @@ class VersionConsistencyTest extends TestCase {
 		preg_match( '/^## \[([0-9]+\.[0-9]+\.[0-9]+)\]/m', $contents, $matches );
 
 		return trim( $matches[1] );
-	}
-
-	private function extract_manifest_version( string $file ): string {
-		$manifest = json_decode( $this->read_file( $file ), true, flags: JSON_THROW_ON_ERROR );
-
-		$this->assertIsArray( $manifest );
-		$this->assertArrayHasKey( 'version', $manifest );
-
-		return (string) $manifest['version'];
 	}
 
 	private function read_file( string $file ): string {

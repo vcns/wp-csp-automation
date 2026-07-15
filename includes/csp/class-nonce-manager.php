@@ -46,7 +46,7 @@ class Nonce_Manager {
 		add_filter( 'script_loader_tag', array( $this, 'inject_nonce_into_script_tag' ), 10, 3 );
 		add_filter( 'style_loader_tag', array( $this, 'inject_nonce_into_style_tag' ), 10, 4 );
 
-		// Expose nonce to front-end JS (e.g. Stripe.js inline init).
+		// Expose nonce to front-end JS that needs to pass CSP checks.
 		add_action( 'wp_head', array( $this, 'add_meta_nonce' ), 1 );
 		add_action( 'admin_head', array( $this, 'add_meta_nonce' ), 1 );
 	}

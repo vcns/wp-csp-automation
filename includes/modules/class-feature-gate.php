@@ -2,22 +2,8 @@
 /**
  * Central feature access control point.
  *
- * All premium feature checks in the plugin MUST go through this class.
- * Checks the local entitlement DB first; uses the remote config feature
- * matrix to determine what the site's current tier unlocks.
- *
- * Free features are always allowed regardless of entitlement.
- *
- * When the premium modules (Entitlement_Store, Config_Resolver) are not
- * present — i.e. the offline/ directory is absent — this class degrades
- * gracefully: all premium feature checks return false and the site runs
- * on the free tier automatically.
- *
- * Premium feature keys:
- *   trusted_types       — Trusted Types directives (require-trusted-types-for, trusted-types).
- *                         Always deployed in report-only mode first — Chromium-strong; Baseline ~2028 (R5).
- *   strict_dynamic      — Adds 'strict-dynamic' to script-src; suppresses host allowlists (R4).
- *   multi_surface_scan  — Crawl admin, login, api surfaces (frontend is always free).
+ * Features present in the WordPress.org package are available locally without
+ * payment, external licensing, or remote entitlement checks.
  */
 
 declare( strict_types=1 );
@@ -30,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Feature_Gate {
 
-	// Features available on the free tier without payment.
+	// Features available in the shipped package without payment.
 	private const FREE_FEATURES = array(
 		'csp_report_only',
 		'basic_scan',
@@ -39,20 +25,24 @@ class Feature_Gate {
 		'manual_policy_review',
 		'policy_history',
 		'decision_evidence_explorer',
+		'strict_dynamic',
+		'trusted_types',
+		'multi_surface_scan',
+		'analytics_export',
 	);
 
-	// Product key the free tier links to in the entitlement store.
+	// Stable product key retained for legacy compatibility helpers.
 	private const PRODUCT_KEY = 'wp-csp-automation';
 
 	/**
-	 * Entitlement_Store instance, or null when the offline module is absent.
-	 * Typed as object to avoid autoloading the premium class at parse time.
+	 * Legacy Entitlement_Store instance, or null when no compatibility module is present.
+	 * Typed as object to avoid autoloading optional classes at parse time.
 	 */
 	private ?object $entitlements;
 
 	/**
-	 * Config_Resolver instance, or null when the offline module is absent.
-	 * Typed as object to avoid autoloading the premium class at parse time.
+	 * Legacy Config_Resolver instance, or null when no compatibility module is present.
+	 * Typed as object to avoid autoloading optional classes at parse time.
 	 */
 	private ?object $config;
 
@@ -75,16 +65,11 @@ class Feature_Gate {
 			return true;
 		}
 
-		if ( null === $this->config ) {
-			return false; // no premium config — free tier only
-		}
-
-		$tier = $this->current_tier();
-		return $this->config->tier_has_feature( $tier, $feature );
+		return false;
 	}
 
 	/**
-	 * Returns the current active tier ('free' or 'pro' etc.).
+	 * Returns the current active legacy tier, defaulting to 'free'.
 	 */
 	public function current_tier(): string {
 		$row = $this->load_entitlement();
@@ -92,14 +77,14 @@ class Feature_Gate {
 	}
 
 	/**
-	 * Returns whether the site has an active paid entitlement.
+	 * Returns whether a legacy compatibility entitlement reports a pro tier.
 	 */
 	public function is_pro(): bool {
 		return 'pro' === $this->current_tier();
 	}
 
 	/**
-	 * Returns the entitlement row, or null for free tier.
+	 * Returns the legacy entitlement row, or null when none is available.
 	 */
 	public function get_entitlement(): ?array {
 		return $this->load_entitlement();

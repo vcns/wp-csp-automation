@@ -13,20 +13,16 @@ declare( strict_types=1 );
 
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
-define( 'WP_CSP_VERSION',        '1.0.3' );
+define( 'WP_CSP_VERSION',        '1.0.4' );
 define( 'WP_CSP_DB_VERSION',     '7' );
 define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
 define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
-define( 'WP_CSP_CONFIG_PUBLIC_KEY', 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' );
-define( 'WP_CSP_CONFIG_DNS_RECORD', '_csp-config.wp-csp-automation.dev' );
-define( 'WP_CSP_UPDATE_MANIFEST_URL', 'https://updates.example.com/wp-csp-automation.json' );
 define( 'HOUR_IN_SECONDS',       3600 );
 define( 'DAY_IN_SECONDS',        86400 );
 if ( ! defined( 'DNS_TXT' ) ) {
 	define( 'DNS_TXT', 16 );
 }
-define( 'WP_CSP_WORKER_URL',     'https://wp-csp-config.example.com' );
 define( 'ARRAY_A',               'ARRAY_A' );
 define( 'ARRAY_N',               'ARRAY_N' );
 define( 'OBJECT',                'OBJECT' );

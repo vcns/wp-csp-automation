@@ -3,10 +3,8 @@
  * Central plugin orchestrator.
  * Bootstraps every module, registers REST routes, and wires WordPress hooks.
  *
- * Premium modules (Config_Resolver, Entitlement_Store, Checkout_Service,
- * Webhook_Controller) are loaded only when the offline/ directory is present.
- * When absent, the plugin runs on the free tier with $config and $entitlements
- * set to null, and Feature_Gate degrades gracefully.
+ * The WordPress.org build runs as a complete local plugin. Commercial service
+ * integrations, if any, live outside this submitted package.
  */
 
 declare( strict_types=1 );
@@ -23,7 +21,6 @@ use WP_CSP\CSP\Scheduler;
 use WP_CSP\CSP\Violation_Reporter;
 use WP_CSP\Modules\Audit_Log;
 use WP_CSP\Modules\Feature_Gate;
-use WP_CSP\Modules\Update_Checker;
 use WP_CSP\Rest\Admin_Controller;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -35,7 +32,7 @@ final class Plugin {
 	private static ?Plugin $instance = null;
 
 	// Shared module instances (read by Admin_UI and other consumers).
-	// Nullable: null when the premium offline/ modules are not installed.
+	// Nullable compatibility hooks for legacy or future optional integrations.
 	public ?object $config       = null;
 	public ?object $entitlements = null;
 	public Feature_Gate $gate;
@@ -89,17 +86,7 @@ final class Plugin {
 	private function bootstrap(): void {
 		// Always-available core services.
 		$this->audit = new Audit_Log();
-		( new Update_Checker() )->register();
-
-		// Premium modules — present only when offline/ directory is deployed.
-		if ( class_exists( 'WP_CSP\Modules\Config_Resolver' ) ) {
-			$this->config = new \WP_CSP\Modules\Config_Resolver( $this->audit );
-		}
-		if ( class_exists( 'WP_CSP\Modules\Entitlement_Store' ) ) {
-			$this->entitlements = new \WP_CSP\Modules\Entitlement_Store( $this->audit );
-		}
-
-		// Feature gate degrades to free tier when premium modules are absent.
+		// Feature gate is local-only in the WordPress.org build.
 		$this->gate            = new Feature_Gate( $this->entitlements, $this->config );
 		$this->nonce_manager   = new Nonce_Manager( $this->gate );
 		$this->policy_builder  = new Policy_Builder( $this->gate );
@@ -120,7 +107,7 @@ final class Plugin {
 		$this->hash_manager->register();
 		$this->learning_window->register();
 
-		// REST API: webhook + violation reporting endpoint.
+		// REST API: violation reporting and privileged admin endpoints.
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
 		// WP Cron: daily policy rescan.
@@ -131,9 +118,6 @@ final class Plugin {
 			( new Conflict_Detector( $this->audit ) )->register();
 		}
 
-		// Stripe checkout proxy — only when the offline/ module is present.
-		// Webhook processing happens in the Cloudflare Worker, not here.
-
 		// Admin UI.
 		if ( is_admin() ) {
 			( new Admin_UI( $this ) )->register();
@@ -143,8 +127,6 @@ final class Plugin {
 	// ── REST routes ───────────────────────────────────────────────────────────
 
 	public function register_rest_routes(): void {
-		// Stripe webhooks are handled by the Cloudflare Worker — no WordPress route needed.
-
 		// CSP violation report – public, from browsers.
 		register_rest_route(
 			'csp-manager/v1',

@@ -1,6 +1,6 @@
 {
   "name": "sjackson0109/wp-csp-automation",
-  "description": "WordPress plugin for CSP automation, source discovery, enforcement, and premium entitlement handling.",
+  "description": "WordPress plugin for CSP automation, source discovery, enforcement, and policy-change review.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "require-dev": {
