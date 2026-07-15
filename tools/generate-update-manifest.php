@@ -14,11 +14,12 @@ $options = getopt(
 		'release-url:',
 		'published-at:',
 		'output:',
+		'allow-empty-urls',
 	)
 );
 
 if ( false === $options || empty( $options['output'] ) ) {
-	fwrite( STDERR, "Usage: php tools/generate-update-manifest.php --output /tmp/pages/wp-csp-automation.json [--tag v0.2.1] [--download-url URL]\n" );
+	fwrite( STDERR, "Usage: php tools/generate-update-manifest.php --output /tmp/pages/wp-csp-automation.json [--tag v0.2.1] [--download-url URL] [--allow-empty-urls]\n" );
 	exit( 1 );
 }
 
@@ -38,13 +39,14 @@ if ( '' === $version ) {
 	$version = header_value( $plugin, 'Version' );
 }
 
-$download_url = string_option( $options, 'download-url' );
-if ( '' === $download_url ) {
+$allow_empty_urls = array_key_exists( 'allow-empty-urls', $options );
+$download_url     = string_option( $options, 'download-url' );
+if ( '' === $download_url && ! has_string_option( $options, 'download-url' ) && ! $allow_empty_urls ) {
 	$download_url = 'https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip';
 }
 
 $release_url  = string_option( $options, 'release-url' );
-if ( '' === $release_url && '' !== $tag ) {
+if ( '' === $release_url && ! has_string_option( $options, 'release-url' ) && ! $allow_empty_urls && '' !== $tag ) {
 	$release_url = 'https://github.com/vcns/wp-csp-automation/releases/tag/' . rawurlencode( $tag );
 }
 
@@ -104,4 +106,8 @@ function string_option( array $options, string $key ): string {
 	}
 
 	return trim( (string) $options[ $key ] );
+}
+
+function has_string_option( array $options, string $key ): bool {
+	return array_key_exists( $key, $options ) && false !== $options[ $key ];
 }

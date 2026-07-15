@@ -3,31 +3,39 @@ name: Release Package
 on:
   push:
     tags:
-      - 'v[0-9]*.[0-9]*.[0-9]*'
-      - 'v[0-9]*.[0-9]*.[0-9]*-*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
   pull_request:
     branches:
       - development
+      - main
     paths:
-      - 'wp-csp-automation.php'
-      - 'uninstall.php'
-      - 'includes/**'
-      - 'assets/**'
-      - 'LICENSE'
       - '.distignore'
       - '.github/workflows/release-package.yml'
+      - 'assets/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'includes/**'
+      - 'LICENSE'
+      - 'readme.txt'
       - 'tools/generate-update-manifest.php'
+      - 'tools/lint-php.php'
+      - 'uninstall.php'
+      - 'wp-csp-automation.php'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
-    name: Quality gates and distributable ZIP
+    name: Validate and build release ZIP
     runs-on: ubuntu-latest
 
     outputs:
+      is_prerelease: ${{ steps.release_meta.outputs.is_prerelease }}
+      manifest_filename: ${{ steps.build.outputs.manifest_filename }}
+      version: ${{ steps.release_meta.outputs.version }}
       zip_filename: ${{ steps.build.outputs.zip_filename }}
 
     steps:
@@ -41,10 +49,13 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y rsync unzip zip
+
       - name: Validate composer.json
         run: composer validate --strict
 
-      - name: Cache Composer
+      - name: Cache Composer packages
         uses: actions/cache@v4
         with:
           path: |
@@ -54,7 +65,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer-
 
-      - name: Install dev dependencies
+      - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: PHP syntax lint
@@ -69,82 +80,145 @@ jobs:
       - name: Composer audit
         run: composer audit
 
-      - name: Verify version alignment
+      - name: Resolve release metadata
+        id: release_meta
         shell: bash
         run: |
           set -euo pipefail
 
-          php <<'PHP'
+          php <<'PHP' > /tmp/plugin-version.env
           <?php
-          $plugin = file_get_contents( 'wp-csp-automation.php' );
-          if ( false === $plugin ) {
-            fwrite( STDERR, "Unable to read wp-csp-automation.php\n" );
-            exit( 1 );
+          $plugin = file_get_contents('wp-csp-automation.php');
+          if (false === $plugin) {
+              fwrite(STDERR, "Unable to read wp-csp-automation.php\n");
+              exit(1);
           }
 
-          preg_match( '/Version:\s*([^\r\n]+)/', $plugin, $header_matches );
-          preg_match( "/define\(\s*'WP_CSP_VERSION'\s*,\s*'([^']+)'\s*\)/", $plugin, $constant_matches );
+          preg_match('/^\s*\*\s+Version:\s*([^\r\n]+)/mi', $plugin, $header_matches);
+          preg_match("/define\(\s*'WP_CSP_VERSION'\s*,\s*'([^']+)'\s*\)/", $plugin, $constant_matches);
 
-          $header_version   = trim( $header_matches[1] ?? '' );
-          $constant_version = trim( $constant_matches[1] ?? '' );
+          $header_version = trim($header_matches[1] ?? '');
+          $constant_version = trim($constant_matches[1] ?? '');
 
-          if ( '' === $header_version || $header_version !== $constant_version ) {
-            fwrite( STDERR, "Plugin header Version and WP_CSP_VERSION must match.\n" );
-            fwrite( STDERR, "Header: {$header_version}\n" );
-            fwrite( STDERR, "Constant: {$constant_version}\n" );
-            exit( 1 );
+          if ('' === $header_version || $header_version !== $constant_version) {
+              fwrite(STDERR, "Plugin header Version and WP_CSP_VERSION must match.\n");
+              fwrite(STDERR, "Header: {$header_version}\n");
+              fwrite(STDERR, "Constant: {$constant_version}\n");
+              exit(1);
           }
 
-          $ref      = getenv( 'GITHUB_REF' ) ?: '';
-          $tag_name = getenv( 'GITHUB_REF_NAME' ) ?: '';
-          if ( str_starts_with( $ref, 'refs/tags/v' ) && substr( $tag_name, 1 ) !== $header_version ) {
-            fwrite( STDERR, "Release tag {$tag_name} must match plugin version {$header_version}.\n" );
-            exit( 1 );
+          if (is_readable('readme.txt')) {
+              $readme = file_get_contents('readme.txt');
+              preg_match('/^Stable tag:\s*([^\r\n]+)/mi', (string) $readme, $stable_matches);
+              $stable_tag = trim($stable_matches[1] ?? '');
+              if ('' !== $stable_tag && $stable_tag !== $header_version) {
+                  fwrite(STDERR, "readme.txt Stable tag must match plugin version {$header_version}.\n");
+                  fwrite(STDERR, "Stable tag: {$stable_tag}\n");
+                  exit(1);
+              }
           }
+
+          echo "PLUGIN_VERSION={$header_version}\n";
           PHP
 
-      - name: Build ZIP
+          # shellcheck disable=SC1091
+          source /tmp/plugin-version.env
+
+          REF="${GITHUB_REF:-}"
+          TAG="${GITHUB_REF_NAME:-}"
+          IS_PRERELEASE=false
+
+          if [[ "${REF}" == refs/tags/v* ]]; then
+            TAG_VERSION="${TAG#v}"
+            if [[ "${TAG_VERSION}" != "${PLUGIN_VERSION}" ]]; then
+              echo "Release tag ${TAG} must match plugin version ${PLUGIN_VERSION}." >&2
+              exit 1
+            fi
+            if [[ "${TAG}" == *"-"* ]]; then
+              IS_PRERELEASE=true
+            fi
+          else
+            TAG="dev-${GITHUB_SHA::12}"
+          fi
+
+          echo "version=${PLUGIN_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build release ZIP and manifest
         id: build
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
-            TAG="${GITHUB_REF_NAME}"
-          else
-            TAG="dev"
-          fi
-
+          VERSION="${{ steps.release_meta.outputs.version }}"
+          TAG="${{ steps.release_meta.outputs.tag }}"
           ZIP_FILENAME="wp-csp-automation-${TAG}.zip"
+          MANIFEST_FILENAME="wp-csp-automation.json"
+          DOWNLOAD_URL=""
+          RELEASE_URL=""
 
+          rm -rf dist
           mkdir -p dist/wp-csp-automation
-          rsync -a --exclude-from='.distignore' ./ dist/wp-csp-automation/
+
+          rsync -a --delete --exclude-from='.distignore' ./ dist/wp-csp-automation/
+
+          COMMIT_TIMESTAMP="$(git log -1 --format=%ct)"
+          find dist/wp-csp-automation -exec touch -h -d "@${COMMIT_TIMESTAMP}" {} +
 
           cd dist
-          zip -r "${ZIP_FILENAME}" wp-csp-automation/
+          find wp-csp-automation -type f -print | LC_ALL=C sort | zip -q -X "${ZIP_FILENAME}" -@
+          cd ..
+
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
+
+            if [[ "${TAG}" == *"-"* ]]; then
+              DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
+            else
+              DOWNLOAD_URL="https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip"
+            fi
+          fi
+
+          MANIFEST_ARGS=(
+            --version "${VERSION}"
+            --output "dist/${MANIFEST_FILENAME}"
+          )
+
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            MANIFEST_ARGS+=(--download-url "${DOWNLOAD_URL}")
+            MANIFEST_ARGS+=(--release-url "${RELEASE_URL}")
+          else
+            MANIFEST_ARGS+=(--allow-empty-urls)
+          fi
+
+          php tools/generate-update-manifest.php "${MANIFEST_ARGS[@]}"
 
           echo "zip_filename=${ZIP_FILENAME}" >> "${GITHUB_OUTPUT}"
+          echo "manifest_filename=${MANIFEST_FILENAME}" >> "${GITHUB_OUTPUT}"
 
-      - name: Verify plugin header present
+      - name: Verify ZIP structure
         shell: bash
         run: |
           set -euo pipefail
-          unzip -l dist/*.zip | grep -q 'wp-csp-automation/wp-csp-automation.php'
 
-      - name: Verify private/dev paths absent
-        shell: bash
-        run: |
-          set -euo pipefail
-          if unzip -l dist/*.zip | grep -E 'wp-csp-automation/(offline|cloudflare|test|tools|docs|vendor|node_modules)/'; then
-            echo "Release ZIP contains private, dev, or generated-only paths. Check .distignore." >&2
+          ZIP="dist/${{ steps.build.outputs.zip_filename }}"
+
+          unzip -l "${ZIP}" | grep -q 'wp-csp-automation/wp-csp-automation.php'
+          unzip -l "${ZIP}" | grep -q 'wp-csp-automation/uninstall.php'
+
+          if unzip -l "${ZIP}" | grep -E 'wp-csp-automation/(\.git|\.github|\.private_key|\.public_key|cloudflare|docs|node_modules|offline|test|tools|vendor)/'; then
+            echo "Release ZIP contains development, private, documentation, or generated-only paths. Check .distignore." >&2
             exit 1
           fi
 
-      - name: Upload ZIP as workflow artifact
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wp-csp-automation-zip
-          path: dist/*.zip
+          name: wp-csp-automation-release-zip
+          path: |
+            dist/${{ steps.build.outputs.zip_filename }}
+            dist/${{ steps.build.outputs.manifest_filename }}
           retention-days: 30
 
   release:
@@ -152,46 +226,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Download ZIP artifact
+      - name: Download release artifacts
         uses: actions/download-artifact@v4
         with:
-          name: wp-csp-automation-zip
+          name: wp-csp-automation-release-zip
           path: dist/
-
-      - name: Generate release manifest
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TAG="${GITHUB_REF_NAME}"
-          ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
-
-          # Stable releases point at the shared Pages "latest" ZIP so that the
-          # Pages feed always serves the current stable version.  Pre-release
-          # tags (those containing "-") use the immutable GitHub Release asset
-          # URL instead, because the Pages feed is not updated for pre-releases.
-          if [[ "${TAG}" == *"-"* ]]; then
-            DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
-          else
-            DOWNLOAD_URL="https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip"
-          fi
-
-          php tools/generate-update-manifest.php \
-            --tag "${TAG}" \
-            --download-url "${DOWNLOAD_URL}" \
-            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
-            --output "dist/wp-csp-automation.json"
 
       - name: Create or update GitHub Release
         env:
@@ -202,21 +245,22 @@ jobs:
 
           TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
+          MANIFEST_FILENAME="${{ needs.build.outputs.manifest_filename }}"
 
           PRERELEASE_FLAG=""
-          if [[ "${TAG}" == *"-"* ]]; then
+          if [[ "${{ needs.build.outputs.is_prerelease }}" == "true" ]]; then
             PRERELEASE_FLAG="--prerelease"
           fi
 
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/wp-csp-automation.json" --clobber
+            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/${MANIFEST_FILENAME}" --clobber
           else
             gh release create "${TAG}" \
               --title "WP CSP Automation ${TAG}" \
               --generate-notes \
               ${PRERELEASE_FLAG} \
               "dist/${ZIP_FILENAME}" \
-              "dist/wp-csp-automation.json"
+              "dist/${MANIFEST_FILENAME}"
           fi
 
   update-feed:
@@ -240,7 +284,7 @@ jobs:
       - name: Download ZIP artifact
         uses: actions/download-artifact@v4
         with:
-          name: wp-csp-automation-zip
+          name: wp-csp-automation-release-zip
           path: dist/
 
       - name: Generate update feed files
