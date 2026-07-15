@@ -2,7 +2,7 @@
 
 ## Purpose
 
-WP CSP Automation Manager can be updated from a self-hosted release channel before it is listed in the WordPress.org plugin directory.
+CSP Automation Manager can be updated from a self-hosted release channel before it is listed in the WordPress.org plugin directory.
 
 WordPress does not poll arbitrary JSON files for third-party plugins by default. The plugin registers a small update checker that reads the public GitHub Pages manifest and maps it into WordPress' native plugin update transient.
 

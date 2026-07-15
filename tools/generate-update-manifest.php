@@ -61,7 +61,7 @@ if ( '' === $published_at ) {
 $manifest = array(
 	'slug'         => 'wp-csp-automation',
 	'plugin'       => 'wp-csp-automation/wp-csp-automation.php',
-	'name'         => 'WP CSP Automation Manager',
+	'name'         => 'CSP Automation Manager',
 	'version'      => $version,
 	'download_url' => $download_url,
 	'homepage'     => 'https://vcns.github.io/wp-csp-automation',

@@ -1,10 +1,10 @@
-=== WP CSP Automation Manager ===
+=== CSP Automation Manager ===
 Contributors: vcns
 Tags: security, csp, content security policy, headers, wordpress security
 Requires at least: 6.4
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Automates strict Content Security Policy rollout, violation reporting, source di
 
 == Description ==
 
-WP CSP Automation Manager helps site owners roll out strict Content Security Policy headers safely and incrementally.
+CSP Automation Manager helps site owners roll out strict Content Security Policy headers safely and incrementally.
 
 The plugin provides per-surface CSP profiles, nonce injection, source discovery, violation reporting, policy-change review, append-only audit records, and entitlement-gated premium capabilities.
 
@@ -61,6 +61,10 @@ Service provider:
 * GitHub Privacy Statement: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
 
 == Changelog ==
+
+= 1.0.3 =
+
+* Renames the public plugin display name to `CSP Automation Manager` to comply with WordPress.org plugin naming requirements.
 
 = 1.0.2 =
 

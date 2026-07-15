@@ -2,7 +2,7 @@
 
 ## Purpose
 
-WP CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with optional entitlement-gated premium capabilities. Billing and account management are expected to move through VCNS licensing services rather than being owned by the CSP runtime.
+CSP Automation Manager is a WordPress plugin that helps site owners roll out strict Content Security Policy controls without maintaining the entire policy by hand. It combines local discovery and policy management with optional entitlement-gated premium capabilities. Billing and account management are expected to move through VCNS licensing services rather than being owned by the CSP runtime.
 
 ## Primary design principles
 
