@@ -207,7 +207,7 @@ jobs:
           unzip -l "${ZIP}" | grep -q 'wp-csp-automation/wp-csp-automation.php'
           unzip -l "${ZIP}" | grep -q 'wp-csp-automation/uninstall.php'
 
-          if unzip -l "${ZIP}" | grep -E 'wp-csp-automation/(\.git|\.github|\.private_key|\.public_key|cloudflare|docs|node_modules|offline|test|tools|vendor)/'; then
+          if unzip -l "${ZIP}" | grep -E 'wp-csp-automation/(\.git|\.github|\.private_key|\.public_key|\.phpunit\.cache|cloudflare|docs|node_modules|offline|test|tools|vendor)/|wp-csp-automation/(\.distignore|\.git|code-review-findings\.json|COMMERCIAL_TERMS\.md|README\.md|RESEARCH\.md|SPECIFICATION\.md|TRADEMARK_POLICY\.md)$'; then
             echo "Release ZIP contains development, private, documentation, or generated-only paths. Check .distignore." >&2
             exit 1
           fi
