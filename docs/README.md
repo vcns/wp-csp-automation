@@ -26,7 +26,7 @@ These documents are written for maintainers, release managers, security reviewer
 
 The following files remain authoritative alongside these docs:
 
-- `wp-csp-automation.php` for plugin metadata, constants, autoloading, and version values
+- `csp-automation-manager.php` for plugin metadata, constants, autoloading, and version values
 - `requirements_spec.md` for the current functional requirements baseline
 - `README.md` for repository-level installation and feature summary
 - `CHANGELOG.md` for release history

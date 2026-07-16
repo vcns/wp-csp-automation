@@ -8,7 +8,7 @@
     stopOnFailure="false"
 >
     <testsuites>
-        <testsuite name="WP CSP Automation Unit Tests">
+        <testsuite name="CSP Automation Manager Unit Tests">
             <directory>test/unit</directory>
         </testsuite>
     </testsuites>

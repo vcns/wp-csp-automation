@@ -1,6 +1,6 @@
 <?php
 /**
- * PHPUnit bootstrap file for WP CSP Automation unit tests.
+ * PHPUnit bootstrap file for CSP Automation Manager unit tests.
  *
  * Defines plugin constants and stubs for WordPress globals and functions so
  * the plugin classes can be loaded and exercised without a WordPress install.
@@ -13,11 +13,11 @@ declare( strict_types=1 );
 
 // ── Plugin constants ──────────────────────────────────────────────────────────
 define( 'ABSPATH',               __DIR__ . '/' );
-define( 'WP_CSP_VERSION',        '1.0.4' );
+define( 'WP_CSP_VERSION',        '1.0.5' );
 define( 'WP_CSP_DB_VERSION',     '7' );
-define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/wp-csp-automation.php' );
+define( 'WP_CSP_FILE',           dirname( __DIR__ ) . '/csp-automation-manager.php' );
 define( 'WP_CSP_DIR',            dirname( __DIR__ ) . '/' );
-define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/wp-csp-automation/' );
+define( 'WP_CSP_URL',            'https://example.com/wp-content/plugins/csp-automation-manager/' );
 define( 'HOUR_IN_SECONDS',       3600 );
 define( 'DAY_IN_SECONDS',        86400 );
 if ( ! defined( 'DNS_TXT' ) ) {
@@ -27,7 +27,7 @@ define( 'ARRAY_A',               'ARRAY_A' );
 define( 'ARRAY_N',               'ARRAY_N' );
 define( 'OBJECT',                'OBJECT' );
 
-// ── PSR-4 autoloader (mirrors wp-csp-automation.php) ─────────────────────────
+// ── PSR-4 autoloader (mirrors csp-automation-manager.php) ─────────────────────────
 spl_autoload_register( static function ( string $class ): void {
 	$prefix = 'WP_CSP\\';
 	if ( strncmp( $prefix, $class, strlen( $prefix ) ) !== 0 ) {
@@ -205,7 +205,7 @@ if ( ! function_exists( 'admin_url' ) ) {
 
 if ( ! function_exists( 'plugin_basename' ) ) {
 	function plugin_basename( string $file ): string {
-		return 'wp-csp-automation/wp-csp-automation.php';
+		return 'csp-automation-manager/csp-automation-manager.php';
 	}
 }
 

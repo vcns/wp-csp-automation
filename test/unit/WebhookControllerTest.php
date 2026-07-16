@@ -285,7 +285,7 @@ class WebhookControllerTest extends TestCase {
 					'customer'       => 'cus_test',
 					'payment_intent' => 'pi_test',
 					'metadata'       => [
-						'product_key'   => 'wp-csp-automation',
+						'product_key'   => 'csp-automation-manager',
 						'site_identity' => $site_identity,
 					],
 				],

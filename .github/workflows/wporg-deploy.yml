@@ -38,4 +38,4 @@ jobs:
         env:
           SVN_USERNAME: ${{ vars.SVC_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: wp-csp-automation
+          SLUG: csp-automation-manager

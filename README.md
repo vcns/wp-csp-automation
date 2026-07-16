@@ -47,9 +47,9 @@ Once published to WordPress.org:
 ### Install from GitHub Releases
 
 Tagged releases publish a ready-to-install ZIP to the
-[Releases page](https://github.com/vcns/wp-csp-automation/releases).
+[Releases page](https://github.com/vcns/csp-automation-manager/releases).
 
-1. Download `wp-csp-automation-vX.Y.Z.zip` from the release assets.
+1. Download `csp-automation-manager-vX.Y.Z.zip` from the release assets.
 2. In WordPress go to **Plugins -> Add New Plugin -> Upload Plugin**.
 3. Choose the downloaded ZIP and click **Install Now**.
 4. Activate the plugin.
@@ -99,7 +99,7 @@ The plugin keeps operational data local to WordPress.
 
 The repository also publishes a public help site from the `docs/` directory:
 
-- https://vcns.github.io/wp-csp-automation/
+- https://vcns.github.io/csp-automation-manager/
 
 ## Development And Release Flow
 

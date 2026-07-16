@@ -46,7 +46,7 @@ jobs:
             -e WORDPRESS_DB_USER=wordpress \
             -e WORDPRESS_DB_PASSWORD=wordpress \
             -e WORDPRESS_DB_NAME=wordpress \
-            -v "$PWD":/var/www/html/wp-content/plugins/wp-csp-automation \
+            -v "$PWD":/var/www/html/wp-content/plugins/csp-automation-manager \
             wordpress:6.7-php8.1-apache
 
       - name: Wait for WordPress

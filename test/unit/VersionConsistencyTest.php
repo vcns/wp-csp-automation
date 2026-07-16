@@ -12,8 +12,8 @@ class VersionConsistencyTest extends TestCase {
 	public function test_release_version_metadata_is_consistent(): void {
 		$root = dirname( __DIR__, 2 );
 
-		$plugin_version   = $this->extract_plugin_header_version( $root . '/wp-csp-automation.php' );
-		$constant_version = $this->extract_plugin_constant_version( $root . '/wp-csp-automation.php' );
+		$plugin_version   = $this->extract_plugin_header_version( $root . '/csp-automation-manager.php' );
+		$constant_version = $this->extract_plugin_constant_version( $root . '/csp-automation-manager.php' );
 		$stable_tag       = $this->extract_readme_stable_tag( $root . '/readme.txt' );
 		$changelog        = $this->extract_latest_changelog_release( $root . '/CHANGELOG.md' );
 

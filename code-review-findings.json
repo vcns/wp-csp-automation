@@ -3,7 +3,7 @@
     "file": "includes/admin/views/page-csp-dashboard.php",
     "line": 21,
     "summary": "Wrong admin page slug used throughout the dashboard view — all tab links and filter form submissions route to an unregistered page.",
-    "failure_scenario": "$base_url is built with 'wp-csp-automation-dashboard' (line 21) and the Sources filter hidden input echoes the same value (line 155), but add_menu_page() and add_submenu_page() in class-admin-ui.php register the slug as 'wp-csp-dashboard'. Every tab navigation link and filter form POST resolves to an unregistered slug; WordPress responds with a 'You do not have sufficient permissions' error or a blank page, making the entire dashboard nonfunctional in production."
+    "failure_scenario": "$base_url is built with 'csp-automation-manager-dashboard' and class-admin-ui.php now registers the same slug for the top-level dashboard page. This finding is retained as historical review context for the slug mismatch fixed during the public package rename."
   },
   {
     "file": "includes/admin/views/page-csp-dashboard.php",

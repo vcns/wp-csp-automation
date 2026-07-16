@@ -181,7 +181,7 @@ Current baseline:
 
 Before tagging a release:
 
-- update version in `wp-csp-automation.php`
+- update version in `csp-automation-manager.php`
 - update `WP_CSP_DB_VERSION` constant if schema changed; update version table in `docs/database-schema.md`
 - update `readme.txt` stable tag if needed
 - update `CHANGELOG.md`

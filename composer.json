@@ -1,5 +1,5 @@
 {
-  "name": "sjackson0109/wp-csp-automation",
+  "name": "vcns/csp-automation-manager",
   "description": "WordPress plugin for CSP automation, source discovery, enforcement, and policy-change review.",
   "type": "project",
   "license": "GPL-2.0-or-later",

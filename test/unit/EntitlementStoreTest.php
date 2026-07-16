@@ -58,12 +58,12 @@ class EntitlementStoreTest extends TestCase {
 			'tier'          => 'pro',
 			'status'        => 'active',
 			'site_identity' => substr( hash( 'sha256', 'https://example.com' ), 0, 48 ),
-			'product_key'   => 'wp-csp-automation',
+			'product_key'   => 'csp-automation-manager',
 		);
 		$GLOBALS['_wpdb_get_row'] = $row;
 
 		$store  = new Entitlement_Store( $this->audit );
-		$result = $store->get_for_site( 'wp-csp-automation' );
+		$result = $store->get_for_site( 'csp-automation-manager' );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 'pro', $result['tier'] );
@@ -79,7 +79,7 @@ class EntitlementStoreTest extends TestCase {
 		);
 
 		$store  = new Entitlement_Store( $this->audit );
-		$result = $store->get_for_site( 'wp-csp-automation' );
+		$result = $store->get_for_site( 'csp-automation-manager' );
 
 		$this->assertNull( $result );
 	}
@@ -89,7 +89,7 @@ class EntitlementStoreTest extends TestCase {
 		$GLOBALS['_wp_remote_get_response'] = new WP_Error( 'http_request_failed', 'cURL error' );
 
 		$store  = new Entitlement_Store( $this->audit );
-		$result = $store->get_for_site( 'wp-csp-automation' );
+		$result = $store->get_for_site( 'csp-automation-manager' );
 
 		$this->assertNull( $result );
 	}
@@ -100,7 +100,7 @@ class EntitlementStoreTest extends TestCase {
 		$GLOBALS['_wpdb_update_result'] = 1;
 
 		$store  = new Entitlement_Store( $this->audit );
-		$result = $store->revoke( 'site-id', 'wp-csp-automation', 'test reason' );
+		$result = $store->revoke( 'site-id', 'csp-automation-manager', 'test reason' );
 
 		$this->assertTrue( $result );
 	}
@@ -109,7 +109,7 @@ class EntitlementStoreTest extends TestCase {
 		$GLOBALS['_wpdb_update_result'] = 0;
 
 		$store  = new Entitlement_Store( $this->audit );
-		$result = $store->revoke( 'site-id', 'wp-csp-automation', 'test reason' );
+		$result = $store->revoke( 'site-id', 'csp-automation-manager', 'test reason' );
 
 		$this->assertFalse( $result );
 	}
@@ -124,7 +124,7 @@ class EntitlementStoreTest extends TestCase {
 		$this->audit->expects( $this->never() )->method( 'log' );
 
 		$store = new Entitlement_Store( $this->audit );
-		$store->grant( 'site-id', 'wp-csp-automation', 'cs_test_123', 'cus_xxx', 'pi_xxx' );
+		$store->grant( 'site-id', 'csp-automation-manager', 'cs_test_123', 'cus_xxx', 'pi_xxx' );
 	}
 
 	public function test_grant_logs_audit_event_for_new_session(): void {
@@ -136,6 +136,6 @@ class EntitlementStoreTest extends TestCase {
 			->with( 'entitlement', 'granted', $this->anything() );
 
 		$store = new Entitlement_Store( $this->audit );
-		$store->grant( 'site-id', 'wp-csp-automation', 'cs_test_new', 'cus_yyy', 'pi_yyy' );
+		$store->grant( 'site-id', 'csp-automation-manager', 'cs_test_new', 'cus_yyy', 'pi_yyy' );
 	}
 }

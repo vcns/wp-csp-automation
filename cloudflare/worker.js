@@ -1,5 +1,5 @@
 /**
- * WP CSP Automation — Config + Licensing Worker
+ * CSP Automation Manager — Config + Licensing Worker
  *
  * Routes:
  *   GET  /            Serve signed product config JSON
@@ -30,8 +30,8 @@
  *
  * ── Stripe Webhook Registration ───────────────────────────────────────────────
  * Register two webhook endpoints in your Stripe dashboard:
- *   Test: https://wp-csp-config.jacksonfamily.me/webhook?mode=test
- *   Live: https://wp-csp-config.jacksonfamily.me/webhook?mode=live
+ *   Test: https://config.csp-automation-manager.vcns.tech/webhook?mode=test
+ *   Live: https://config.csp-automation-manager.vcns.tech/webhook?mode=live
  * Events: checkout.session.completed, checkout.session.async_payment_succeeded
  */
 
@@ -45,8 +45,8 @@ const CONFIG = {
   expires: "2027-01-01T00:00:00Z",
 
   products: {
-    "wp-csp-automation": {
-      name: "WP-CSP-Automation",
+    "csp-automation-manager": {
+      name: "CSP Automation Manager",
       amount: 1299,
       currency: "gbp",
       // Price IDs are stored in KV (STRIPE_TEST_PRICE_ID / STRIPE_LIVE_PRICE_ID)
@@ -150,7 +150,7 @@ async function handleCheckout(request, env) {
     return jsonResponse({ error: "invalid_json" }, 400);
   }
 
-  const { site_identity, product_key = "wp-csp-automation", success_url, cancel_url } = body;
+  const { site_identity, product_key = "csp-automation-manager", success_url, cancel_url } = body;
 
   if (!site_identity || !success_url || !cancel_url) {
     return jsonResponse({ error: "missing_fields" }, 400);
@@ -266,7 +266,7 @@ async function handleEntitlement(request, env) {
   return jsonResponse({
     entitled:    record.status === "active",
     tier:        record.tier        || "pro",
-    product_key: record.product_key || "wp-csp-automation",
+    product_key: record.product_key || "csp-automation-manager",
     granted_at:  record.granted_at  || null,
   });
 }

@@ -175,7 +175,7 @@ Key columns:
 
 - `id`
 - `site_identity` — truncated SHA-256 hash of the site URL; binds the entitlement to a specific WordPress install
-- `product_key` — identifies the premium product tier (e.g. `wp-csp-automation`)
+- `product_key` — identifies the premium product tier (e.g. `csp-automation-manager`)
 - `tier` — `free`, `pro`
 - `status` — `active`, `revoked`, `expired`, `grace`
 - `stripe_customer_id`, `stripe_session_id`, `stripe_payment_intent_id`
@@ -359,7 +359,7 @@ If performance issues appear under high violation volume, first review:
 
 Whenever schema changes are introduced:
 
-1. Increment `WP_CSP_DB_VERSION` in `wp-csp-automation.php`.
+1. Increment `WP_CSP_DB_VERSION` in `csp-automation-manager.php`.
 2. Update the `CREATE TABLE` SQL in `includes/class-activator.php`. `dbDelta()` handles adding new columns and new tables; it cannot drop columns or change column types.
 3. Add explicit upgrade logic in `Plugin::maybe_upgrade_db()` for any change that `dbDelta()` cannot handle automatically.
 4. Update this document, the version table at the top of this file, and `CHANGELOG.md`.

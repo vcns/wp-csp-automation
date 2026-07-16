@@ -8,6 +8,13 @@ The format is based on Keep a Changelog, and this project follows semantic versi
 
 No unreleased changes yet.
 
+## [1.0.5] - 2026-07-16
+
+### Changed
+
+- Renamed the repository, package slug, text domain, main plugin file, GitHub Pages links, WordPress.org deployment slug, and release ZIP naming to `csp-automation-manager`.
+- Updated release packaging checks so tagged releases build `csp-automation-manager-vX.Y.Z.zip` with the `csp-automation-manager/` plugin root.
+
 ## [1.0.4] - 2026-07-15
 
 ### Changed

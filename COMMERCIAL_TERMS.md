@@ -1,4 +1,4 @@
-# WP CSP Automation Commercial Terms
+# CSP Automation Manager Commercial Terms
 
 Copyright © 2026 VCNS Tech Ltd.
 All rights reserved.
@@ -11,7 +11,7 @@ These terms do not replace or restrict rights granted under the GNU General Publ
 
 ## 2. Open Source Components
 
-The WP CSP Automation plugin code is distributed under GPLv2 or any later version.
+The CSP Automation Manager plugin code is distributed under GPLv2 or any later version.
 
 Recipients are entitled to copy, modify, and redistribute GPL-licensed code in accordance with the terms of that licence.
 
@@ -49,7 +49,7 @@ Users may not:
 
 No licence is granted to use:
 
-* WP CSP Automation™;
+* CSP Automation Manager™;
 * VCNS Tech Ltd™;
 * logos;
 * graphics;

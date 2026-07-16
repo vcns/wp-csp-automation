@@ -19,20 +19,20 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 
 ?>
 <div class="wrap wp-csp-wrap">
-	<h1><?php esc_html_e( 'CSP Policy Audit', 'wp-csp-automation' ); ?></h1>
-	<p><?php esc_html_e( 'Inspect effective policies, decision provenance, pending review items, and policy version history.', 'wp-csp-automation' ); ?></p>
+	<h1><?php esc_html_e( 'CSP Policy Audit', 'csp-automation-manager' ); ?></h1>
+	<p><?php esc_html_e( 'Inspect effective policies, decision provenance, pending review items, and policy version history.', 'csp-automation-manager' ); ?></p>
 
-	<h2><?php esc_html_e( 'Current Policy', 'wp-csp-automation' ); ?></h2>
+	<h2><?php esc_html_e( 'Current Policy', 'csp-automation-manager' ); ?></h2>
 	<table class="widefat striped wp-csp-audit-table">
 		<thead>
 			<tr>
-				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Mode', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Automation', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Policy Version', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Pending', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'High Risk', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Effective Header', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Surface', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Mode', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Automation', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Policy Version', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Pending', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'High Risk', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Effective Header', 'csp-automation-manager' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -72,7 +72,7 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 					<td><strong><?php echo esc_html( ucfirst( $surface ) ); ?></strong></td>
 					<td><?php echo esc_html( $profile['mode'] ?? 'unknown' ); ?></td>
 					<td><?php echo esc_html( $surface_config['mode'] ?? 'manual' ); ?></td>
-					<td><?php echo isset( $latest['version_number'] ) ? esc_html( (string) $latest['version_number'] ) : esc_html__( 'Not captured yet', 'wp-csp-automation' ); ?></td>
+					<td><?php echo isset( $latest['version_number'] ) ? esc_html( (string) $latest['version_number'] ) : esc_html__( 'Not captured yet', 'csp-automation-manager' ); ?></td>
 					<td><?php echo esc_html( (string) $pending_count ); ?></td>
 					<td><?php echo esc_html( (string) $high_count ); ?></td>
 					<td><code><?php echo esc_html( $latest['effective_header'] ?? '' ); ?></code></td>
@@ -81,7 +81,7 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 		</tbody>
 	</table>
 
-	<h2><?php esc_html_e( 'Pending Review Queue', 'wp-csp-automation' ); ?></h2>
+	<h2><?php esc_html_e( 'Pending Review Queue', 'csp-automation-manager' ); ?></h2>
 	<?php
 	$pending = $wpdb->get_results(
 		"SELECT * FROM {$pending_table} WHERE approval_state = 'pending' ORDER BY FIELD(risk_level, 'critical', 'high', 'unknown', 'medium', 'low'), last_seen_at DESC LIMIT 50", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -91,13 +91,13 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 	<table class="widefat striped wp-csp-audit-table">
 		<thead>
 			<tr>
-				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Source', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Risk', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Evidence', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'First Seen', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Last Seen', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'Surface', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Directive', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Source', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Risk', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Evidence', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'First Seen', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Last Seen', 'csp-automation-manager' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -113,25 +113,25 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 				</tr>
 			<?php endforeach; ?>
 			<?php if ( empty( $pending ) ) : ?>
-				<tr><td colspan="7"><?php esc_html_e( 'No pending source proposals require review.', 'wp-csp-automation' ); ?></td></tr>
+				<tr><td colspan="7"><?php esc_html_e( 'No pending source proposals require review.', 'csp-automation-manager' ); ?></td></tr>
 			<?php endif; ?>
 		</tbody>
 	</table>
 
-	<h2><?php esc_html_e( 'Recent Decisions', 'wp-csp-automation' ); ?></h2>
+	<h2><?php esc_html_e( 'Recent Decisions', 'csp-automation-manager' ); ?></h2>
 	<?php $decisions = $wpdb->get_results( "SELECT * FROM {$decisions_table} ORDER BY created_at DESC LIMIT 50", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared ?>
 	<table class="widefat striped wp-csp-audit-table">
 		<thead>
 			<tr>
-				<th><?php esc_html_e( 'When', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Decision', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Actor', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Surface', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Directive', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Source', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Risk', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Engine', 'wp-csp-automation' ); ?></th>
-				<th><?php esc_html_e( 'Policy Version', 'wp-csp-automation' ); ?></th>
+				<th><?php esc_html_e( 'When', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Decision', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Actor', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Surface', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Directive', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Source', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Risk', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Engine', 'csp-automation-manager' ); ?></th>
+				<th><?php esc_html_e( 'Policy Version', 'csp-automation-manager' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -149,7 +149,7 @@ $pending_table     = $wpdb->prefix . 'csp_source_inventory';
 				</tr>
 			<?php endforeach; ?>
 			<?php if ( empty( $decisions ) ) : ?>
-				<tr><td colspan="9"><?php esc_html_e( 'No decisions have been recorded yet.', 'wp-csp-automation' ); ?></td></tr>
+				<tr><td colspan="9"><?php esc_html_e( 'No decisions have been recorded yet.', 'csp-automation-manager' ); ?></td></tr>
 			<?php endif; ?>
 		</tbody>
 	</table>

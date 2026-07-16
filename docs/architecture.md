@@ -17,7 +17,7 @@ CSP Automation Manager is a WordPress plugin that helps site owners roll out str
 
 ### Bootstrap
 
-`wp-csp-automation.php`
+`csp-automation-manager.php`
 
 Responsibilities:
 

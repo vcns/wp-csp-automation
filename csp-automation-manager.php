@@ -1,16 +1,16 @@
 <?php
 /**
  * Plugin Name:       CSP Automation Manager
- * Plugin URI:        https://github.com/vcns/wp-csp-automation
+ * Plugin URI:        https://github.com/vcns/csp-automation-manager
  * Description:       Automates strict Content Security Policy generation, enforcement, and violation analysis for WordPress.
- * Version:           1.0.4
+ * Version:           1.0.5
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            VCNS Tech Ltd
  * Author URI:        https://vcns.tech
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       wp-csp-automation
+ * Text Domain:       csp-automation-manager
  * Domain Path:       /languages
  */
 
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Core constants ────────────────────────────────────────────────────────────
-define( 'WP_CSP_VERSION', '1.0.4' );
+define( 'WP_CSP_VERSION', '1.0.5' );
 
 /**
  * Schema version. Increment whenever a database schema change is made.

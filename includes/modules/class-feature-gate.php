@@ -32,7 +32,7 @@ class Feature_Gate {
 	);
 
 	// Stable product key retained for legacy compatibility helpers.
-	private const PRODUCT_KEY = 'wp-csp-automation';
+	private const PRODUCT_KEY = 'csp-automation-manager';
 
 	/**
 	 * Legacy Entitlement_Store instance, or null when no compatibility module is present.

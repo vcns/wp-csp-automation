@@ -5,7 +5,7 @@ All rights reserved.
 
 ## 1. Purpose
 
-This document explains the permitted use of trademarks, names, logos, branding, and other identifiers associated with WP CSP Automation and VCNS Tech Ltd.
+This document explains the permitted use of trademarks, names, logos, branding, and other identifiers associated with CSP Automation Manager and VCNS Tech Ltd.
 
 This policy is separate from software licensing.
 
@@ -15,7 +15,6 @@ Rights granted under the GNU General Public License do not grant rights to use t
 
 The following names and marks are trademarks or service marks of VCNS Tech Ltd, whether registered or unregistered:
 
-* WP CSP Automation™
 * CSP Automation Manager™
 * VCNS Tech Ltd™
 * Associated logos
@@ -40,9 +39,9 @@ You may use these trademarks solely for:
 
 Examples:
 
-* "Compatible with WP CSP Automation."
-* "Migrated from WP CSP Automation."
-* "Forked from WP CSP Automation."
+* "Compatible with CSP Automation Manager."
+* "Migrated from CSP Automation Manager."
+* "Forked from CSP Automation Manager."
 
 ## 4. Prohibited Use
 
@@ -59,11 +58,11 @@ You may not:
 
 Examples of prohibited names include:
 
-* WP CSP Automation Pro
-* WP CSP Automation Plus
-* WP CSP Automation Enterprise
-* WP CSP Automation Cloud
-* Official WP CSP Automation
+* CSP Automation Manager Pro
+* CSP Automation Manager Plus
+* CSP Automation Manager Enterprise
+* CSP Automation Manager Cloud
+* Official CSP Automation Manager
 
 unless expressly authorised by VCNS Tech Ltd.
 
@@ -76,7 +75,7 @@ However, modified versions must not:
 * use original logos;
 * present themselves as official releases;
 * imply endorsement by VCNS Tech Ltd;
-* use the names WP CSP Automation or CSP Automation Manager as product names.
+* use the name CSP Automation Manager as a product name.
 
 Forks should adopt:
 
@@ -91,17 +90,17 @@ Examples:
 
 Acceptable:
 
-"Forked from WP CSP Automation."
+"Forked from CSP Automation Manager."
 
 Not acceptable:
 
-"WP CSP Automation Enterprise Edition."
+"CSP Automation Manager Enterprise Edition."
 
 ## 6. Commercial Use
 
 Commercial use of the software is permitted under GPL.
 
-Commercial users may state that they use WP CSP Automation.
+Commercial users may state that they use CSP Automation Manager.
 
 Commercial users may not use the trademarks in a manner suggesting partnership, certification, sponsorship, or endorsement without written permission.
 
@@ -117,7 +116,7 @@ You must not register domain names that are likely to cause confusion with:
 
 * wpcspautomation.com
 * wpcspautomation.net
-* wp-csp-automation.com
+* csp-automation-manager.com
 * other official domains operated by VCNS Tech Ltd
 
 Examples of prohibited domains include:

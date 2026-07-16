@@ -22,7 +22,7 @@ Operational rules:
 
 Update all release-facing version locations together:
 
-- plugin header `Version` in `wp-csp-automation.php`
+- plugin header `Version` in `csp-automation-manager.php`
 - `WP_CSP_VERSION` constant
 - `readme.txt` stable tag
 - `CHANGELOG.md`
@@ -40,7 +40,7 @@ If schema changes are included, also update:
 4. Bump versions, finalise changelog, and fix only release blockers.
 5. Open a PR from `release/*` to `main`.
 6. Merge using the repository's protected-branch policy.
-7. Tag the merged `main` state, for example `v1.0.4`.
+7. Tag the merged `main` state, for example `v1.0.5`.
 8. Let the tag-driven workflows build the GitHub Release ZIP and deploy to WordPress.org SVN.
 9. Back-merge `main` or the release branch into `development`.
 
@@ -90,7 +90,7 @@ Typical mapping:
 
 Tagged releases generate a ready-to-install ZIP asset:
 
-- `wp-csp-automation-vX.Y.Z.zip`
+- `csp-automation-manager-vX.Y.Z.zip`
 
 The repository does not publish a custom WordPress update manifest or shared update-feed ZIP. WordPress.org-distributed installs receive update metadata from WordPress.org after SVN deployment.
 
@@ -107,7 +107,7 @@ The repository includes a public GitHub Pages site in `docs/` for:
 
 Published URL:
 
-- `https://vcns.github.io/wp-csp-automation/`
+- `https://vcns.github.io/csp-automation-manager/`
 
 ## WordPress.org Review Readiness
 

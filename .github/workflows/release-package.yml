@@ -20,7 +20,7 @@ on:
       - 'readme.txt'
       - 'tools/lint-php.php'
       - 'uninstall.php'
-      - 'wp-csp-automation.php'
+      - 'csp-automation-manager.php'
   workflow_dispatch:
 
 permissions:
@@ -86,9 +86,9 @@ jobs:
 
           php <<'PHP' > /tmp/plugin-version.env
           <?php
-          $plugin = file_get_contents('wp-csp-automation.php');
+          $plugin = file_get_contents('csp-automation-manager.php');
           if (false === $plugin) {
-              fwrite(STDERR, "Unable to read wp-csp-automation.php\n");
+              fwrite(STDERR, "Unable to read csp-automation-manager.php\n");
               exit(1);
           }
 
@@ -151,18 +151,18 @@ jobs:
 
           VERSION="${{ steps.release_meta.outputs.version }}"
           TAG="${{ steps.release_meta.outputs.tag }}"
-          ZIP_FILENAME="wp-csp-automation-${TAG}.zip"
+          ZIP_FILENAME="csp-automation-manager-${TAG}.zip"
 
           rm -rf dist
-          mkdir -p dist/wp-csp-automation
+          mkdir -p dist/csp-automation-manager
 
-          rsync -a --delete --exclude-from='.distignore' ./ dist/wp-csp-automation/
+          rsync -a --delete --exclude-from='.distignore' ./ dist/csp-automation-manager/
 
           COMMIT_TIMESTAMP="$(git log -1 --format=%ct)"
-          find dist/wp-csp-automation -exec touch -h -d "@${COMMIT_TIMESTAMP}" {} +
+          find dist/csp-automation-manager -exec touch -h -d "@${COMMIT_TIMESTAMP}" {} +
 
           cd dist
-          find wp-csp-automation -type f -print | LC_ALL=C sort | zip -q -X "${ZIP_FILENAME}" -@
+          find csp-automation-manager -type f -print | LC_ALL=C sort | zip -q -X "${ZIP_FILENAME}" -@
           cd ..
 
           echo "zip_filename=${ZIP_FILENAME}" >> "${GITHUB_OUTPUT}"
@@ -174,10 +174,10 @@ jobs:
 
           ZIP="dist/${{ steps.build.outputs.zip_filename }}"
 
-          unzip -l "${ZIP}" | grep -q 'wp-csp-automation/wp-csp-automation.php'
-          unzip -l "${ZIP}" | grep -q 'wp-csp-automation/uninstall.php'
+          unzip -l "${ZIP}" | grep -q 'csp-automation-manager/csp-automation-manager.php'
+          unzip -l "${ZIP}" | grep -q 'csp-automation-manager/uninstall.php'
 
-          if unzip -l "${ZIP}" | grep -E 'wp-csp-automation/(\.git|\.github|\.private_key|\.public_key|\.phpunit\.cache|cloudflare|docs|node_modules|offline|test|tools|vendor)/|wp-csp-automation/(\.distignore|\.git|code-review-findings\.json|COMMERCIAL_TERMS\.md|README\.md|RESEARCH\.md|SPECIFICATION\.md|TRADEMARK_POLICY\.md)$'; then
+          if unzip -l "${ZIP}" | grep -E 'csp-automation-manager/(\.git|\.github|\.private_key|\.public_key|\.phpunit\.cache|cloudflare|docs|node_modules|offline|test|tools|vendor)/|csp-automation-manager/(\.distignore|\.git|code-review-findings\.json|COMMERCIAL_TERMS\.md|README\.md|RESEARCH\.md|SPECIFICATION\.md|TRADEMARK_POLICY\.md)$'; then
             echo "Release ZIP contains development, private, documentation, or generated-only paths. Check .distignore." >&2
             exit 1
           fi
@@ -185,7 +185,7 @@ jobs:
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v7
         with:
-          name: wp-csp-automation-release-zip
+          name: csp-automation-manager-release-zip
           path: dist/${{ steps.build.outputs.zip_filename }}
           retention-days: 30
 
@@ -201,7 +201,7 @@ jobs:
       - name: Download release artifacts
         uses: actions/download-artifact@v8
         with:
-          name: wp-csp-automation-release-zip
+          name: csp-automation-manager-release-zip
           path: dist/
 
       - name: Create or update GitHub Release

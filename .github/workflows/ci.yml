@@ -103,13 +103,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist/wp-csp-automation
-          rsync -av ./ dist/wp-csp-automation/ --exclude-from='.distignore'
+          mkdir -p dist/csp-automation-manager
+          rsync -av ./ dist/csp-automation-manager/ --exclude-from='.distignore'
           cd dist
-          zip -r wp-csp-automation.zip wp-csp-automation
+          zip -r csp-automation-manager.zip csp-automation-manager
 
       - name: Upload distribution artifact
         uses: actions/upload-artifact@v7
         with:
-          name: wp-csp-automation-dist
-          path: dist/wp-csp-automation.zip
+          name: csp-automation-manager-dist
+          path: dist/csp-automation-manager.zip

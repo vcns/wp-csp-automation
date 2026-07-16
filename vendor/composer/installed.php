@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
-        'name' => 'sjackson0109/wp-csp-automation',
+        'name' => 'vcns/csp-automation-manager',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '3bd75fc7fda525a53dc53bb6c3dd09bd75384ac5',
+        'reference' => 'b6b224180ee5835bb2eb1bcc8a042a2cfcaf5f06',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -271,15 +271,6 @@
             'aliases' => array(),
             'dev_requirement' => true,
         ),
-        'sjackson0109/wp-csp-automation' => array(
-            'pretty_version' => 'dev-main',
-            'version' => 'dev-main',
-            'reference' => '3bd75fc7fda525a53dc53bb6c3dd09bd75384ac5',
-            'type' => 'project',
-            'install_path' => __DIR__ . '/../../',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'squizlabs/php_codesniffer' => array(
             'pretty_version' => '3.13.5',
             'version' => '3.13.5.0',
@@ -297,6 +288,15 @@
             'install_path' => __DIR__ . '/../theseer/tokenizer',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'vcns/csp-automation-manager' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'b6b224180ee5835bb2eb1bcc8a042a2cfcaf5f06',
+            'type' => 'project',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'wp-coding-standards/wpcs' => array(
             'pretty_version' => '3.3.0',

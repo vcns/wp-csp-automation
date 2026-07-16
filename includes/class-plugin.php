@@ -66,7 +66,7 @@ final class Plugin {
 
 	private function load_textdomain(): void {
 		load_plugin_textdomain(
-			'wp-csp-automation',
+			'csp-automation-manager',
 			false,
 			dirname( plugin_basename( WP_CSP_FILE ) ) . '/languages'
 		);

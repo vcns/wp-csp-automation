@@ -10,7 +10,7 @@
 
 Do not disclose suspected vulnerabilities in a public GitHub issue, pull request, or WordPress.org support thread.
 
-Send a private report to `security@wp-csp-automation.dev` with:
+Send a private report to `security@vcns.tech` with:
 
 - A concise description of the issue.
 - Impact and attack preconditions.
