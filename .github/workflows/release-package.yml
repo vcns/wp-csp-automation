@@ -18,7 +18,6 @@ on:
       - 'includes/**'
       - 'LICENSE'
       - 'readme.txt'
-      - 'tools/generate-update-manifest.php'
       - 'tools/lint-php.php'
       - 'uninstall.php'
       - 'wp-csp-automation.php'
@@ -34,7 +33,6 @@ jobs:
 
     outputs:
       is_prerelease: ${{ steps.release_meta.outputs.is_prerelease }}
-      manifest_filename: ${{ steps.build.outputs.manifest_filename }}
       version: ${{ steps.release_meta.outputs.version }}
       zip_filename: ${{ steps.build.outputs.zip_filename }}
 
@@ -145,7 +143,7 @@ jobs:
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "is_prerelease=${IS_PRERELEASE}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build release ZIP and manifest
+      - name: Build release ZIP
         id: build
         shell: bash
         run: |
@@ -154,9 +152,6 @@ jobs:
           VERSION="${{ steps.release_meta.outputs.version }}"
           TAG="${{ steps.release_meta.outputs.tag }}"
           ZIP_FILENAME="wp-csp-automation-${TAG}.zip"
-          MANIFEST_FILENAME="wp-csp-automation.json"
-          DOWNLOAD_URL=""
-          RELEASE_URL=""
 
           rm -rf dist
           mkdir -p dist/wp-csp-automation
@@ -170,32 +165,7 @@ jobs:
           find wp-csp-automation -type f -print | LC_ALL=C sort | zip -q -X "${ZIP_FILENAME}" -@
           cd ..
 
-          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
-
-            if [[ "${TAG}" == *"-"* ]]; then
-              DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP_FILENAME}"
-            else
-              DOWNLOAD_URL="https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip"
-            fi
-          fi
-
-          MANIFEST_ARGS=(
-            --version "${VERSION}"
-            --output "dist/${MANIFEST_FILENAME}"
-          )
-
-          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            MANIFEST_ARGS+=(--download-url "${DOWNLOAD_URL}")
-            MANIFEST_ARGS+=(--release-url "${RELEASE_URL}")
-          else
-            MANIFEST_ARGS+=(--allow-empty-urls)
-          fi
-
-          php tools/generate-update-manifest.php "${MANIFEST_ARGS[@]}"
-
           echo "zip_filename=${ZIP_FILENAME}" >> "${GITHUB_OUTPUT}"
-          echo "manifest_filename=${MANIFEST_FILENAME}" >> "${GITHUB_OUTPUT}"
 
       - name: Verify ZIP structure
         shell: bash
@@ -216,9 +186,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp-csp-automation-release-zip
-          path: |
-            dist/${{ steps.build.outputs.zip_filename }}
-            dist/${{ steps.build.outputs.manifest_filename }}
+          path: dist/${{ steps.build.outputs.zip_filename }}
           retention-days: 30
 
   release:
@@ -245,7 +213,6 @@ jobs:
 
           TAG="${GITHUB_REF_NAME}"
           ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
-          MANIFEST_FILENAME="${{ needs.build.outputs.manifest_filename }}"
 
           PRERELEASE_FLAG=""
           if [[ "${{ needs.build.outputs.is_prerelease }}" == "true" ]]; then
@@ -253,117 +220,12 @@ jobs:
           fi
 
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" "dist/${MANIFEST_FILENAME}" --repo "${GITHUB_REPOSITORY}" --clobber
+            gh release upload "${TAG}" "dist/${ZIP_FILENAME}" --repo "${GITHUB_REPOSITORY}" --clobber
           else
             gh release create "${TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
-              --title "WP CSP Automation ${TAG}" \
+              --title "CSP Automation Manager ${TAG}" \
               --generate-notes \
               ${PRERELEASE_FLAG} \
-              "dist/${ZIP_FILENAME}" \
-              "dist/${MANIFEST_FILENAME}"
+              "dist/${ZIP_FILENAME}"
           fi
-
-  update-feed:
-    name: Publish shared update feed
-    needs:
-      - build
-      - release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Download ZIP artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wp-csp-automation-release-zip
-          path: dist/
-
-      - name: Generate update feed files
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ZIP_FILENAME="${{ needs.build.outputs.zip_filename }}"
-          FEED_DIR="/tmp/pages"
-
-          mkdir -p "${FEED_DIR}"
-          cp "dist/${ZIP_FILENAME}" "${FEED_DIR}/wp-csp-automation-latest.zip"
-
-          php tools/generate-update-manifest.php \
-            --tag "${GITHUB_REF_NAME}" \
-            --download-url "https://vcns.github.io/wp-updates/wp-csp-automation/wp-csp-automation-latest.zip" \
-            --release-url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}" \
-            --output "${FEED_DIR}/wp-csp-automation.json"
-
-          cat > "${FEED_DIR}/index.html" <<'HTML'
-          <!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>WP CSP Automation Updates</title>
-          </head>
-          <body>
-            <h1>WP CSP Automation Updates</h1>
-            <ul>
-              <li><a href="./wp-csp-automation.json">Latest update manifest</a></li>
-              <li><a href="./wp-csp-automation-latest.zip">Latest release ZIP</a></li>
-            </ul>
-          </body>
-          </html>
-          HTML
-
-      - name: Verify update token
-        env:
-          WP_UPDATES_TOKEN: ${{ secrets.WP_UPDATES_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${WP_UPDATES_TOKEN:-}" ]]; then
-            echo "Missing WP_UPDATES_TOKEN secret. Add a token with write access to vcns/wp-updates, then rerun this workflow." >&2
-            exit 1
-          fi
-
-      - name: Deploy to vcns/wp-updates
-        env:
-          WP_UPDATES_TOKEN: ${{ secrets.WP_UPDATES_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          UPDATE_REPO="vcns/wp-updates"
-          WORKTREE="/tmp/wp-updates"
-          REMOTE_URL="https://x-access-token:${WP_UPDATES_TOKEN}@github.com/${UPDATE_REPO}.git"
-
-          if git ls-remote --exit-code --heads "${REMOTE_URL}" gh-pages >/dev/null 2>&1; then
-            git clone --depth 1 --branch gh-pages "${REMOTE_URL}" "${WORKTREE}"
-          else
-            mkdir -p "${WORKTREE}"
-            git -C "${WORKTREE}" init --initial-branch=gh-pages
-            git -C "${WORKTREE}" remote add origin "${REMOTE_URL}"
-          fi
-
-          mkdir -p "${WORKTREE}/wp-csp-automation"
-          cp -R /tmp/pages/. "${WORKTREE}/wp-csp-automation/"
-
-          git -C "${WORKTREE}" config user.name "github-actions[bot]"
-          git -C "${WORKTREE}" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "${WORKTREE}" add wp-csp-automation
-
-          if git -C "${WORKTREE}" diff --cached --quiet; then
-            echo "No update feed changes to publish."
-            exit 0
-          fi
-
-          git -C "${WORKTREE}" commit -m "Publish wp-csp-automation ${GITHUB_REF_NAME}"
-          git -C "${WORKTREE}" push origin gh-pages

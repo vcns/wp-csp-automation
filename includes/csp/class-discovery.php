@@ -20,7 +20,7 @@
  *   - media-src is discoverable from <audio> and <video> src attributes.
  *   - manifest-src is discoverable from <link rel="manifest"> href.
  *
- * Premium feature: multi-surface crawl (admin, login pages).
+ * Multi-surface crawl covers frontend, admin, login, and REST API URLs.
  */
 
 declare( strict_types=1 );

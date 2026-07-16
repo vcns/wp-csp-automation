@@ -27,7 +27,7 @@ class ActivatorTest extends TestCase {
 	public function test_activate_seeds_config_dns_domain_option(): void {
 		Activator::activate();
 
-		$this->assertSame( WP_CSP_CONFIG_DNS_RECORD, get_option( 'wp_csp_config_dns_domain' ) );
+		$this->assertSame( '', get_option( 'wp_csp_config_dns_domain' ) );
 	}
 
 	public function test_activate_seeds_config_cache_ttl_option(): void {

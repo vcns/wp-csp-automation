@@ -32,7 +32,7 @@
           <li>Nonce injection for WordPress-managed scripts</li>
           <li>Local violation reporting and source learning</li>
           <li>Risk-ranked approval workflow</li>
-          <li>Optional premium entitlement handled by a remote licensing service</li>
+          <li>All shipped features run locally without remote licensing</li>
         </ul>
       </aside>
     </header>
@@ -44,7 +44,7 @@
       <a href='#rollout-plan'>Rollout plan</a>
       <a href='#dashboard'>Dashboard</a>
       <a href='#decisions'>Approval decisions</a>
-      <a href='#premium'>Premium</a>
+      <a href='#wordpress-org'>WordPress.org build</a>
       <a href='#help-library'>Help library</a>
       <a href='#faq-preview'>FAQ</a>
     </nav>
@@ -210,16 +210,16 @@
         </div>
       </section>
 
-      <section id='premium' class='section section-grid'>
+      <section id='wordpress-org' class='section section-grid'>
         <div>
-          <p class='section-label'>Premium</p>
-          <h2>What premium changes.</h2>
-          <p>The free tier provides the core report-only workflow, basic scan, basic dashboard, and violation endpoint. Premium features add multi-surface scanning, <code>strict-dynamic</code>, Trusted Types support, and additional analytics or export surfaces where available.</p>
-          <p>Payment processing is handled by the remote licensing service. Stripe secret material does not need to be stored in the WordPress installation.</p>
+          <p class='section-label'>WordPress.org build</p>
+          <h2>Local capabilities without remote licensing.</h2>
+          <p>The submitted plugin package provides the report-only workflow, scanning, dashboard, violation endpoint, multi-surface scanning, <code>strict-dynamic</code>, Trusted Types support, policy history, and review surfaces locally.</p>
+          <p>It does not contact third-party services for plugin updates, licensing, checkout, telemetry, or remote product configuration.</p>
         </div>
         <div class='warning-callout'>
-          <h3>Activation model</h3>
-          <p>Premium access is not granted by a browser redirect alone. It depends on the remote licensing service and verified payment processing before the local entitlement is considered active.</p>
+          <h3>Administrator control</h3>
+          <p>New CSP sources remain pending until an administrator approves them. Automation is scaffolded in manual mode and is not enabled automatically.</p>
         </div>
       </section>
 
@@ -234,23 +234,13 @@
           </article>
           <article class='card'>
             <h3>FAQ</h3>
-            <p>Direct answers for rollout, compatibility, report-only behaviour, premium activation, privacy, and recovery.</p>
+            <p>Direct answers for rollout, compatibility, report-only behaviour, privacy, and recovery.</p>
             <a href='faq.html'>Open the FAQ</a>
           </article>
           <article class='card'>
             <h3>Architecture notes</h3>
             <p>Maintainer-level notes on runtime flow, trust boundaries, and component responsibilities.</p>
             <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/architecture.md'>Read architecture notes</a>
-          </article>
-          <article class='card'>
-            <h3>Remote config</h3>
-            <p>Operator guidance for DNS-discovered signed config, key handling, cache behaviour, and fallback configuration.</p>
-            <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/remote-config-and-signing.md'>Read remote config guide</a>
-          </article>
-          <article class='card'>
-            <h3>Update endpoint</h3>
-            <p>How the GitHub Pages manifest is mapped into the WordPress plugin update UI.</p>
-            <a href='https://github.com/vcns/wp-csp-automation/blob/main/docs/update-endpoint.md'>Read update endpoint guide</a>
           </article>
           <article class='card'>
             <h3>Security policy</h3>

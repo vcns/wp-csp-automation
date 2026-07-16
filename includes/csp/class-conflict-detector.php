@@ -9,7 +9,7 @@
  *   - Probes the site home URL and checks the response headers.
  *   - Logs conflicts via Audit_Log and surfaces them as admin notices.
  *
- * Premium feature: multi-surface conflict detection.
+ * Multi-surface conflict detection.
  */
 
 declare( strict_types=1 );

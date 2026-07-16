@@ -169,7 +169,7 @@ class Activator {
 ) {$cc};"
 		);
 
-		// 6. Per-site payment entitlements
+		// 6. Legacy per-site entitlement compatibility records.
 		dbDelta(
 			"CREATE TABLE {$p}csp_entitlements (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -197,7 +197,7 @@ class Activator {
 ) {$cc};"
 		);
 
-		// 7. Stripe event idempotency log
+		// 7. Legacy external event idempotency log.
 		dbDelta(
 			"CREATE TABLE {$p}csp_processed_events (
   id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -391,7 +391,7 @@ class Activator {
 
 	private static function set_default_options(): void {
 		$defaults = array(
-			'wp_csp_config_dns_domain'             => WP_CSP_CONFIG_DNS_RECORD,
+			'wp_csp_config_dns_domain'             => '',
 			// Fallback HTTPS URL used when DNS TXT lookup fails or dns_get_record
 			// is unavailable on the host. Must be a valid https:// URL pointing
 			// to a signed config JSON document. Leave empty to disable.
@@ -539,7 +539,7 @@ class Activator {
 			// sandbox: null = disabled. Set to an array of allow-* flags to enable.
 			// Ignored by browsers in CSP-Report-Only mode and in <meta http-equiv>.
 			'sandbox'                   => null,
-			// Trusted Types directives: empty = disabled (premium feature).
+			// Trusted Types directives: empty = disabled.
 			// When enabled, always deploy in report-only first (Chromium-strong; R5).
 			'require-trusted-types-for' => array(),
 			'trusted-types'             => array(),
