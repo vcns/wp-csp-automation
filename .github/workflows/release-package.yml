@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -54,7 +54,7 @@ jobs:
         run: composer validate --strict
 
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.composer/cache/files
@@ -183,7 +183,7 @@ jobs:
           fi
 
       - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wp-csp-automation-release-zip
           path: dist/${{ steps.build.outputs.zip_filename }}
@@ -199,7 +199,7 @@ jobs:
 
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wp-csp-automation-release-zip
           path: dist/

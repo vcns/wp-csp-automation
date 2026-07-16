@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -38,7 +38,7 @@ jobs:
         run: composer validate --strict
 
       - name: Cache Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.composer/cache/files
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref_name }}
@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Semgrep scan
         run: semgrep scan --config p/php --config p/owasp-top-ten --config p/secrets
@@ -97,7 +97,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build distribution zip
         shell: bash
@@ -109,7 +109,7 @@ jobs:
           zip -r wp-csp-automation.zip wp-csp-automation
 
       - name: Upload distribution artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wp-csp-automation-dist
           path: dist/wp-csp-automation.zip
